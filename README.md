@@ -45,6 +45,7 @@ AI: [creates idea in ProductPlan Discovery]
 | VS Code + Cline | ✅ Via extension |
 | VS Code + Continue | ✅ Via extension |
 | VS Code + Roo Code | ✅ Via extension |
+| n8n | ✅ Native MCP Client |
 
 ## Installation
 
@@ -219,6 +220,27 @@ Add to Cursor's MCP settings (Settings → MCP Servers):
   }
 }
 ```
+
+### n8n
+
+[n8n](https://n8n.io/) has native MCP support via the MCP Client node.
+
+1. Set environment variable on your n8n instance:
+   ```
+   N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+   ```
+
+2. Add **MCP Client** node to your workflow
+
+3. Configure connection:
+   - **Command**: `/usr/local/bin/productplan`
+   - **Environment Variables**: `PRODUCTPLAN_API_TOKEN=your-token`
+
+4. Connect to an **AI Agent** node to enable natural language queries against your ProductPlan data
+
+Example workflow: `Slack Trigger → AI Agent (with MCP Client) → Slack Response`
+
+The AI agent can query roadmaps, create ideas, or fetch OKR status from conversational input.
 
 ## Available Commands / MCP Tools
 
