@@ -89,29 +89,34 @@ export PRODUCTPLAN_API_TOKEN="your-api-token"
 # Check connection
 productplan status
 
-# List roadmaps
-productplan roadmaps
+# Roadmaps
+productplan roadmaps              # List all roadmaps
+productplan roadmaps 12345        # Get roadmap details
 
-# Get roadmap details
-productplan roadmaps 12345
+# Bars, Lanes, Milestones
+productplan bars 12345            # List bars in roadmap
+productplan lanes 12345           # List lanes in roadmap
+productplan milestones 12345      # List milestones in roadmap
 
-# List bars in a roadmap
-productplan bars 12345
+# OKRs
+productplan objectives            # List all objectives
+productplan objectives 67890      # Get objective details
+productplan key-results 67890     # List key results for objective
 
-# List all objectives (OKRs)
-productplan objectives
+# Discovery
+productplan ideas                 # List all ideas
+productplan ideas 11111           # Get idea details
+productplan opportunities         # List all opportunities
+productplan opportunities 22222   # Get opportunity details
 
-# Get objective details
-productplan objectives 67890
+# Launches
+productplan launches              # List all launches
+productplan launches 33333        # Get launch details
+productplan tasks 33333           # List tasks for launch
 
-# List key results
-productplan key-results 67890
-
-# List ideas, launches, users, teams
-productplan ideas
-productplan launches
-productplan users
-productplan teams
+# Organization
+productplan users                 # List users
+productplan teams                 # List teams
 ```
 
 ## MCP Server Configuration
@@ -242,45 +247,143 @@ Example workflow: `Slack Trigger → AI Agent (with MCP Client) → Slack Respon
 
 The AI agent can query roadmaps, create ideas, or fetch OKR status from conversational input.
 
-## Available Commands / MCP Tools
+## Available MCP Tools (60+)
 
-| CLI Command | MCP Tool | Description |
-|-------------|----------|-------------|
-| `roadmaps` | `list_roadmaps` | List all roadmaps |
-| `roadmaps <id>` | `get_roadmap` | Get roadmap details |
-| `bars <roadmap_id>` | `get_roadmap_bars` | Get roadmap bars |
-| - | `get_roadmap_lanes` | Get roadmap lanes |
-| - | `get_roadmap_milestones` | Get roadmap milestones |
-| - | `get_bar` | Get bar details |
-| - | `create_bar` | Create a bar |
-| - | `update_bar` | Update a bar |
-| `objectives` | `list_objectives` | List all OKRs |
-| `objectives <id>` | `get_objective` | Get objective details |
-| `key-results <id>` | `list_key_results` | Get key results |
-| `ideas` | `list_ideas` | List ideas |
-| - | `get_idea` | Get idea details |
-| - | `create_idea` | Create an idea |
-| - | `list_opportunities` | List opportunities |
-| `launches` | `list_launches` | List launches |
-| - | `get_launch` | Get launch details |
-| - | `list_launch_tasks` | Get launch tasks |
-| `users` | `list_users` | List users |
-| `teams` | `list_teams` | List teams |
-| `status` | `check_status` | Check API status |
+### Roadmaps
+| MCP Tool | Description |
+|----------|-------------|
+| `list_roadmaps` | List all roadmaps |
+| `get_roadmap` | Get roadmap details |
+| `get_roadmap_bars` | Get all bars in a roadmap |
+| `get_roadmap_lanes` | Get all lanes in a roadmap |
+| `get_roadmap_milestones` | Get all milestones |
+| `get_roadmap_comments` | Get roadmap comments |
+
+### Lanes
+| MCP Tool | Description |
+|----------|-------------|
+| `create_lane` | Create a new lane |
+| `update_lane` | Update lane properties |
+| `delete_lane` | Delete a lane |
+
+### Milestones
+| MCP Tool | Description |
+|----------|-------------|
+| `create_milestone` | Create a new milestone |
+| `update_milestone` | Update milestone properties |
+| `delete_milestone` | Delete a milestone |
+
+### Bars
+| MCP Tool | Description |
+|----------|-------------|
+| `get_bar` | Get bar details |
+| `create_bar` | Create a new bar |
+| `update_bar` | Update bar properties |
+| `delete_bar` | Delete a bar |
+| `get_bar_child_bars` | Get child bars |
+| `get_bar_comments` | Get bar comments |
+| `get_bar_connections` | Get bar connections |
+| `get_bar_links` | Get bar external links |
+
+### Ideas (Discovery)
+| MCP Tool | Description |
+|----------|-------------|
+| `list_ideas` | List all ideas |
+| `get_idea` | Get idea details |
+| `create_idea` | Create a new idea |
+| `update_idea` | Update idea properties |
+| `get_idea_customers` | Get idea customers |
+| `get_idea_tags` | Get idea tags |
+
+### Opportunities (Discovery)
+| MCP Tool | Description |
+|----------|-------------|
+| `list_opportunities` | List all opportunities |
+| `get_opportunity` | Get opportunity details |
+| `create_opportunity` | Create an opportunity |
+| `update_opportunity` | Update opportunity |
+
+### Idea Forms
+| MCP Tool | Description |
+|----------|-------------|
+| `list_idea_forms` | List idea forms |
+| `get_idea_form` | Get form details |
+
+### Objectives (OKRs)
+| MCP Tool | Description |
+|----------|-------------|
+| `list_objectives` | List all objectives |
+| `get_objective` | Get objective details |
+| `create_objective` | Create an objective |
+| `update_objective` | Update objective |
+| `delete_objective` | Delete an objective |
+
+### Key Results (OKRs)
+| MCP Tool | Description |
+|----------|-------------|
+| `list_key_results` | List key results |
+| `get_key_result` | Get key result details |
+| `create_key_result` | Create a key result |
+| `update_key_result` | Update key result |
+| `delete_key_result` | Delete a key result |
+
+### Launches
+| MCP Tool | Description |
+|----------|-------------|
+| `list_launches` | List all launches |
+| `get_launch` | Get launch details |
+| `create_launch` | Create a launch |
+| `update_launch` | Update launch |
+| `delete_launch` | Delete a launch |
+
+### Checklist Sections
+| MCP Tool | Description |
+|----------|-------------|
+| `list_checklist_sections` | List checklist sections |
+| `get_checklist_section` | Get section details |
+| `create_checklist_section` | Create a section |
+| `update_checklist_section` | Update section |
+| `delete_checklist_section` | Delete a section |
+
+### Tasks
+| MCP Tool | Description |
+|----------|-------------|
+| `list_launch_tasks` | List tasks in a launch |
+| `get_task` | Get task details |
+| `create_task` | Create a task |
+| `update_task` | Update task |
+| `delete_task` | Delete a task |
+
+### Organization
+| MCP Tool | Description |
+|----------|-------------|
+| `list_users` | List all users |
+| `list_teams` | List all teams |
+| `check_status` | Check API status |
 
 ## API Coverage
 
 | Feature | Read | Create | Update | Delete |
 |---------|------|--------|--------|--------|
-| Roadmaps | ✅ | ❌ | ❌ | ❌ |
-| Bars | ✅ | ✅ | ✅ | ❌ |
-| Lanes | ✅ | ❌ | ❌ | ❌ |
-| Milestones | ✅ | ❌ | ❌ | ❌ |
-| Ideas | ✅ | ✅ | ❌ | ❌ |
-| Opportunities | ✅ | ❌ | ❌ | ❌ |
-| Objectives | ✅ | ❌ | ❌ | ❌ |
-| Key Results | ✅ | ❌ | ❌ | ❌ |
-| Launches | ✅ | ❌ | ❌ | ❌ |
+| Roadmaps | ✅ | - | - | - |
+| Lanes | ✅ | ✅ | ✅ | ✅ |
+| Milestones | ✅ | ✅ | ✅ | ✅ |
+| Bars | ✅ | ✅ | ✅ | ✅ |
+| Bar Comments | ✅ | - | - | - |
+| Bar Connections | ✅ | - | - | - |
+| Bar Links | ✅ | - | - | - |
+| Ideas | ✅ | ✅ | ✅ | - |
+| Idea Customers | ✅ | - | - | - |
+| Idea Tags | ✅ | - | - | - |
+| Idea Forms | ✅ | - | - | - |
+| Opportunities | ✅ | ✅ | ✅ | - |
+| Objectives | ✅ | ✅ | ✅ | ✅ |
+| Key Results | ✅ | ✅ | ✅ | ✅ |
+| Launches | ✅ | ✅ | ✅ | ✅ |
+| Checklist Sections | ✅ | ✅ | ✅ | ✅ |
+| Tasks | ✅ | ✅ | ✅ | ✅ |
+| Users | ✅ | - | - | - |
+| Teams | ✅ | - | - | - |
 
 ## Building
 
