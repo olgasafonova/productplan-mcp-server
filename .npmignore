@@ -1,0 +1,15 @@
+# Development files
+.git/
+.github/
+.gitignore
+.env*
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
