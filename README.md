@@ -7,6 +7,33 @@ A single binary that provides both CLI access and MCP server integration for [Pr
 - **No dependencies**: Single ~5MB binary
 - **Cross-platform**: macOS, Linux, Windows
 
+## What is ProductPlan?
+
+[ProductPlan](https://www.productplan.com/) is a roadmap software used by product teams to plan, visualize, and communicate strategy. Over 4,000 companies use it to align teams around product direction.
+
+**Core features:**
+- **Roadmaps** - Visual timelines with bars representing initiatives, organized into lanes (themes, teams, or categories)
+- **OKRs** - Strategic objectives and measurable key results to track progress
+- **Discovery** - Capture and prioritize ideas before they hit the roadmap
+- **Launches** - Coordinate go-to-market activities with checklists and tasks
+
+## What is MCP?
+
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open standard for connecting AI assistants to external tools and data sources. Anthropic developed it; OpenAI, Google, and others are adopting it.
+
+This server lets AI assistants interact with your ProductPlan data through natural language:
+
+```
+You: "What's on our Q1 roadmap?"
+AI: [queries ProductPlan API, returns roadmap items]
+
+You: "Show me all objectives that are behind schedule"
+AI: [fetches OKRs, filters by status]
+
+You: "Create a new idea for mobile app improvements"
+AI: [creates idea in ProductPlan Discovery]
+```
+
 ## Supported Tools
 
 | Tool | Support |
