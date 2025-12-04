@@ -2,6 +2,15 @@
 
 A Model Context Protocol (MCP) server that provides AI assistants with access to [ProductPlan](https://www.productplan.com/) roadmapping and strategy features.
 
+## Two Versions Available
+
+| Version | Location | Best For |
+|---------|----------|----------|
+| **Go** (recommended) | [`go-version/`](go-version/) | CLI + MCP server, single binary, no dependencies |
+| **Node.js** | Root directory | Quick npm install |
+
+**Go version** is recommended: single binary, works as both CLI and MCP server, no runtime dependencies.
+
 ## Features
 
 This MCP server exposes ProductPlan's API through standardized tools that any MCP-compatible AI assistant can use:
