@@ -150,6 +150,66 @@ Add to Cursor's MCP configuration (Settings > MCP Servers):
 }
 ```
 
+### VS Code + Cline Extension
+
+1. Install [Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) extension
+2. Open VS Code Settings (JSON) or Cline's MCP settings
+3. Add to `cline.mcpServers`:
+
+```json
+{
+  "cline.mcpServers": {
+    "productplan": {
+      "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+Or via Cline settings UI: Settings → Cline → MCP Servers → Add Server
+
+### VS Code + Continue Extension
+
+1. Install [Continue](https://marketplace.visualstudio.com/items?itemName=continue.continue) extension
+2. Open `~/.continue/config.json`
+3. Add to the `mcpServers` section:
+
+```json
+{
+  "mcpServers": [
+    {
+      "name": "productplan",
+      "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  ]
+}
+```
+
+### VS Code + Roo Code Extension
+
+1. Install [Roo Code](https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline) extension
+2. Open Roo Code settings
+3. Add MCP server:
+
+```json
+{
+  "roo-cline.mcpServers": {
+    "productplan": {
+      "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
 ## Available Commands / MCP Tools
 
 | Command | MCP Tool | Description |

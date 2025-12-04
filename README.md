@@ -11,6 +11,18 @@ A Model Context Protocol (MCP) server that provides AI assistants with access to
 
 **Go version** is recommended: single binary, works as both CLI and MCP server, no runtime dependencies.
 
+### Supported Tools
+
+| Tool | Support |
+|------|---------|
+| Claude Code (CLI) | ✅ Native |
+| Cursor | ✅ Native |
+| Claude Desktop | ✅ Native |
+| VS Code + Cline | ✅ Via extension |
+| VS Code + Continue | ✅ Via extension |
+| VS Code + Roo Code | ✅ Via extension |
+| Terminal (CLI) | ✅ Direct |
+
 ## Features
 
 This MCP server exposes ProductPlan's API through standardized tools that any MCP-compatible AI assistant can use:
