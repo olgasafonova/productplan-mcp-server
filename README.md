@@ -1,128 +1,93 @@
-# ProductPlan CLI & MCP Server
+# ProductPlan MCP Server
 
-A single binary that provides both CLI access and MCP server integration for [ProductPlan](https://www.productplan.com/).
+**Talk to your roadmaps using AI.** Ask questions, create ideas, check OKR progress, and manage launches through natural conversation with Claude, Cursor, or other AI assistants.
 
-- **CLI mode**: Query ProductPlan directly from terminal
-- **MCP server mode**: Integrate with Claude Code, Cursor, VS Code, etc.
-- **No dependencies**: Single ~5MB binary
-- **Cross-platform**: macOS, Linux, Windows
-- **Token-optimized**: Consolidated tools and summarized responses for efficient AI usage
+## What Can You Do With This?
 
-## What is ProductPlan?
+Instead of clicking through ProductPlan's interface, just ask:
 
-[ProductPlan](https://www.productplan.com/) is a roadmap software used by product teams to plan, visualize, and communicate strategy. Over 4,000 companies use it to align teams around product direction.
+> "What's on our Q1 roadmap?"
 
-**Core features:**
-- **Roadmaps** - Visual timelines with bars representing initiatives, organized into lanes (themes, teams, or categories)
-- **OKRs** - Strategic objectives and measurable key results to track progress
-- **Discovery** - Capture and prioritize ideas before they hit the roadmap
-- **Launches** - Coordinate go-to-market activities with checklists and tasks
+> "Show me all objectives that are behind schedule"
 
-## What is MCP?
+> "Create a new idea for mobile app improvements"
 
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open standard for connecting AI assistants to external tools and data sources. Anthropic developed it; OpenAI, Google, and others are adopting it.
+> "What launches are coming up this month?"
 
-This server lets AI assistants interact with your ProductPlan data through natural language:
+> "List all ideas tagged 'customer-request'"
 
-```
-You: "What's on our Q1 roadmap?"
-AI: [queries ProductPlan API, returns roadmap items]
+The AI fetches your real ProductPlan data and responds in seconds.
 
-You: "Show me all objectives that are behind schedule"
-AI: [fetches OKRs, filters by status]
+## Who Is This For?
 
-You: "Create a new idea for mobile app improvements"
-AI: [creates idea in ProductPlan Discovery]
-```
+- **Product Managers** who want faster access to roadmap data
+- **Team leads** who need quick status updates without context-switching
+- **Anyone using AI assistants** (Claude, Cursor, etc.) who wants ProductPlan integrated into their workflow
 
-## Supported Tools
+No coding required. You'll copy a file and paste some settings.
 
-| Tool | Support |
-|------|---------|
-| Terminal (CLI) | ✅ Direct |
-| Claude Code | ✅ Native |
-| Cursor | ✅ Native |
-| Claude Desktop | ✅ Native |
-| VS Code + Cline | ✅ Via extension |
-| VS Code + Continue | ✅ Via extension |
-| VS Code + Roo Code | ✅ Via extension |
-| n8n | ✅ Native MCP Client |
+## Quick Start (5 minutes)
 
-## Installation
+### Step 1: Get Your ProductPlan API Token
 
-### Download Binary
+1. Log into [ProductPlan](https://app.productplan.com)
+2. Go to **Settings** → **API** (or visit [this link](https://app.productplan.com/settings/api) directly)
+3. Copy your API token
 
-Download from [Releases](https://github.com/olgasafonova/productplan-mcp-server/releases):
+### Step 2: Download the App
 
-| Platform | File |
-|----------|------|
-| macOS (Apple Silicon) | `productplan-darwin-arm64` |
-| macOS (Intel) | `productplan-darwin-amd64` |
-| Linux (x64) | `productplan-linux-amd64` |
-| Linux (ARM) | `productplan-linux-arm64` |
+Go to the [Releases page](https://github.com/olgasafonova/productplan-mcp-server/releases) and download the right file for your computer:
+
+| Your Computer | Download This |
+|---------------|---------------|
+| Mac (M1, M2, M3, M4) | `productplan-darwin-arm64` |
+| Mac (Intel) | `productplan-darwin-amd64` |
 | Windows | `productplan-windows-amd64.exe` |
+| Linux | `productplan-linux-amd64` |
+
+**On Mac/Linux**, open Terminal and run these two commands (replace the filename with what you downloaded):
 
 ```bash
-# macOS/Linux
-chmod +x productplan-*
-sudo mv productplan-* /usr/local/bin/productplan
+chmod +x ~/Downloads/productplan-darwin-arm64
+sudo mv ~/Downloads/productplan-darwin-arm64 /usr/local/bin/productplan
 ```
 
-### Build from Source
+You'll be asked for your password. This is normal.
 
-```bash
-git clone https://github.com/olgasafonova/productplan-mcp-server.git
-cd productplan-mcp-server
-go build -o productplan .
+**On Windows**, move the `.exe` file to a folder in your PATH, or note down where you saved it.
+
+### Step 3: Connect to Your AI Assistant
+
+Pick the tool you use:
+
+<details>
+<summary><strong>Claude Desktop</strong> (click to expand)</summary>
+
+1. Find your config file:
+   - **Mac**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+   - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+2. Open it in any text editor and add this (replace `your-token` with your actual API token):
+
+```json
+{
+  "mcpServers": {
+    "productplan": {
+      "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
 ```
 
-## Configuration
+3. Restart Claude Desktop
 
-Get your API token from [ProductPlan Settings → API](https://app.productplan.com/settings/api).
+</details>
 
-```bash
-export PRODUCTPLAN_API_TOKEN="your-api-token"
-```
-
-## CLI Usage
-
-```bash
-# Check connection
-productplan status
-
-# Roadmaps
-productplan roadmaps              # List all roadmaps
-productplan roadmaps 12345        # Get roadmap details
-
-# Bars, Lanes, Milestones
-productplan bars 12345            # List bars in roadmap
-productplan lanes 12345           # List lanes in roadmap
-productplan milestones 12345      # List milestones in roadmap
-
-# OKRs
-productplan objectives            # List all objectives
-productplan objectives 67890      # Get objective details
-productplan key-results 67890     # List key results for objective
-
-# Discovery
-productplan ideas                 # List all ideas
-productplan ideas 11111           # Get idea details
-productplan opportunities         # List all opportunities
-productplan opportunities 22222   # Get opportunity details
-
-# Launches
-productplan launches              # List all launches
-productplan launches 33333        # Get launch details
-productplan tasks 33333           # List tasks for launch
-
-# Organization
-productplan users                 # List users
-productplan teams                 # List teams
-```
-
-## MCP Server Configuration
-
-### Claude Code
+<details>
+<summary><strong>Claude Code (Terminal)</strong></summary>
 
 Add to `~/.claude.json`:
 
@@ -139,9 +104,14 @@ Add to `~/.claude.json`:
 }
 ```
 
-### Cursor
+</details>
 
-Add to Cursor's MCP settings (Settings → MCP Servers):
+<details>
+<summary><strong>Cursor</strong></summary>
+
+1. Open Cursor
+2. Go to **Settings** → **MCP Servers**
+3. Add this configuration:
 
 ```json
 {
@@ -154,28 +124,13 @@ Add to Cursor's MCP settings (Settings → MCP Servers):
 }
 ```
 
-### Claude Desktop
+</details>
 
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+<details>
+<summary><strong>VS Code + Cline</strong></summary>
 
-```json
-{
-  "mcpServers": {
-    "productplan": {
-      "command": "/usr/local/bin/productplan",
-      "env": {
-        "PRODUCTPLAN_API_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-### VS Code + Cline
-
-1. Install [Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev) extension
-2. Add to VS Code settings:
+1. Install the [Cline extension](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev)
+2. Open VS Code settings (JSON) and add:
 
 ```json
 {
@@ -190,9 +145,12 @@ Add to Cursor's MCP settings (Settings → MCP Servers):
 }
 ```
 
-### VS Code + Continue
+</details>
 
-1. Install [Continue](https://marketplace.visualstudio.com/items?itemName=continue.continue) extension
+<details>
+<summary><strong>VS Code + Continue</strong></summary>
+
+1. Install the [Continue extension](https://marketplace.visualstudio.com/items?itemName=continue.continue)
 2. Add to `~/.continue/config.json`:
 
 ```json
@@ -209,147 +167,176 @@ Add to Cursor's MCP settings (Settings → MCP Servers):
 }
 ```
 
-### VS Code + Roo Code
+</details>
 
-1. Install [Roo Code](https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline) extension
-2. Add to settings:
-
-```json
-{
-  "roo-cline.mcpServers": {
-    "productplan": {
-      "command": "/usr/local/bin/productplan",
-      "env": {
-        "PRODUCTPLAN_API_TOKEN": "your-token"
-      }
-    }
-  }
-}
-```
-
-### n8n
-
-[n8n](https://n8n.io/) has native MCP support via the MCP Client node.
+<details>
+<summary><strong>n8n (Workflow Automation)</strong></summary>
 
 1. Set environment variable on your n8n instance:
    ```
    N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
    ```
-
-2. Add **MCP Client** node to your workflow
-
-3. Configure connection:
+2. Add an **MCP Client** node to your workflow
+3. Configure:
    - **Command**: `/usr/local/bin/productplan`
    - **Environment Variables**: `PRODUCTPLAN_API_TOKEN=your-token`
-
-4. Connect to an **AI Agent** node to enable natural language queries against your ProductPlan data
+4. Connect to an **AI Agent** node
 
 Example workflow: `Slack Trigger → AI Agent (with MCP Client) → Slack Response`
 
-The AI agent can query roadmaps, create ideas, or fetch OKR status from conversational input.
+</details>
 
-## Available MCP Tools (15 Consolidated)
+### Step 4: Start Asking Questions
 
-v3.0 consolidates 58 individual tools into 15 action-based tools, reducing token consumption by ~74%.
+Open your AI assistant and try:
 
-| Tool | Actions | Description |
-|------|---------|-------------|
-| `roadmaps` | list, get, get_bars, get_comments | Manage roadmaps |
-| `lanes` | list, create, update, delete | Manage lanes in roadmaps |
-| `milestones` | list, create, update, delete | Manage milestones |
-| `bars` | get, create, update, delete, get_children, get_comments, get_connections, get_links | Manage bars |
-| `bar_connections` | list, create, delete | Manage bar connections |
-| `bar_links` | list, create, delete | Manage external links on bars |
-| `ideas` | list, get, create, update, get_customers, get_tags | Manage ideas (Discovery) |
-| `opportunities` | list, get, create, update | Manage opportunities |
-| `idea_forms` | list, get | View idea forms |
-| `objectives` | list, get, create, update, delete | Manage OKRs |
-| `key_results` | list, get, create, update, delete | Manage key results |
-| `launches` | list, get, create, update, delete | Manage launches |
-| `checklist_sections` | list, get, create, update, delete | Manage checklist sections |
-| `tasks` | list, get, create, update, delete | Manage launch tasks |
-| `organization` | users, teams, status | Organization info |
+- "List my ProductPlan roadmaps"
+- "What bars are on roadmap [name]?"
+- "Show me our OKRs"
+- "What ideas are in discovery?"
 
-### Example Tool Usage
+---
 
-```json
-// List all roadmaps
-{"tool": "roadmaps", "arguments": {"action": "list"}}
+## Real-World Use Cases
 
-// Get specific roadmap
-{"tool": "roadmaps", "arguments": {"action": "get", "id": "12345"}}
+### Morning Standup Prep
+> "Summarize what changed on our Product Roadmap in the last week"
 
-// Get bars in a roadmap
-{"tool": "roadmaps", "arguments": {"action": "get_bars", "id": "12345"}}
+### Stakeholder Updates
+> "List all Q1 objectives and their progress"
 
-// Create a new idea
-{"tool": "ideas", "arguments": {"action": "create", "title": "Mobile app redesign", "description": "..."}}
-```
+### Idea Triage
+> "Show me all ideas tagged 'enterprise' that don't have a priority set"
 
-### Response Optimization
+### Launch Coordination
+> "What tasks are still incomplete for the January launch?"
 
-List operations return summarized responses to reduce token usage:
+### Quick Lookups
+> "When is the 'Mobile App v2' bar scheduled to start?"
 
-```json
-{
-  "count": 17,
-  "items": [
-    {"id": 498227, "name": "Product Roadmap", "updated_at": "2025-12-05T00:57:59Z"},
-    {"id": 592160, "name": "Process Platform", "updated_at": "2025-12-04T22:19:03Z"}
-  ]
-}
-```
+---
 
-## API Coverage
+## What ProductPlan Data Can You Access?
 
-| Feature | Read | Create | Update | Delete |
-|---------|------|--------|--------|--------|
-| Roadmaps | ✅ | - | - | - |
-| Lanes | ✅ | ✅ | ✅ | ✅ |
-| Milestones | ✅ | ✅ | ✅ | ✅ |
-| Bars | ✅ | ✅ | ✅ | ✅ |
-| Bar Comments | ✅ | - | - | - |
-| Bar Connections | ✅ | ✅ | - | ✅ |
-| Bar Links | ✅ | ✅ | - | ✅ |
-| Ideas | ✅ | ✅ | ✅ | - |
-| Idea Customers | ✅ | - | - | - |
-| Idea Tags | ✅ | - | - | - |
-| Idea Forms | ✅ | - | - | - |
-| Opportunities | ✅ | ✅ | ✅ | - |
-| Objectives | ✅ | ✅ | ✅ | ✅ |
-| Key Results | ✅ | ✅ | ✅ | ✅ |
-| Launches | ✅ | ✅ | ✅ | ✅ |
-| Checklist Sections | ✅ | ✅ | ✅ | ✅ |
-| Tasks | ✅ | ✅ | ✅ | ✅ |
-| Users | ✅ | - | - | - |
-| Teams | ✅ | - | - | - |
+| Feature | View | Create | Edit | Delete |
+|---------|------|--------|------|--------|
+| **Roadmaps** | Yes | - | - | - |
+| **Bars** (roadmap items) | Yes | Yes | Yes | Yes |
+| **Lanes** (categories) | Yes | Yes | Yes | Yes |
+| **Milestones** | Yes | Yes | Yes | Yes |
+| **Ideas** (Discovery) | Yes | Yes | Yes | - |
+| **Opportunities** | Yes | Yes | Yes | - |
+| **Objectives** (OKRs) | Yes | Yes | Yes | Yes |
+| **Key Results** | Yes | Yes | Yes | Yes |
+| **Launches** | Yes | Yes | Yes | Yes |
+| **Tasks** (launch checklists) | Yes | Yes | Yes | Yes |
+| **Users & Teams** | Yes | - | - | - |
 
-## Building
+---
+
+## Troubleshooting
+
+**"Command not found"**
+Make sure you ran the `chmod` and `mv` commands from Step 2. On Windows, ensure the .exe is in your PATH.
+
+**"Invalid API token"**
+Double-check your token at [ProductPlan Settings → API](https://app.productplan.com/settings/api). Tokens can expire or be regenerated.
+
+**"No roadmaps found"**
+Your API token only accesses data you have permission to see in ProductPlan. Check that your account has access to the roadmaps you're looking for.
+
+**AI assistant doesn't see ProductPlan**
+Restart your AI assistant after editing the config file. The MCP server only loads on startup.
+
+---
+
+## Command Line (Optional)
+
+You can also use this tool directly in Terminal without an AI assistant:
 
 ```bash
-# Build for current platform
-make build
+# First, set your token
+export PRODUCTPLAN_API_TOKEN="your-token"
 
-# Build for all platforms
+# Then run commands
+productplan status           # Check connection
+productplan roadmaps         # List all roadmaps
+productplan bars 12345       # List bars in roadmap #12345
+productplan objectives       # List all OKRs
+productplan ideas            # List all ideas
+productplan launches         # List all launches
+```
+
+---
+
+## Background Info
+
+### What is MCP?
+
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open standard that lets AI assistants connect to external tools. Anthropic created it; other AI providers are adopting it. This server implements MCP so your AI assistant can read and write ProductPlan data.
+
+### What is ProductPlan?
+
+[ProductPlan](https://www.productplan.com/) is roadmap software used by 4,000+ product teams. It handles roadmaps, OKRs, idea discovery, and launch coordination.
+
+---
+
+## For Developers
+
+<details>
+<summary>Build from source</summary>
+
+```bash
+git clone https://github.com/olgasafonova/productplan-mcp-server.git
+cd productplan-mcp-server
+go build -o productplan .
+```
+
+Build for all platforms:
+```bash
 make build-all
-
-# Create release archives
 make release
 ```
 
+</details>
+
+<details>
+<summary>MCP Tool Reference</summary>
+
+v3.0 consolidates 58 API operations into 15 action-based tools:
+
+| Tool | Actions |
+|------|---------|
+| `roadmaps` | list, get, get_bars, get_comments |
+| `lanes` | list, create, update, delete |
+| `milestones` | list, create, update, delete |
+| `bars` | get, create, update, delete, get_children, get_comments, get_connections, get_links |
+| `bar_connections` | list, create, delete |
+| `bar_links` | list, create, delete |
+| `ideas` | list, get, create, update, get_customers, get_tags |
+| `opportunities` | list, get, create, update |
+| `idea_forms` | list, get |
+| `objectives` | list, get, create, update, delete |
+| `key_results` | list, get, create, update, delete |
+| `launches` | list, get, create, update, delete |
+| `checklist_sections` | list, get, create, update, delete |
+| `tasks` | list, get, create, update, delete |
+| `organization` | users, teams, status |
+
+Example tool call:
+```json
+{"tool": "roadmaps", "arguments": {"action": "list"}}
+```
+
+</details>
+
+---
+
 ## Changelog
 
-### v3.0.0
-- Consolidated 58 tools into 15 action-based tools (74% reduction)
-- Added response summarization for list operations
-- Compact JSON responses in MCP mode
-- Improved token efficiency for AI assistants
-
-### v2.0.0
-- Initial public release
-- Full ProductPlan API v2 coverage
-- CLI and MCP server modes
+**v3.0.0** - Consolidated 58 tools into 15 (74% fewer tokens), added response summarization
+**v2.0.0** - Initial public release with full ProductPlan API v2 coverage
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE)
