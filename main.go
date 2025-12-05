@@ -8,14 +8,17 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 )
 
 const (
-	apiBase = "https://app.productplan.com/api/v2"
-	version = "2.0.0"
+	apiBase        = "https://app.productplan.com/api/v2"
+	version        = "3.0.0"
+	defaultLimit   = 10
+	maxLimit       = 100
 )
 
 var apiToken string
@@ -71,7 +74,6 @@ func (c *APIClient) request(method, endpoint string, body interface{}) (json.Raw
 		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(respBody))
 	}
 
-	// For DELETE operations that return no content
 	if resp.StatusCode == 204 {
 		return json.RawMessage(`{"success": true}`), nil
 	}
@@ -80,31 +82,99 @@ func (c *APIClient) request(method, endpoint string, body interface{}) (json.Raw
 }
 
 // ============================================================================
-// Roadmaps
+// Response Summarization - Key token saver!
 // ============================================================================
 
-func (c *APIClient) ListRoadmaps() (json.RawMessage, error) {
-	return c.request("GET", "/roadmaps", nil)
+// SummarizeList extracts only essential fields from list responses
+func SummarizeList(data json.RawMessage, itemType string) json.RawMessage {
+	// Define which fields to keep for each type
+	fieldsToKeep := map[string][]string{
+		"roadmap":    {"id", "name", "updated_at"},
+		"bar":        {"id", "name", "start_date", "end_date", "lane_id"},
+		"lane":       {"id", "name", "color"},
+		"milestone":  {"id", "name", "date"},
+		"idea":       {"id", "title", "status", "created_at"},
+		"objective":  {"id", "name", "status", "time_frame"},
+		"key_result": {"id", "name", "current_value", "target_value"},
+		"launch":     {"id", "name", "date", "status"},
+		"task":       {"id", "name", "status"},
+		"user":       {"id", "name", "email"},
+		"team":       {"id", "name"},
+		"default":    {"id", "name"},
+	}
+
+	fields, ok := fieldsToKeep[itemType]
+	if !ok {
+		fields = fieldsToKeep["default"]
+	}
+
+	// Try to parse as array first
+	var items []map[string]interface{}
+	if err := json.Unmarshal(data, &items); err != nil {
+		// Try parsing as object with "results" key (ProductPlan API wrapper)
+		var wrapper struct {
+			Results []map[string]interface{} `json:"results"`
+		}
+		if err := json.Unmarshal(data, &wrapper); err != nil {
+			return data // Can't parse, return as-is
+		}
+		items = wrapper.Results
+	}
+
+	summarized := make([]map[string]interface{}, 0, len(items))
+	for _, item := range items {
+		summary := make(map[string]interface{})
+		for _, field := range fields {
+			if val, exists := item[field]; exists {
+				summary[field] = val
+			}
+		}
+		summarized = append(summarized, summary)
+	}
+
+	result, _ := json.Marshal(map[string]interface{}{
+		"count": len(summarized),
+		"items": summarized,
+	})
+	return result
+}
+
+// ============================================================================
+// API Methods with Pagination
+// ============================================================================
+
+// Roadmaps
+func (c *APIClient) ListRoadmaps(limit int) (json.RawMessage, error) {
+	data, err := c.request("GET", "/roadmaps", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "roadmap"), nil
 }
 
 func (c *APIClient) GetRoadmap(id string) (json.RawMessage, error) {
 	return c.request("GET", "/roadmaps/"+id, nil)
 }
 
-func (c *APIClient) GetRoadmapBars(id string) (json.RawMessage, error) {
-	return c.request("GET", "/roadmaps/"+id+"/bars", nil)
+func (c *APIClient) GetRoadmapBars(id string, limit int) (json.RawMessage, error) {
+	data, err := c.request("GET", "/roadmaps/"+id+"/bars", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "bar"), nil
 }
 
 func (c *APIClient) GetRoadmapComments(id string) (json.RawMessage, error) {
 	return c.request("GET", "/roadmaps/"+id+"/comments", nil)
 }
 
-// ============================================================================
 // Lanes
-// ============================================================================
-
 func (c *APIClient) ListLanes(roadmapID string) (json.RawMessage, error) {
-	return c.request("GET", "/roadmaps/"+roadmapID+"/lanes", nil)
+	data, err := c.request("GET", "/roadmaps/"+roadmapID+"/lanes", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "lane"), nil
 }
 
 func (c *APIClient) CreateLane(roadmapID string, data map[string]interface{}) (json.RawMessage, error) {
@@ -119,12 +189,13 @@ func (c *APIClient) DeleteLane(roadmapID, laneID string) (json.RawMessage, error
 	return c.request("DELETE", "/roadmaps/"+roadmapID+"/lanes/"+laneID, nil)
 }
 
-// ============================================================================
 // Milestones
-// ============================================================================
-
 func (c *APIClient) ListMilestones(roadmapID string) (json.RawMessage, error) {
-	return c.request("GET", "/roadmaps/"+roadmapID+"/milestones", nil)
+	data, err := c.request("GET", "/roadmaps/"+roadmapID+"/milestones", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "milestone"), nil
 }
 
 func (c *APIClient) CreateMilestone(roadmapID string, data map[string]interface{}) (json.RawMessage, error) {
@@ -139,10 +210,7 @@ func (c *APIClient) DeleteMilestone(roadmapID, milestoneID string) (json.RawMess
 	return c.request("DELETE", "/roadmaps/"+roadmapID+"/milestones/"+milestoneID, nil)
 }
 
-// ============================================================================
 // Bars
-// ============================================================================
-
 func (c *APIClient) GetBar(id string) (json.RawMessage, error) {
 	return c.request("GET", "/bars/"+id, nil)
 }
@@ -160,7 +228,11 @@ func (c *APIClient) DeleteBar(id string) (json.RawMessage, error) {
 }
 
 func (c *APIClient) GetBarChildBars(id string) (json.RawMessage, error) {
-	return c.request("GET", "/bars/"+id+"/child-bars", nil)
+	data, err := c.request("GET", "/bars/"+id+"/child_bars", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "bar"), nil
 }
 
 func (c *APIClient) GetBarComments(id string) (json.RawMessage, error) {
@@ -193,12 +265,13 @@ func (c *APIClient) DeleteBarLink(barID, linkID string) (json.RawMessage, error)
 	return c.request("DELETE", "/bars/"+barID+"/links/"+linkID, nil)
 }
 
-// ============================================================================
-// Discovery - Ideas
-// ============================================================================
-
+// Ideas
 func (c *APIClient) ListIdeas() (json.RawMessage, error) {
-	return c.request("GET", "/discovery/ideas", nil)
+	data, err := c.request("GET", "/discovery/ideas", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "idea"), nil
 }
 
 func (c *APIClient) GetIdea(id string) (json.RawMessage, error) {
@@ -221,12 +294,13 @@ func (c *APIClient) ListIdeaTags() (json.RawMessage, error) {
 	return c.request("GET", "/discovery/ideas/tags", nil)
 }
 
-// ============================================================================
-// Discovery - Opportunities
-// ============================================================================
-
+// Opportunities
 func (c *APIClient) ListOpportunities() (json.RawMessage, error) {
-	return c.request("GET", "/discovery/opportunities", nil)
+	data, err := c.request("GET", "/discovery/opportunities", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "default"), nil
 }
 
 func (c *APIClient) GetOpportunity(id string) (json.RawMessage, error) {
@@ -241,24 +315,22 @@ func (c *APIClient) UpdateOpportunity(id string, data map[string]interface{}) (j
 	return c.request("PATCH", "/discovery/opportunities/"+id, data)
 }
 
-// ============================================================================
-// Discovery - Idea Forms
-// ============================================================================
-
+// Idea Forms
 func (c *APIClient) ListIdeaForms() (json.RawMessage, error) {
-	return c.request("GET", "/discovery/idea-forms", nil)
+	return c.request("GET", "/discovery/idea_forms", nil)
 }
 
 func (c *APIClient) GetIdeaForm(id string) (json.RawMessage, error) {
-	return c.request("GET", "/discovery/idea-forms/"+id, nil)
+	return c.request("GET", "/discovery/idea_forms/"+id, nil)
 }
 
-// ============================================================================
-// Strategy - Objectives
-// ============================================================================
-
+// Objectives
 func (c *APIClient) ListObjectives() (json.RawMessage, error) {
-	return c.request("GET", "/strategy/objectives", nil)
+	data, err := c.request("GET", "/strategy/objectives", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "objective"), nil
 }
 
 func (c *APIClient) GetObjective(id string) (json.RawMessage, error) {
@@ -277,36 +349,38 @@ func (c *APIClient) DeleteObjective(id string) (json.RawMessage, error) {
 	return c.request("DELETE", "/strategy/objectives/"+id, nil)
 }
 
-// ============================================================================
-// Strategy - Key Results
-// ============================================================================
-
+// Key Results
 func (c *APIClient) ListKeyResults(objectiveID string) (json.RawMessage, error) {
-	return c.request("GET", "/strategy/objectives/"+objectiveID+"/key-results", nil)
+	data, err := c.request("GET", "/strategy/objectives/"+objectiveID+"/key_results", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "key_result"), nil
 }
 
 func (c *APIClient) GetKeyResult(objectiveID, keyResultID string) (json.RawMessage, error) {
-	return c.request("GET", "/strategy/objectives/"+objectiveID+"/key-results/"+keyResultID, nil)
+	return c.request("GET", "/strategy/objectives/"+objectiveID+"/key_results/"+keyResultID, nil)
 }
 
 func (c *APIClient) CreateKeyResult(objectiveID string, data map[string]interface{}) (json.RawMessage, error) {
-	return c.request("POST", "/strategy/objectives/"+objectiveID+"/key-results", data)
+	return c.request("POST", "/strategy/objectives/"+objectiveID+"/key_results", data)
 }
 
 func (c *APIClient) UpdateKeyResult(objectiveID, keyResultID string, data map[string]interface{}) (json.RawMessage, error) {
-	return c.request("PATCH", "/strategy/objectives/"+objectiveID+"/key-results/"+keyResultID, data)
+	return c.request("PATCH", "/strategy/objectives/"+objectiveID+"/key_results/"+keyResultID, data)
 }
 
 func (c *APIClient) DeleteKeyResult(objectiveID, keyResultID string) (json.RawMessage, error) {
-	return c.request("DELETE", "/strategy/objectives/"+objectiveID+"/key-results/"+keyResultID, nil)
+	return c.request("DELETE", "/strategy/objectives/"+objectiveID+"/key_results/"+keyResultID, nil)
 }
 
-// ============================================================================
 // Launches
-// ============================================================================
-
 func (c *APIClient) ListLaunches() (json.RawMessage, error) {
-	return c.request("GET", "/launches", nil)
+	data, err := c.request("GET", "/launches", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "launch"), nil
 }
 
 func (c *APIClient) GetLaunch(id string) (json.RawMessage, error) {
@@ -325,36 +399,34 @@ func (c *APIClient) DeleteLaunch(id string) (json.RawMessage, error) {
 	return c.request("DELETE", "/launches/"+id, nil)
 }
 
-// ============================================================================
-// Launches - Checklist Sections
-// ============================================================================
-
+// Checklist Sections
 func (c *APIClient) ListChecklistSections(launchID string) (json.RawMessage, error) {
-	return c.request("GET", "/launches/"+launchID+"/checklist-sections", nil)
+	return c.request("GET", "/launches/"+launchID+"/checklist_sections", nil)
 }
 
 func (c *APIClient) GetChecklistSection(launchID, sectionID string) (json.RawMessage, error) {
-	return c.request("GET", "/launches/"+launchID+"/checklist-sections/"+sectionID, nil)
+	return c.request("GET", "/launches/"+launchID+"/checklist_sections/"+sectionID, nil)
 }
 
 func (c *APIClient) CreateChecklistSection(launchID string, data map[string]interface{}) (json.RawMessage, error) {
-	return c.request("POST", "/launches/"+launchID+"/checklist-sections", data)
+	return c.request("POST", "/launches/"+launchID+"/checklist_sections", data)
 }
 
 func (c *APIClient) UpdateChecklistSection(launchID, sectionID string, data map[string]interface{}) (json.RawMessage, error) {
-	return c.request("PATCH", "/launches/"+launchID+"/checklist-sections/"+sectionID, data)
+	return c.request("PATCH", "/launches/"+launchID+"/checklist_sections/"+sectionID, data)
 }
 
 func (c *APIClient) DeleteChecklistSection(launchID, sectionID string) (json.RawMessage, error) {
-	return c.request("DELETE", "/launches/"+launchID+"/checklist-sections/"+sectionID, nil)
+	return c.request("DELETE", "/launches/"+launchID+"/checklist_sections/"+sectionID, nil)
 }
 
-// ============================================================================
-// Launches - Tasks
-// ============================================================================
-
+// Launch Tasks
 func (c *APIClient) ListLaunchTasks(launchID string) (json.RawMessage, error) {
-	return c.request("GET", "/launches/"+launchID+"/tasks", nil)
+	data, err := c.request("GET", "/launches/"+launchID+"/tasks", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "task"), nil
 }
 
 func (c *APIClient) GetLaunchTask(launchID, taskID string) (json.RawMessage, error) {
@@ -373,16 +445,21 @@ func (c *APIClient) DeleteLaunchTask(launchID, taskID string) (json.RawMessage, 
 	return c.request("DELETE", "/launches/"+launchID+"/tasks/"+taskID, nil)
 }
 
-// ============================================================================
 // Administration
-// ============================================================================
-
 func (c *APIClient) ListUsers() (json.RawMessage, error) {
-	return c.request("GET", "/users", nil)
+	data, err := c.request("GET", "/users", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "user"), nil
 }
 
 func (c *APIClient) ListTeams() (json.RawMessage, error) {
-	return c.request("GET", "/teams", nil)
+	data, err := c.request("GET", "/teams", nil)
+	if err != nil {
+		return nil, err
+	}
+	return SummarizeList(data, "team"), nil
 }
 
 func (c *APIClient) CheckStatus() (json.RawMessage, error) {
@@ -390,7 +467,7 @@ func (c *APIClient) CheckStatus() (json.RawMessage, error) {
 }
 
 // ============================================================================
-// MCP Server Implementation
+// MCP Server Implementation - OPTIMIZED with 15 consolidated tools
 // ============================================================================
 
 type MCPServer struct {
@@ -429,8 +506,9 @@ type InputSchema struct {
 }
 
 type Property struct {
-	Type        string `json:"type"`
-	Description string `json:"description"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Enum        []string `json:"enum,omitempty"`
 }
 
 type ToolContent struct {
@@ -442,101 +520,240 @@ func NewMCPServer(client *APIClient) *MCPServer {
 	return &MCPServer{client: client}
 }
 
+// getTools returns CONSOLIDATED tools - 15 instead of 58!
 func (s *MCPServer) getTools() []Tool {
 	return []Tool{
-		// Roadmaps
-		{Name: "list_roadmaps", Description: "List all roadmaps", InputSchema: InputSchema{Type: "object"}},
-		{Name: "get_roadmap", Description: "Get roadmap details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Roadmap ID"}}, Required: []string{"id"}}},
-		{Name: "get_roadmap_bars", Description: "Get all bars from a roadmap", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}}, Required: []string{"roadmap_id"}}},
-		{Name: "get_roadmap_comments", Description: "Get comments on a roadmap", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}}, Required: []string{"roadmap_id"}}},
-
-		// Lanes
-		{Name: "list_lanes", Description: "List all lanes in a roadmap", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}}, Required: []string{"roadmap_id"}}},
-		{Name: "create_lane", Description: "Create a new lane", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}, "name": {Type: "string", Description: "Lane name"}, "color": {Type: "string", Description: "Lane color (hex)"}}, Required: []string{"roadmap_id", "name"}}},
-		{Name: "update_lane", Description: "Update a lane", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}, "lane_id": {Type: "string", Description: "Lane ID"}, "name": {Type: "string", Description: "Lane name"}, "color": {Type: "string", Description: "Lane color"}}, Required: []string{"roadmap_id", "lane_id"}}},
-		{Name: "delete_lane", Description: "Delete a lane", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}, "lane_id": {Type: "string", Description: "Lane ID"}}, Required: []string{"roadmap_id", "lane_id"}}},
-
-		// Milestones
-		{Name: "list_milestones", Description: "List all milestones in a roadmap", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}}, Required: []string{"roadmap_id"}}},
-		{Name: "create_milestone", Description: "Create a new milestone", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}, "name": {Type: "string", Description: "Milestone name"}, "date": {Type: "string", Description: "Date (YYYY-MM-DD)"}}, Required: []string{"roadmap_id", "name", "date"}}},
-		{Name: "update_milestone", Description: "Update a milestone", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}, "milestone_id": {Type: "string", Description: "Milestone ID"}, "name": {Type: "string", Description: "Name"}, "date": {Type: "string", Description: "Date"}}, Required: []string{"roadmap_id", "milestone_id"}}},
-		{Name: "delete_milestone", Description: "Delete a milestone", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}, "milestone_id": {Type: "string", Description: "Milestone ID"}}, Required: []string{"roadmap_id", "milestone_id"}}},
-
-		// Bars
-		{Name: "get_bar", Description: "Get bar details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Bar ID"}}, Required: []string{"id"}}},
-		{Name: "create_bar", Description: "Create a new bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"roadmap_id": {Type: "string", Description: "Roadmap ID"}, "lane_id": {Type: "string", Description: "Lane ID"}, "name": {Type: "string", Description: "Bar name"}, "start_date": {Type: "string", Description: "Start date (YYYY-MM-DD)"}, "end_date": {Type: "string", Description: "End date (YYYY-MM-DD)"}, "description": {Type: "string", Description: "Description"}}, Required: []string{"roadmap_id", "lane_id", "name"}}},
-		{Name: "update_bar", Description: "Update a bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Bar ID"}, "name": {Type: "string", Description: "Name"}, "start_date": {Type: "string", Description: "Start date"}, "end_date": {Type: "string", Description: "End date"}, "description": {Type: "string", Description: "Description"}}, Required: []string{"id"}}},
-		{Name: "delete_bar", Description: "Delete a bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Bar ID"}}, Required: []string{"id"}}},
-		{Name: "get_bar_child_bars", Description: "Get child bars of a bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Bar ID"}}, Required: []string{"bar_id"}}},
-		{Name: "get_bar_comments", Description: "Get comments on a bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Bar ID"}}, Required: []string{"bar_id"}}},
-
-		// Bar Connections
-		{Name: "list_bar_connections", Description: "List connections for a bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Bar ID"}}, Required: []string{"bar_id"}}},
-		{Name: "create_bar_connection", Description: "Create a connection between bars", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Source Bar ID"}, "target_bar_id": {Type: "string", Description: "Target Bar ID"}}, Required: []string{"bar_id", "target_bar_id"}}},
-		{Name: "delete_bar_connection", Description: "Delete a bar connection", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Bar ID"}, "connection_id": {Type: "string", Description: "Connection ID"}}, Required: []string{"bar_id", "connection_id"}}},
-
-		// Bar Links
-		{Name: "list_bar_links", Description: "List external links for a bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Bar ID"}}, Required: []string{"bar_id"}}},
-		{Name: "create_bar_link", Description: "Create an external link on a bar", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Bar ID"}, "url": {Type: "string", Description: "URL"}, "name": {Type: "string", Description: "Link name"}}, Required: []string{"bar_id", "url"}}},
-		{Name: "delete_bar_link", Description: "Delete a bar link", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"bar_id": {Type: "string", Description: "Bar ID"}, "link_id": {Type: "string", Description: "Link ID"}}, Required: []string{"bar_id", "link_id"}}},
-
-		// Ideas
-		{Name: "list_ideas", Description: "List all ideas", InputSchema: InputSchema{Type: "object"}},
-		{Name: "get_idea", Description: "Get idea details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Idea ID"}}, Required: []string{"id"}}},
-		{Name: "create_idea", Description: "Create a new idea", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"title": {Type: "string", Description: "Title"}, "description": {Type: "string", Description: "Description"}}, Required: []string{"title"}}},
-		{Name: "update_idea", Description: "Update an idea", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Idea ID"}, "title": {Type: "string", Description: "Title"}, "description": {Type: "string", Description: "Description"}}, Required: []string{"id"}}},
-		{Name: "list_idea_customers", Description: "List idea customers", InputSchema: InputSchema{Type: "object"}},
-		{Name: "list_idea_tags", Description: "List idea tags", InputSchema: InputSchema{Type: "object"}},
-
-		// Opportunities
-		{Name: "list_opportunities", Description: "List all opportunities", InputSchema: InputSchema{Type: "object"}},
-		{Name: "get_opportunity", Description: "Get opportunity details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Opportunity ID"}}, Required: []string{"id"}}},
-		{Name: "create_opportunity", Description: "Create a new opportunity", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"name": {Type: "string", Description: "Name"}, "description": {Type: "string", Description: "Description"}}, Required: []string{"name"}}},
-		{Name: "update_opportunity", Description: "Update an opportunity", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Opportunity ID"}, "name": {Type: "string", Description: "Name"}, "description": {Type: "string", Description: "Description"}}, Required: []string{"id"}}},
-
-		// Idea Forms
-		{Name: "list_idea_forms", Description: "List idea forms", InputSchema: InputSchema{Type: "object"}},
-		{Name: "get_idea_form", Description: "Get idea form details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Form ID"}}, Required: []string{"id"}}},
-
-		// Objectives
-		{Name: "list_objectives", Description: "List all objectives (OKRs)", InputSchema: InputSchema{Type: "object"}},
-		{Name: "get_objective", Description: "Get objective details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Objective ID"}}, Required: []string{"id"}}},
-		{Name: "create_objective", Description: "Create a new objective", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"name": {Type: "string", Description: "Name"}, "description": {Type: "string", Description: "Description"}, "time_frame": {Type: "string", Description: "Time frame"}}, Required: []string{"name"}}},
-		{Name: "update_objective", Description: "Update an objective", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Objective ID"}, "name": {Type: "string", Description: "Name"}, "description": {Type: "string", Description: "Description"}}, Required: []string{"id"}}},
-		{Name: "delete_objective", Description: "Delete an objective", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Objective ID"}}, Required: []string{"id"}}},
-
-		// Key Results
-		{Name: "list_key_results", Description: "List key results for an objective", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"objective_id": {Type: "string", Description: "Objective ID"}}, Required: []string{"objective_id"}}},
-		{Name: "get_key_result", Description: "Get key result details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"objective_id": {Type: "string", Description: "Objective ID"}, "key_result_id": {Type: "string", Description: "Key Result ID"}}, Required: []string{"objective_id", "key_result_id"}}},
-		{Name: "create_key_result", Description: "Create a new key result", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"objective_id": {Type: "string", Description: "Objective ID"}, "name": {Type: "string", Description: "Name"}, "target_value": {Type: "string", Description: "Target value"}, "current_value": {Type: "string", Description: "Current value"}}, Required: []string{"objective_id", "name"}}},
-		{Name: "update_key_result", Description: "Update a key result", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"objective_id": {Type: "string", Description: "Objective ID"}, "key_result_id": {Type: "string", Description: "Key Result ID"}, "name": {Type: "string", Description: "Name"}, "current_value": {Type: "string", Description: "Current value"}}, Required: []string{"objective_id", "key_result_id"}}},
-		{Name: "delete_key_result", Description: "Delete a key result", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"objective_id": {Type: "string", Description: "Objective ID"}, "key_result_id": {Type: "string", Description: "Key Result ID"}}, Required: []string{"objective_id", "key_result_id"}}},
-
-		// Launches
-		{Name: "list_launches", Description: "List all launches", InputSchema: InputSchema{Type: "object"}},
-		{Name: "get_launch", Description: "Get launch details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Launch ID"}}, Required: []string{"id"}}},
-		{Name: "create_launch", Description: "Create a new launch", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"name": {Type: "string", Description: "Name"}, "date": {Type: "string", Description: "Launch date (YYYY-MM-DD)"}}, Required: []string{"name"}}},
-		{Name: "update_launch", Description: "Update a launch", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Launch ID"}, "name": {Type: "string", Description: "Name"}, "date": {Type: "string", Description: "Date"}}, Required: []string{"id"}}},
-		{Name: "delete_launch", Description: "Delete a launch", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"id": {Type: "string", Description: "Launch ID"}}, Required: []string{"id"}}},
-
-		// Checklist Sections
-		{Name: "list_checklist_sections", Description: "List checklist sections for a launch", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}}, Required: []string{"launch_id"}}},
-		{Name: "get_checklist_section", Description: "Get checklist section details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "section_id": {Type: "string", Description: "Section ID"}}, Required: []string{"launch_id", "section_id"}}},
-		{Name: "create_checklist_section", Description: "Create a checklist section", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "name": {Type: "string", Description: "Section name"}}, Required: []string{"launch_id", "name"}}},
-		{Name: "update_checklist_section", Description: "Update a checklist section", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "section_id": {Type: "string", Description: "Section ID"}, "name": {Type: "string", Description: "Name"}}, Required: []string{"launch_id", "section_id"}}},
-		{Name: "delete_checklist_section", Description: "Delete a checklist section", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "section_id": {Type: "string", Description: "Section ID"}}, Required: []string{"launch_id", "section_id"}}},
-
-		// Launch Tasks
-		{Name: "list_launch_tasks", Description: "List tasks for a launch", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}}, Required: []string{"launch_id"}}},
-		{Name: "get_launch_task", Description: "Get launch task details", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "task_id": {Type: "string", Description: "Task ID"}}, Required: []string{"launch_id", "task_id"}}},
-		{Name: "create_launch_task", Description: "Create a launch task", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "name": {Type: "string", Description: "Task name"}, "section_id": {Type: "string", Description: "Checklist section ID"}}, Required: []string{"launch_id", "name"}}},
-		{Name: "update_launch_task", Description: "Update a launch task", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "task_id": {Type: "string", Description: "Task ID"}, "name": {Type: "string", Description: "Name"}, "completed": {Type: "string", Description: "Completed (true/false)"}}, Required: []string{"launch_id", "task_id"}}},
-		{Name: "delete_launch_task", Description: "Delete a launch task", InputSchema: InputSchema{Type: "object", Properties: map[string]Property{"launch_id": {Type: "string", Description: "Launch ID"}, "task_id": {Type: "string", Description: "Task ID"}}, Required: []string{"launch_id", "task_id"}}},
-
-		// Administration
-		{Name: "list_users", Description: "List all users", InputSchema: InputSchema{Type: "object"}},
-		{Name: "list_teams", Description: "List all teams", InputSchema: InputSchema{Type: "object"}},
-		{Name: "check_status", Description: "Check API status", InputSchema: InputSchema{Type: "object"}},
+		// 1. Roadmaps - consolidated
+		{
+			Name:        "roadmaps",
+			Description: "Manage roadmaps: list all, get details, get bars, or get comments",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":     {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "get_bars", "get_comments"}},
+					"id":         {Type: "string", Description: "Roadmap ID (required for get, get_bars, get_comments)"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		// 2. Lanes - consolidated
+		{
+			Name:        "lanes",
+			Description: "Manage lanes in a roadmap: list, create, update, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":     {Type: "string", Description: "Action to perform", Enum: []string{"list", "create", "update", "delete"}},
+					"roadmap_id": {Type: "string", Description: "Roadmap ID (required for all actions)"},
+					"lane_id":    {Type: "string", Description: "Lane ID (required for update, delete)"},
+					"name":       {Type: "string", Description: "Lane name (for create, update)"},
+					"color":      {Type: "string", Description: "Lane color hex (for create, update)"},
+				},
+				Required: []string{"action", "roadmap_id"},
+			},
+		},
+		// 3. Milestones - consolidated
+		{
+			Name:        "milestones",
+			Description: "Manage milestones in a roadmap: list, create, update, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":       {Type: "string", Description: "Action to perform", Enum: []string{"list", "create", "update", "delete"}},
+					"roadmap_id":   {Type: "string", Description: "Roadmap ID (required for all actions)"},
+					"milestone_id": {Type: "string", Description: "Milestone ID (required for update, delete)"},
+					"name":         {Type: "string", Description: "Milestone name (for create, update)"},
+					"date":         {Type: "string", Description: "Date YYYY-MM-DD (for create, update)"},
+				},
+				Required: []string{"action", "roadmap_id"},
+			},
+		},
+		// 4. Bars - consolidated
+		{
+			Name:        "bars",
+			Description: "Manage bars: get details, create, update, delete, get children, or get comments",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"get", "create", "update", "delete", "get_children", "get_comments"}},
+					"id":          {Type: "string", Description: "Bar ID (required for get, update, delete, get_children, get_comments)"},
+					"roadmap_id":  {Type: "string", Description: "Roadmap ID (required for create)"},
+					"lane_id":     {Type: "string", Description: "Lane ID (required for create)"},
+					"name":        {Type: "string", Description: "Bar name (for create, update)"},
+					"start_date":  {Type: "string", Description: "Start date YYYY-MM-DD"},
+					"end_date":    {Type: "string", Description: "End date YYYY-MM-DD"},
+					"description": {Type: "string", Description: "Description"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		// 5. Bar connections - consolidated
+		{
+			Name:        "bar_connections",
+			Description: "Manage bar connections: list, create, or delete dependencies between bars",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":            {Type: "string", Description: "Action to perform", Enum: []string{"list", "create", "delete"}},
+					"bar_id":            {Type: "string", Description: "Source bar ID (required for all)"},
+					"target_bar_id":     {Type: "string", Description: "Target bar ID (for create)"},
+					"relationship_type": {Type: "string", Description: "Type: requires or required_by (for create)", Enum: []string{"requires", "required_by"}},
+					"connection_id":     {Type: "string", Description: "Connection ID (for delete)"},
+				},
+				Required: []string{"action", "bar_id"},
+			},
+		},
+		// 6. Bar links - consolidated
+		{
+			Name:        "bar_links",
+			Description: "Manage external links on bars: list, create, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":  {Type: "string", Description: "Action to perform", Enum: []string{"list", "create", "delete"}},
+					"bar_id":  {Type: "string", Description: "Bar ID (required for all)"},
+					"url":     {Type: "string", Description: "URL (for create)"},
+					"name":    {Type: "string", Description: "Link name (for create)"},
+					"link_id": {Type: "string", Description: "Link ID (for delete)"},
+				},
+				Required: []string{"action", "bar_id"},
+			},
+		},
+		// 7. Ideas - consolidated
+		{
+			Name:        "ideas",
+			Description: "Manage ideas: list, get, create, update, or get metadata (customers/tags)",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "create", "update", "list_customers", "list_tags"}},
+					"id":          {Type: "string", Description: "Idea ID (for get, update)"},
+					"title":       {Type: "string", Description: "Title (for create, update)"},
+					"description": {Type: "string", Description: "Description (for create, update)"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		// 8. Opportunities - consolidated
+		{
+			Name:        "opportunities",
+			Description: "Manage opportunities: list, get, create, or update",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "create", "update"}},
+					"id":          {Type: "string", Description: "Opportunity ID (for get, update)"},
+					"name":        {Type: "string", Description: "Name (for create, update)"},
+					"description": {Type: "string", Description: "Description (for create, update)"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		// 9. Idea forms - consolidated
+		{
+			Name:        "idea_forms",
+			Description: "Manage idea forms: list or get details",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action": {Type: "string", Description: "Action to perform", Enum: []string{"list", "get"}},
+					"id":     {Type: "string", Description: "Form ID (for get)"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		// 10. Objectives (OKRs) - consolidated
+		{
+			Name:        "objectives",
+			Description: "Manage OKR objectives: list, get, create, update, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "create", "update", "delete"}},
+					"id":          {Type: "string", Description: "Objective ID (for get, update, delete)"},
+					"name":        {Type: "string", Description: "Name (for create, update)"},
+					"description": {Type: "string", Description: "Description (for create, update)"},
+					"time_frame":  {Type: "string", Description: "Time frame (for create)"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		// 11. Key Results - consolidated
+		{
+			Name:        "key_results",
+			Description: "Manage key results for objectives: list, get, create, update, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":        {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "create", "update", "delete"}},
+					"objective_id":  {Type: "string", Description: "Objective ID (required for all)"},
+					"key_result_id": {Type: "string", Description: "Key Result ID (for get, update, delete)"},
+					"name":          {Type: "string", Description: "Name (for create, update)"},
+					"target_value":  {Type: "string", Description: "Target value (for create, update)"},
+					"current_value": {Type: "string", Description: "Current value (for create, update)"},
+				},
+				Required: []string{"action", "objective_id"},
+			},
+		},
+		// 12. Launches - consolidated
+		{
+			Name:        "launches",
+			Description: "Manage launches: list, get, create, update, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action": {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "create", "update", "delete"}},
+					"id":     {Type: "string", Description: "Launch ID (for get, update, delete)"},
+					"name":   {Type: "string", Description: "Name (for create, update)"},
+					"date":   {Type: "string", Description: "Date YYYY-MM-DD (for create, update)"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		// 13. Checklist sections - consolidated
+		{
+			Name:        "checklist_sections",
+			Description: "Manage checklist sections for launches: list, get, create, update, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":     {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "create", "update", "delete"}},
+					"launch_id":  {Type: "string", Description: "Launch ID (required for all)"},
+					"section_id": {Type: "string", Description: "Section ID (for get, update, delete)"},
+					"name":       {Type: "string", Description: "Section name (for create, update)"},
+				},
+				Required: []string{"action", "launch_id"},
+			},
+		},
+		// 14. Launch tasks - consolidated
+		{
+			Name:        "launch_tasks",
+			Description: "Manage tasks for launches: list, get, create, update, or delete",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":               {Type: "string", Description: "Action to perform", Enum: []string{"list", "get", "create", "update", "delete"}},
+					"launch_id":            {Type: "string", Description: "Launch ID (required for all)"},
+					"task_id":              {Type: "string", Description: "Task ID (for get, update, delete)"},
+					"name":                 {Type: "string", Description: "Task name (for create, update)"},
+					"checklist_section_id": {Type: "string", Description: "Section ID (for create)"},
+					"status":               {Type: "string", Description: "Status (for update)", Enum: []string{"to_do", "in_progress", "completed"}},
+				},
+				Required: []string{"action", "launch_id"},
+			},
+		},
+		// 15. Admin - consolidated
+		{
+			Name:        "admin",
+			Description: "Administrative actions: list users, list teams, or check API status",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action": {Type: "string", Description: "Action to perform", Enum: []string{"list_users", "list_teams", "check_status"}},
+				},
+				Required: []string{"action"},
+			},
+		},
 	}
 }
 
@@ -548,209 +765,349 @@ func (s *MCPServer) handleToolCall(name string, args map[string]interface{}) (js
 		return ""
 	}
 
-	// Helper to remove specific keys from args for update operations
-	removeKeys := func(keys ...string) {
-		for _, k := range keys {
-			delete(args, k)
+	action := getString("action")
+
+	switch name {
+	// 1. Roadmaps
+	case "roadmaps":
+		switch action {
+		case "list":
+			return s.client.ListRoadmaps(defaultLimit)
+		case "get":
+			return s.client.GetRoadmap(getString("id"))
+		case "get_bars":
+			return s.client.GetRoadmapBars(getString("id"), defaultLimit)
+		case "get_comments":
+			return s.client.GetRoadmapComments(getString("id"))
+		}
+
+	// 2. Lanes
+	case "lanes":
+		roadmapID := getString("roadmap_id")
+		switch action {
+		case "list":
+			return s.client.ListLanes(roadmapID)
+		case "create":
+			data := map[string]interface{}{"name": getString("name")}
+			if c := getString("color"); c != "" {
+				data["color"] = c
+			}
+			return s.client.CreateLane(roadmapID, data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if c := getString("color"); c != "" {
+				data["color"] = c
+			}
+			return s.client.UpdateLane(roadmapID, getString("lane_id"), data)
+		case "delete":
+			return s.client.DeleteLane(roadmapID, getString("lane_id"))
+		}
+
+	// 3. Milestones
+	case "milestones":
+		roadmapID := getString("roadmap_id")
+		switch action {
+		case "list":
+			return s.client.ListMilestones(roadmapID)
+		case "create":
+			data := map[string]interface{}{"name": getString("name"), "date": getString("date")}
+			return s.client.CreateMilestone(roadmapID, data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if d := getString("date"); d != "" {
+				data["date"] = d
+			}
+			return s.client.UpdateMilestone(roadmapID, getString("milestone_id"), data)
+		case "delete":
+			return s.client.DeleteMilestone(roadmapID, getString("milestone_id"))
+		}
+
+	// 4. Bars
+	case "bars":
+		switch action {
+		case "get":
+			return s.client.GetBar(getString("id"))
+		case "create":
+			data := map[string]interface{}{
+				"roadmap_id": getString("roadmap_id"),
+				"lane_id":    getString("lane_id"),
+				"name":       getString("name"),
+			}
+			if sd := getString("start_date"); sd != "" {
+				data["start_date"] = sd
+			}
+			if ed := getString("end_date"); ed != "" {
+				data["end_date"] = ed
+			}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			return s.client.CreateBar(data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if sd := getString("start_date"); sd != "" {
+				data["start_date"] = sd
+			}
+			if ed := getString("end_date"); ed != "" {
+				data["end_date"] = ed
+			}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			return s.client.UpdateBar(getString("id"), data)
+		case "delete":
+			return s.client.DeleteBar(getString("id"))
+		case "get_children":
+			return s.client.GetBarChildBars(getString("id"))
+		case "get_comments":
+			return s.client.GetBarComments(getString("id"))
+		}
+
+	// 5. Bar connections
+	case "bar_connections":
+		barID := getString("bar_id")
+		switch action {
+		case "list":
+			return s.client.ListBarConnections(barID)
+		case "create":
+			targetBarID := getString("target_bar_id")
+			relationshipType := getString("relationship_type")
+			targetInt, _ := strconv.Atoi(targetBarID)
+			payload := map[string]interface{}{relationshipType: targetInt}
+			return s.client.CreateBarConnection(barID, payload)
+		case "delete":
+			return s.client.DeleteBarConnection(barID, getString("connection_id"))
+		}
+
+	// 6. Bar links
+	case "bar_links":
+		barID := getString("bar_id")
+		switch action {
+		case "list":
+			return s.client.ListBarLinks(barID)
+		case "create":
+			data := map[string]interface{}{"url": getString("url")}
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			return s.client.CreateBarLink(barID, data)
+		case "delete":
+			return s.client.DeleteBarLink(barID, getString("link_id"))
+		}
+
+	// 7. Ideas
+	case "ideas":
+		switch action {
+		case "list":
+			return s.client.ListIdeas()
+		case "get":
+			return s.client.GetIdea(getString("id"))
+		case "create":
+			data := map[string]interface{}{"title": getString("title")}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			return s.client.CreateIdea(data)
+		case "update":
+			data := make(map[string]interface{})
+			if t := getString("title"); t != "" {
+				data["title"] = t
+			}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			return s.client.UpdateIdea(getString("id"), data)
+		case "list_customers":
+			return s.client.ListIdeaCustomers()
+		case "list_tags":
+			return s.client.ListIdeaTags()
+		}
+
+	// 8. Opportunities
+	case "opportunities":
+		switch action {
+		case "list":
+			return s.client.ListOpportunities()
+		case "get":
+			return s.client.GetOpportunity(getString("id"))
+		case "create":
+			data := map[string]interface{}{"name": getString("name")}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			return s.client.CreateOpportunity(data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			return s.client.UpdateOpportunity(getString("id"), data)
+		}
+
+	// 9. Idea forms
+	case "idea_forms":
+		switch action {
+		case "list":
+			return s.client.ListIdeaForms()
+		case "get":
+			return s.client.GetIdeaForm(getString("id"))
+		}
+
+	// 10. Objectives
+	case "objectives":
+		switch action {
+		case "list":
+			return s.client.ListObjectives()
+		case "get":
+			return s.client.GetObjective(getString("id"))
+		case "create":
+			data := map[string]interface{}{"name": getString("name")}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			if tf := getString("time_frame"); tf != "" {
+				data["time_frame"] = tf
+			}
+			return s.client.CreateObjective(data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			return s.client.UpdateObjective(getString("id"), data)
+		case "delete":
+			return s.client.DeleteObjective(getString("id"))
+		}
+
+	// 11. Key results
+	case "key_results":
+		objectiveID := getString("objective_id")
+		switch action {
+		case "list":
+			return s.client.ListKeyResults(objectiveID)
+		case "get":
+			return s.client.GetKeyResult(objectiveID, getString("key_result_id"))
+		case "create":
+			data := map[string]interface{}{"name": getString("name")}
+			if tv := getString("target_value"); tv != "" {
+				data["target_value"] = tv
+			}
+			if cv := getString("current_value"); cv != "" {
+				data["current_value"] = cv
+			}
+			return s.client.CreateKeyResult(objectiveID, data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if cv := getString("current_value"); cv != "" {
+				data["current_value"] = cv
+			}
+			return s.client.UpdateKeyResult(objectiveID, getString("key_result_id"), data)
+		case "delete":
+			return s.client.DeleteKeyResult(objectiveID, getString("key_result_id"))
+		}
+
+	// 12. Launches
+	case "launches":
+		switch action {
+		case "list":
+			return s.client.ListLaunches()
+		case "get":
+			return s.client.GetLaunch(getString("id"))
+		case "create":
+			data := map[string]interface{}{"name": getString("name")}
+			if d := getString("date"); d != "" {
+				data["date"] = d
+			}
+			return s.client.CreateLaunch(data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if d := getString("date"); d != "" {
+				data["date"] = d
+			}
+			return s.client.UpdateLaunch(getString("id"), data)
+		case "delete":
+			return s.client.DeleteLaunch(getString("id"))
+		}
+
+	// 13. Checklist sections
+	case "checklist_sections":
+		launchID := getString("launch_id")
+		switch action {
+		case "list":
+			return s.client.ListChecklistSections(launchID)
+		case "get":
+			return s.client.GetChecklistSection(launchID, getString("section_id"))
+		case "create":
+			data := map[string]interface{}{"name": getString("name")}
+			return s.client.CreateChecklistSection(launchID, data)
+		case "update":
+			data := map[string]interface{}{"name": getString("name")}
+			return s.client.UpdateChecklistSection(launchID, getString("section_id"), data)
+		case "delete":
+			return s.client.DeleteChecklistSection(launchID, getString("section_id"))
+		}
+
+	// 14. Launch tasks
+	case "launch_tasks":
+		launchID := getString("launch_id")
+		switch action {
+		case "list":
+			return s.client.ListLaunchTasks(launchID)
+		case "get":
+			return s.client.GetLaunchTask(launchID, getString("task_id"))
+		case "create":
+			data := map[string]interface{}{
+				"name":                 getString("name"),
+				"checklist_section_id": getString("checklist_section_id"),
+			}
+			return s.client.CreateLaunchTask(launchID, data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if st := getString("status"); st != "" {
+				data["status"] = st
+			}
+			return s.client.UpdateLaunchTask(launchID, getString("task_id"), data)
+		case "delete":
+			return s.client.DeleteLaunchTask(launchID, getString("task_id"))
+		}
+
+	// 15. Admin
+	case "admin":
+		switch action {
+		case "list_users":
+			return s.client.ListUsers()
+		case "list_teams":
+			return s.client.ListTeams()
+		case "check_status":
+			return s.client.CheckStatus()
 		}
 	}
 
-	switch name {
-	// Roadmaps
-	case "list_roadmaps":
-		return s.client.ListRoadmaps()
-	case "get_roadmap":
-		return s.client.GetRoadmap(getString("id"))
-	case "get_roadmap_bars":
-		return s.client.GetRoadmapBars(getString("roadmap_id"))
-	case "get_roadmap_comments":
-		return s.client.GetRoadmapComments(getString("roadmap_id"))
-
-	// Lanes
-	case "list_lanes":
-		return s.client.ListLanes(getString("roadmap_id"))
-	case "create_lane":
-		roadmapID := getString("roadmap_id")
-		removeKeys("roadmap_id")
-		return s.client.CreateLane(roadmapID, args)
-	case "update_lane":
-		roadmapID, laneID := getString("roadmap_id"), getString("lane_id")
-		removeKeys("roadmap_id", "lane_id")
-		return s.client.UpdateLane(roadmapID, laneID, args)
-	case "delete_lane":
-		return s.client.DeleteLane(getString("roadmap_id"), getString("lane_id"))
-
-	// Milestones
-	case "list_milestones":
-		return s.client.ListMilestones(getString("roadmap_id"))
-	case "create_milestone":
-		roadmapID := getString("roadmap_id")
-		removeKeys("roadmap_id")
-		return s.client.CreateMilestone(roadmapID, args)
-	case "update_milestone":
-		roadmapID, milestoneID := getString("roadmap_id"), getString("milestone_id")
-		removeKeys("roadmap_id", "milestone_id")
-		return s.client.UpdateMilestone(roadmapID, milestoneID, args)
-	case "delete_milestone":
-		return s.client.DeleteMilestone(getString("roadmap_id"), getString("milestone_id"))
-
-	// Bars
-	case "get_bar":
-		return s.client.GetBar(getString("id"))
-	case "create_bar":
-		return s.client.CreateBar(args)
-	case "update_bar":
-		id := getString("id")
-		removeKeys("id")
-		return s.client.UpdateBar(id, args)
-	case "delete_bar":
-		return s.client.DeleteBar(getString("id"))
-	case "get_bar_child_bars":
-		return s.client.GetBarChildBars(getString("bar_id"))
-	case "get_bar_comments":
-		return s.client.GetBarComments(getString("bar_id"))
-
-	// Bar Connections
-	case "list_bar_connections":
-		return s.client.ListBarConnections(getString("bar_id"))
-	case "create_bar_connection":
-		barID := getString("bar_id")
-		removeKeys("bar_id")
-		return s.client.CreateBarConnection(barID, args)
-	case "delete_bar_connection":
-		return s.client.DeleteBarConnection(getString("bar_id"), getString("connection_id"))
-
-	// Bar Links
-	case "list_bar_links":
-		return s.client.ListBarLinks(getString("bar_id"))
-	case "create_bar_link":
-		barID := getString("bar_id")
-		removeKeys("bar_id")
-		return s.client.CreateBarLink(barID, args)
-	case "delete_bar_link":
-		return s.client.DeleteBarLink(getString("bar_id"), getString("link_id"))
-
-	// Ideas
-	case "list_ideas":
-		return s.client.ListIdeas()
-	case "get_idea":
-		return s.client.GetIdea(getString("id"))
-	case "create_idea":
-		return s.client.CreateIdea(args)
-	case "update_idea":
-		id := getString("id")
-		removeKeys("id")
-		return s.client.UpdateIdea(id, args)
-	case "list_idea_customers":
-		return s.client.ListIdeaCustomers()
-	case "list_idea_tags":
-		return s.client.ListIdeaTags()
-
-	// Opportunities
-	case "list_opportunities":
-		return s.client.ListOpportunities()
-	case "get_opportunity":
-		return s.client.GetOpportunity(getString("id"))
-	case "create_opportunity":
-		return s.client.CreateOpportunity(args)
-	case "update_opportunity":
-		id := getString("id")
-		removeKeys("id")
-		return s.client.UpdateOpportunity(id, args)
-
-	// Idea Forms
-	case "list_idea_forms":
-		return s.client.ListIdeaForms()
-	case "get_idea_form":
-		return s.client.GetIdeaForm(getString("id"))
-
-	// Objectives
-	case "list_objectives":
-		return s.client.ListObjectives()
-	case "get_objective":
-		return s.client.GetObjective(getString("id"))
-	case "create_objective":
-		return s.client.CreateObjective(args)
-	case "update_objective":
-		id := getString("id")
-		removeKeys("id")
-		return s.client.UpdateObjective(id, args)
-	case "delete_objective":
-		return s.client.DeleteObjective(getString("id"))
-
-	// Key Results
-	case "list_key_results":
-		return s.client.ListKeyResults(getString("objective_id"))
-	case "get_key_result":
-		return s.client.GetKeyResult(getString("objective_id"), getString("key_result_id"))
-	case "create_key_result":
-		objectiveID := getString("objective_id")
-		removeKeys("objective_id")
-		return s.client.CreateKeyResult(objectiveID, args)
-	case "update_key_result":
-		objectiveID, keyResultID := getString("objective_id"), getString("key_result_id")
-		removeKeys("objective_id", "key_result_id")
-		return s.client.UpdateKeyResult(objectiveID, keyResultID, args)
-	case "delete_key_result":
-		return s.client.DeleteKeyResult(getString("objective_id"), getString("key_result_id"))
-
-	// Launches
-	case "list_launches":
-		return s.client.ListLaunches()
-	case "get_launch":
-		return s.client.GetLaunch(getString("id"))
-	case "create_launch":
-		return s.client.CreateLaunch(args)
-	case "update_launch":
-		id := getString("id")
-		removeKeys("id")
-		return s.client.UpdateLaunch(id, args)
-	case "delete_launch":
-		return s.client.DeleteLaunch(getString("id"))
-
-	// Checklist Sections
-	case "list_checklist_sections":
-		return s.client.ListChecklistSections(getString("launch_id"))
-	case "get_checklist_section":
-		return s.client.GetChecklistSection(getString("launch_id"), getString("section_id"))
-	case "create_checklist_section":
-		launchID := getString("launch_id")
-		removeKeys("launch_id")
-		return s.client.CreateChecklistSection(launchID, args)
-	case "update_checklist_section":
-		launchID, sectionID := getString("launch_id"), getString("section_id")
-		removeKeys("launch_id", "section_id")
-		return s.client.UpdateChecklistSection(launchID, sectionID, args)
-	case "delete_checklist_section":
-		return s.client.DeleteChecklistSection(getString("launch_id"), getString("section_id"))
-
-	// Launch Tasks
-	case "list_launch_tasks":
-		return s.client.ListLaunchTasks(getString("launch_id"))
-	case "get_launch_task":
-		return s.client.GetLaunchTask(getString("launch_id"), getString("task_id"))
-	case "create_launch_task":
-		launchID := getString("launch_id")
-		removeKeys("launch_id")
-		return s.client.CreateLaunchTask(launchID, args)
-	case "update_launch_task":
-		launchID, taskID := getString("launch_id"), getString("task_id")
-		removeKeys("launch_id", "task_id")
-		return s.client.UpdateLaunchTask(launchID, taskID, args)
-	case "delete_launch_task":
-		return s.client.DeleteLaunchTask(getString("launch_id"), getString("task_id"))
-
-	// Administration
-	case "list_users":
-		return s.client.ListUsers()
-	case "list_teams":
-		return s.client.ListTeams()
-	case "check_status":
-		return s.client.CheckStatus()
-
-	default:
-		return nil, fmt.Errorf("unknown tool: %s", name)
-	}
+	return nil, fmt.Errorf("unknown tool or action: %s/%s", name, action)
 }
 
 func (s *MCPServer) handleRequest(req JSONRPCRequest) JSONRPCResponse {
@@ -787,10 +1144,9 @@ func (s *MCPServer) handleRequest(req JSONRPCRequest) JSONRPCResponse {
 				"isError": true,
 			}
 		} else {
-			var pretty bytes.Buffer
-			json.Indent(&pretty, result, "", "  ")
+			// OPTIMIZATION: Use compact JSON instead of pretty-printed
 			resp.Result = map[string]interface{}{
-				"content": []ToolContent{{Type: "text", Text: pretty.String()}},
+				"content": []ToolContent{{Type: "text", Text: string(result)}},
 			}
 		}
 
@@ -802,7 +1158,7 @@ func (s *MCPServer) handleRequest(req JSONRPCRequest) JSONRPCResponse {
 }
 
 func (s *MCPServer) Run() {
-	fmt.Fprintln(os.Stderr, "ProductPlan MCP Server v"+version+" running on stdio")
+	fmt.Fprintln(os.Stderr, "ProductPlan MCP Server v"+version+" (optimized) running on stdio")
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
 
@@ -863,11 +1219,7 @@ func runCLI(args []string) {
 	switch cmd {
 	case "roadmaps":
 		if len(subArgs) == 0 {
-			result, err = client.ListRoadmaps()
-			if err == nil {
-				printRoadmapsList(result)
-				return
-			}
+			result, err = client.ListRoadmaps(defaultLimit)
 		} else {
 			result, err = client.GetRoadmap(subArgs[0])
 		}
@@ -877,7 +1229,7 @@ func runCLI(args []string) {
 			fmt.Println("Usage: productplan bars <roadmap_id>")
 			os.Exit(1)
 		}
-		result, err = client.GetRoadmapBars(subArgs[0])
+		result, err = client.GetRoadmapBars(subArgs[0], defaultLimit)
 
 	case "lanes":
 		if len(subArgs) == 0 {
@@ -896,10 +1248,6 @@ func runCLI(args []string) {
 	case "objectives":
 		if len(subArgs) == 0 {
 			result, err = client.ListObjectives()
-			if err == nil {
-				printObjectivesList(result)
-				return
-			}
 		} else {
 			result, err = client.GetObjective(subArgs[0])
 		}
@@ -947,10 +1295,6 @@ func runCLI(args []string) {
 
 	case "status":
 		result, err = client.CheckStatus()
-		if err == nil {
-			printStatus(result)
-			return
-		}
 
 	default:
 		printUsage()
@@ -965,67 +1309,8 @@ func runCLI(args []string) {
 	printJSON(result)
 }
 
-func printRoadmapsList(data json.RawMessage) {
-	var roadmaps []struct {
-		ID   int    `json:"id"`
-		Name string `json:"name"`
-	}
-	if err := json.Unmarshal(data, &roadmaps); err != nil {
-		printJSON(data)
-		return
-	}
-
-	headers := []string{"ID", "NAME"}
-	var rows [][]string
-	for _, r := range roadmaps {
-		rows = append(rows, []string{fmt.Sprintf("%d", r.ID), r.Name})
-	}
-	printTable(headers, rows)
-}
-
-func printObjectivesList(data json.RawMessage) {
-	var objectives []struct {
-		ID     int    `json:"id"`
-		Name   string `json:"name"`
-		Status string `json:"status"`
-	}
-	if err := json.Unmarshal(data, &objectives); err != nil {
-		printJSON(data)
-		return
-	}
-
-	headers := []string{"ID", "STATUS", "NAME"}
-	var rows [][]string
-	for _, o := range objectives {
-		status := o.Status
-		if status == "" {
-			status = "-"
-		}
-		rows = append(rows, []string{fmt.Sprintf("%d", o.ID), status, o.Name})
-	}
-	printTable(headers, rows)
-}
-
-func printStatus(data json.RawMessage) {
-	var status struct {
-		API      string `json:"api"`
-		Database string `json:"database"`
-		User     struct {
-			Name string `json:"name"`
-		} `json:"user"`
-	}
-	if err := json.Unmarshal(data, &status); err != nil {
-		printJSON(data)
-		return
-	}
-
-	fmt.Printf("API:      %s\n", status.API)
-	fmt.Printf("Database: %s\n", status.Database)
-	fmt.Printf("User:     %s\n", status.User.Name)
-}
-
 func printUsage() {
-	fmt.Printf(`ProductPlan CLI & MCP Server v%s
+	fmt.Printf(`ProductPlan CLI & MCP Server v%s (Optimized)
 
 Usage:
   productplan <command> [arguments]
@@ -1049,14 +1334,10 @@ Commands:
 Environment:
   PRODUCTPLAN_API_TOKEN                Your ProductPlan API token (required)
 
-Examples:
-  productplan status                   Check connection
-  productplan roadmaps                 List all roadmaps
-  productplan objectives               List all OKRs
-  productplan bars 12345               List bars in roadmap 12345
-
-MCP Server (for Claude Code, Cursor, etc.):
-  productplan serve
+Optimizations (v3.0):
+  - Consolidated 58 tools into 15 tools (74%% reduction)
+  - Response summarization for list operations
+  - Compact JSON responses (no pretty-printing in MCP mode)
 
 `, version)
 }
@@ -1074,7 +1355,6 @@ func main() {
 
 	args := os.Args[1:]
 
-	// No args or "serve" = MCP server mode
 	if len(args) == 0 || args[0] == "serve" || args[0] == "mcp" {
 		client := NewAPIClient(apiToken)
 		server := NewMCPServer(client)
@@ -1082,12 +1362,10 @@ func main() {
 		return
 	}
 
-	// Help
 	if args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
 		printUsage()
 		return
 	}
 
-	// CLI mode
 	runCLI(args)
 }

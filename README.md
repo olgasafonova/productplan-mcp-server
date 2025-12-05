@@ -6,6 +6,7 @@ A single binary that provides both CLI access and MCP server integration for [Pr
 - **MCP server mode**: Integrate with Claude Code, Cursor, VS Code, etc.
 - **No dependencies**: Single ~5MB binary
 - **Cross-platform**: macOS, Linux, Windows
+- **Token-optimized**: Consolidated tools and summarized responses for efficient AI usage
 
 ## What is ProductPlan?
 
@@ -247,119 +248,57 @@ Example workflow: `Slack Trigger → AI Agent (with MCP Client) → Slack Respon
 
 The AI agent can query roadmaps, create ideas, or fetch OKR status from conversational input.
 
-## Available MCP Tools (60+)
+## Available MCP Tools (15 Consolidated)
 
-### Roadmaps
-| MCP Tool | Description |
-|----------|-------------|
-| `list_roadmaps` | List all roadmaps |
-| `get_roadmap` | Get roadmap details |
-| `get_roadmap_bars` | Get all bars in a roadmap |
-| `get_roadmap_lanes` | Get all lanes in a roadmap |
-| `get_roadmap_milestones` | Get all milestones |
-| `get_roadmap_comments` | Get roadmap comments |
+v3.0 consolidates 58 individual tools into 15 action-based tools, reducing token consumption by ~74%.
 
-### Lanes
-| MCP Tool | Description |
-|----------|-------------|
-| `create_lane` | Create a new lane |
-| `update_lane` | Update lane properties |
-| `delete_lane` | Delete a lane |
+| Tool | Actions | Description |
+|------|---------|-------------|
+| `roadmaps` | list, get, get_bars, get_comments | Manage roadmaps |
+| `lanes` | list, create, update, delete | Manage lanes in roadmaps |
+| `milestones` | list, create, update, delete | Manage milestones |
+| `bars` | get, create, update, delete, get_children, get_comments, get_connections, get_links | Manage bars |
+| `bar_connections` | list, create, delete | Manage bar connections |
+| `bar_links` | list, create, delete | Manage external links on bars |
+| `ideas` | list, get, create, update, get_customers, get_tags | Manage ideas (Discovery) |
+| `opportunities` | list, get, create, update | Manage opportunities |
+| `idea_forms` | list, get | View idea forms |
+| `objectives` | list, get, create, update, delete | Manage OKRs |
+| `key_results` | list, get, create, update, delete | Manage key results |
+| `launches` | list, get, create, update, delete | Manage launches |
+| `checklist_sections` | list, get, create, update, delete | Manage checklist sections |
+| `tasks` | list, get, create, update, delete | Manage launch tasks |
+| `organization` | users, teams, status | Organization info |
 
-### Milestones
-| MCP Tool | Description |
-|----------|-------------|
-| `create_milestone` | Create a new milestone |
-| `update_milestone` | Update milestone properties |
-| `delete_milestone` | Delete a milestone |
+### Example Tool Usage
 
-### Bars
-| MCP Tool | Description |
-|----------|-------------|
-| `get_bar` | Get bar details |
-| `create_bar` | Create a new bar |
-| `update_bar` | Update bar properties |
-| `delete_bar` | Delete a bar |
-| `get_bar_child_bars` | Get child bars |
-| `get_bar_comments` | Get bar comments |
-| `get_bar_connections` | Get bar connections |
-| `get_bar_links` | Get bar external links |
+```json
+// List all roadmaps
+{"tool": "roadmaps", "arguments": {"action": "list"}}
 
-### Ideas (Discovery)
-| MCP Tool | Description |
-|----------|-------------|
-| `list_ideas` | List all ideas |
-| `get_idea` | Get idea details |
-| `create_idea` | Create a new idea |
-| `update_idea` | Update idea properties |
-| `get_idea_customers` | Get idea customers |
-| `get_idea_tags` | Get idea tags |
+// Get specific roadmap
+{"tool": "roadmaps", "arguments": {"action": "get", "id": "12345"}}
 
-### Opportunities (Discovery)
-| MCP Tool | Description |
-|----------|-------------|
-| `list_opportunities` | List all opportunities |
-| `get_opportunity` | Get opportunity details |
-| `create_opportunity` | Create an opportunity |
-| `update_opportunity` | Update opportunity |
+// Get bars in a roadmap
+{"tool": "roadmaps", "arguments": {"action": "get_bars", "id": "12345"}}
 
-### Idea Forms
-| MCP Tool | Description |
-|----------|-------------|
-| `list_idea_forms` | List idea forms |
-| `get_idea_form` | Get form details |
+// Create a new idea
+{"tool": "ideas", "arguments": {"action": "create", "title": "Mobile app redesign", "description": "..."}}
+```
 
-### Objectives (OKRs)
-| MCP Tool | Description |
-|----------|-------------|
-| `list_objectives` | List all objectives |
-| `get_objective` | Get objective details |
-| `create_objective` | Create an objective |
-| `update_objective` | Update objective |
-| `delete_objective` | Delete an objective |
+### Response Optimization
 
-### Key Results (OKRs)
-| MCP Tool | Description |
-|----------|-------------|
-| `list_key_results` | List key results |
-| `get_key_result` | Get key result details |
-| `create_key_result` | Create a key result |
-| `update_key_result` | Update key result |
-| `delete_key_result` | Delete a key result |
+List operations return summarized responses to reduce token usage:
 
-### Launches
-| MCP Tool | Description |
-|----------|-------------|
-| `list_launches` | List all launches |
-| `get_launch` | Get launch details |
-| `create_launch` | Create a launch |
-| `update_launch` | Update launch |
-| `delete_launch` | Delete a launch |
-
-### Checklist Sections
-| MCP Tool | Description |
-|----------|-------------|
-| `list_checklist_sections` | List checklist sections |
-| `get_checklist_section` | Get section details |
-| `create_checklist_section` | Create a section |
-| `update_checklist_section` | Update section |
-| `delete_checklist_section` | Delete a section |
-
-### Tasks
-| MCP Tool | Description |
-|----------|-------------|
-| `list_launch_tasks` | List tasks in a launch |
-| `get_task` | Get task details |
-| `create_task` | Create a task |
-| `update_task` | Update task |
-| `delete_task` | Delete a task |
-
-### Organization
-| MCP Tool | Description |
-|----------|-------------|
-| `list_users` | List all users |
-| `list_teams` | List all teams |
-| `check_status` | Check API status |
+```json
+{
+  "count": 17,
+  "items": [
+    {"id": 498227, "name": "Product Roadmap", "updated_at": "2025-12-05T00:57:59Z"},
+    {"id": 592160, "name": "Process Platform", "updated_at": "2025-12-04T22:19:03Z"}
+  ]
+}
+```
 
 ## API Coverage
 
@@ -370,8 +309,8 @@ The AI agent can query roadmaps, create ideas, or fetch OKR status from conversa
 | Milestones | ✅ | ✅ | ✅ | ✅ |
 | Bars | ✅ | ✅ | ✅ | ✅ |
 | Bar Comments | ✅ | - | - | - |
-| Bar Connections | ✅ | - | - | - |
-| Bar Links | ✅ | - | - | - |
+| Bar Connections | ✅ | ✅ | - | ✅ |
+| Bar Links | ✅ | ✅ | - | ✅ |
 | Ideas | ✅ | ✅ | ✅ | - |
 | Idea Customers | ✅ | - | - | - |
 | Idea Tags | ✅ | - | - | - |
@@ -397,6 +336,19 @@ make build-all
 # Create release archives
 make release
 ```
+
+## Changelog
+
+### v3.0.0
+- Consolidated 58 tools into 15 action-based tools (74% reduction)
+- Added response summarization for list operations
+- Compact JSON responses in MCP mode
+- Improved token efficiency for AI assistants
+
+### v2.0.0
+- Initial public release
+- Full ProductPlan API v2 coverage
+- CLI and MCP server modes
 
 ## License
 
