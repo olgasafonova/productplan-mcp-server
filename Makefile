@@ -1,6 +1,6 @@
 .PHONY: build build-all clean test
 
-VERSION := 1.0.0
+VERSION := 3.0.0
 BINARY := productplan
 BUILD_DIR := build
 
