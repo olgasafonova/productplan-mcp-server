@@ -2,7 +2,7 @@
 
 **Talk to your roadmaps using AI.** Ask questions, create ideas, check OKR progress, and manage launches through natural conversation with Claude, Cursor, or other AI assistants.
 
-## What Can You Do With This?
+## What can you do with this?
 
 Instead of clicking through ProductPlan's interface, just ask:
 
@@ -18,7 +18,7 @@ Instead of clicking through ProductPlan's interface, just ask:
 
 The AI fetches your real ProductPlan data and responds in seconds.
 
-## Who Is This For?
+## Who is this for?
 
 - **Product Managers** who want faster access to roadmap data
 - **Team leads** who need quick status updates without context-switching
@@ -26,15 +26,15 @@ The AI fetches your real ProductPlan data and responds in seconds.
 
 No coding required. You'll copy a file and paste some settings.
 
-## Quick Start (5 minutes)
+## Quick start (5 minutes)
 
-### Step 1: Get Your ProductPlan API Token
+### Step 1: Get your ProductPlan API token
 
 1. Log into [ProductPlan](https://app.productplan.com)
 2. Go to **Settings** → **API** (or visit [this link](https://app.productplan.com/settings/api) directly)
 3. Copy your API token
 
-### Step 2: Download the App
+### Step 2: Download the app
 
 Go to the [Releases page](https://github.com/olgasafonova/productplan-mcp-server/releases) and download the right file for your computer:
 
@@ -56,7 +56,7 @@ You'll be asked for your password. This is normal.
 
 **On Windows**, move the `.exe` file to a folder in your PATH, or note down where you saved it.
 
-### Step 3: Connect to Your AI Assistant
+### Step 3: Connect to your AI assistant
 
 Pick the tool you use:
 
@@ -186,7 +186,7 @@ Example workflow: `Slack Trigger → AI Agent (with MCP Client) → Slack Respon
 
 </details>
 
-### Step 4: Start Asking Questions
+### Step 4: Start asking questions
 
 Open your AI assistant and try:
 
@@ -197,26 +197,26 @@ Open your AI assistant and try:
 
 ---
 
-## Real-World Use Cases
+## Real-world use cases
 
-### Morning Standup Prep
+### Morning standup prep
 > "Summarize what changed on our Product Roadmap in the last week"
 
-### Stakeholder Updates
+### Stakeholder updates
 > "List all Q1 objectives and their progress"
 
-### Idea Triage
+### Idea triage
 > "Show me all ideas tagged 'enterprise' that don't have a priority set"
 
-### Launch Coordination
+### Launch coordination
 > "What tasks are still incomplete for the January launch?"
 
-### Quick Lookups
+### Quick lookups
 > "When is the 'Mobile App v2' bar scheduled to start?"
 
 ---
 
-## What ProductPlan Data Can You Access?
+## What ProductPlan data can you access?
 
 | Feature | View | Create | Edit | Delete |
 |---------|------|--------|------|--------|
@@ -250,7 +250,7 @@ Restart your AI assistant after editing the config file. The MCP server only loa
 
 ---
 
-## Command Line (Optional)
+## Command line (optional)
 
 You can also use this tool directly in Terminal without an AI assistant:
 
@@ -269,7 +269,7 @@ productplan launches         # List all launches
 
 ---
 
-## Background Info
+## Background info
 
 ### What is MCP?
 
@@ -281,7 +281,7 @@ productplan launches         # List all launches
 
 ---
 
-## For Developers
+## For developers
 
 <details>
 <summary>Build from source</summary>
@@ -301,7 +301,7 @@ make release
 </details>
 
 <details>
-<summary>MCP Tool Reference</summary>
+<summary>MCP tool reference</summary>
 
 v3.0 consolidates 58 API operations into 15 action-based tools:
 
