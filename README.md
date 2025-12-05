@@ -26,6 +26,36 @@ The AI fetches your real ProductPlan data and responds in seconds.
 
 No coding required. You'll copy a file and paste some settings.
 
+---
+
+## How it works
+
+```
+┌─────────────────┐      spawns       ┌─────────────────┐      API calls     ┌─────────────────┐
+│   AI Assistant  │ ───────────────── │   MCP Server    │ ─────────────────▶ │   ProductPlan   │
+│ (Claude, Cursor)│ ◀───────────────▶ │   (this binary) │ ◀───────────────── │      API        │
+└─────────────────┘   stdin/stdout    └─────────────────┘     JSON data      └─────────────────┘
+      your computer                        your computer                         cloud
+```
+
+**Why does this need to run on your computer?**
+
+MCP (Model Context Protocol) works through a subprocess model. Your AI assistant doesn't connect to a remote server; it spawns the binary as a local process and communicates via stdin/stdout. This architecture means:
+
+1. **The binary must exist locally** because your AI assistant runs it as a child process
+2. **Your API token stays on your machine**, never passing through third-party servers
+3. **Real-time, synchronous communication** without network latency between AI and the MCP server
+4. **Works offline** for cached data (though ProductPlan API calls still need internet)
+
+When you ask "What's on our Q1 roadmap?", here's what happens:
+
+1. Your AI assistant recognizes it needs ProductPlan data
+2. It sends a structured request to the MCP server process
+3. The binary translates this into ProductPlan API calls
+4. ProductPlan returns JSON data
+5. The binary formats and returns results to your AI
+6. Your AI presents the answer in natural language
+
 ## Quick start (5 minutes)
 
 ### Step 1: Get your ProductPlan API token
@@ -54,7 +84,21 @@ sudo mv ~/Downloads/productplan-darwin-arm64 /usr/local/bin/productplan
 
 You'll be asked for your password. This is normal.
 
-**On Windows**, move the `.exe` file to a folder in your PATH, or note down where you saved it.
+**On Windows**:
+
+1. Create a folder for the binary (if it doesn't exist):
+   ```
+   mkdir C:\Tools
+   ```
+
+2. Move the downloaded `.exe` to that folder and rename it:
+   ```
+   move %USERPROFILE%\Downloads\productplan-windows-amd64.exe C:\Tools\productplan.exe
+   ```
+
+3. Use the full path `C:\Tools\productplan.exe` in your AI assistant config (shown in Step 3)
+
+> **Note**: You can skip adding to PATH. Just use the full file path in your configuration.
 
 ### Step 3: Connect to your AI assistant
 
@@ -69,11 +113,26 @@ Pick the tool you use:
 
 2. Open it in any text editor and add this (replace `your-token` with your actual API token):
 
+**Mac/Linux:**
 ```json
 {
   "mcpServers": {
     "productplan": {
       "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "productplan": {
+      "command": "C:\\Tools\\productplan.exe",
       "env": {
         "PRODUCTPLAN_API_TOKEN": "your-token"
       }
@@ -236,17 +295,32 @@ Open your AI assistant and try:
 
 ## Troubleshooting
 
-**"Command not found"**
-Make sure you ran the `chmod` and `mv` commands from Step 2. On Windows, ensure the .exe is in your PATH.
+**"Command not found" or "spawn ENOENT"**
+
+Your AI assistant can't find the binary. This means:
+- **Mac/Linux**: The file isn't at `/usr/local/bin/productplan`, or you forgot to run `chmod +x`
+- **Windows**: The path in your config doesn't match where you saved the `.exe`
+
+Fix: Verify the binary exists at the path in your config. Run `ls -la /usr/local/bin/productplan` (Mac/Linux) or check if `C:\Tools\productplan.exe` exists (Windows).
 
 **"Invalid API token"**
-Double-check your token at [ProductPlan Settings → API](https://app.productplan.com/settings/api). Tokens can expire or be regenerated.
+
+Double-check your token at [ProductPlan Settings → API](https://app.productplan.com/settings/api). Tokens can expire or be regenerated. Make sure you copied the full token without extra spaces.
 
 **"No roadmaps found"**
+
 Your API token only accesses data you have permission to see in ProductPlan. Check that your account has access to the roadmaps you're looking for.
 
-**AI assistant doesn't see ProductPlan**
-Restart your AI assistant after editing the config file. The MCP server only loads on startup.
+**AI assistant doesn't see ProductPlan tools**
+
+MCP servers load when your AI assistant starts, not when configs change. After editing your config file, fully quit and restart the application. On Mac, use Cmd+Q (not just closing the window).
+
+**"Permission denied" on Mac/Linux**
+
+The binary needs execute permission. Run:
+```bash
+chmod +x /usr/local/bin/productplan
+```
 
 ---
 
