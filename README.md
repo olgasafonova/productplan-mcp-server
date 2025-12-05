@@ -281,7 +281,7 @@ productplan launches         # List all launches
 
 ---
 
-## For developers
+## For Developers
 
 <details>
 <summary>Build from source</summary>
