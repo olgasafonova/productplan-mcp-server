@@ -303,29 +303,18 @@ make release
 <details>
 <summary>MCP tool reference</summary>
 
-v3.0 consolidates 58 API operations into 15 action-based tools:
+v4.0 splits tools into 14 READ tools (no params needed for lists) and 5 WRITE tools (action-based):
 
-| Tool | Actions |
-|------|---------|
-| `roadmaps` | list, get, get_bars, get_comments |
-| `lanes` | list, create, update, delete |
-| `milestones` | list, create, update, delete |
-| `bars` | get, create, update, delete, get_children, get_comments, get_connections, get_links |
-| `bar_connections` | list, create, delete |
-| `bar_links` | list, create, delete |
-| `ideas` | list, get, create, update, get_customers, get_tags |
-| `opportunities` | list, get, create, update |
-| `idea_forms` | list, get |
-| `objectives` | list, get, create, update, delete |
-| `key_results` | list, get, create, update, delete |
-| `launches` | list, get, create, update, delete |
-| `checklist_sections` | list, get, create, update, delete |
-| `tasks` | list, get, create, update, delete |
-| `organization` | users, teams, status |
+**Read tools:**
+`list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_bar`, `list_objectives`, `get_objective`, `list_key_results`, `list_ideas`, `get_idea`, `list_launches`, `get_launch`, `check_status`
 
-Example tool call:
+**Write tools:**
+`manage_bar`, `manage_lane`, `manage_milestone`, `manage_objective`, `manage_key_result`
+
+Example:
 ```json
-{"tool": "roadmaps", "arguments": {"action": "list"}}
+{"tool": "list_roadmaps", "arguments": {}}
+{"tool": "manage_bar", "arguments": {"action": "create", "roadmap_id": "123", "lane_id": "456", "name": "New feature"}}
 ```
 
 </details>
@@ -334,6 +323,7 @@ Example tool call:
 
 ## Changelog
 
+**v4.0.0** - Redesigned tool architecture: 14 granular READ tools + 5 action-based WRITE tools; bars now include lane names
 **v3.0.0** - Consolidated 58 tools into 15 (74% fewer tokens), added response summarization
 **v2.0.0** - Initial public release with full ProductPlan API v2 coverage
 
