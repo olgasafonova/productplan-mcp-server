@@ -15,7 +15,7 @@ import (
 
 const (
 	apiBase = "https://app.productplan.com/api/v2"
-	version = "4.0.0"
+	version = "4.2.0"
 )
 
 var apiToken string
@@ -237,16 +237,47 @@ func FormatIdeas(data json.RawMessage) json.RawMessage {
 	results := make([]map[string]interface{}, 0, len(wrapper.Results))
 	for _, idea := range wrapper.Results {
 		results = append(results, map[string]interface{}{
-			"id":         idea["id"],
-			"title":      idea["title"],
-			"status":     idea["status"],
-			"created_at": idea["created_at"],
+			"id":                  idea["id"],
+			"name":                idea["name"],
+			"channel":             idea["channel"],
+			"opportunities_count": idea["opportunities_count"],
 		})
 	}
 
 	output, _ := json.Marshal(map[string]interface{}{
 		"count": len(results),
 		"ideas": results,
+	})
+	return output
+}
+
+// FormatOpportunities formats opportunity list
+func FormatOpportunities(data json.RawMessage) json.RawMessage {
+	var wrapper struct {
+		Results []map[string]interface{} `json:"results"`
+	}
+	if err := json.Unmarshal(data, &wrapper); err != nil {
+		// Try as array
+		var opportunities []map[string]interface{}
+		if err := json.Unmarshal(data, &opportunities); err != nil {
+			return data
+		}
+		wrapper.Results = opportunities
+	}
+
+	results := make([]map[string]interface{}, 0, len(wrapper.Results))
+	for _, opp := range wrapper.Results {
+		results = append(results, map[string]interface{}{
+			"id":               opp["id"],
+			"problem_statement": opp["problem_statement"],
+			"workflow_status":  opp["workflow_status"],
+			"ideas_count":      opp["ideas_count"],
+		})
+	}
+
+	output, _ := json.Marshal(map[string]interface{}{
+		"count":         len(results),
+		"opportunities": results,
 	})
 	return output
 }
@@ -334,6 +365,50 @@ func (c *APIClient) DeleteBar(id string) (json.RawMessage, error) {
 	return c.request("DELETE", "/bars/"+id, nil)
 }
 
+// Bar Children
+func (c *APIClient) GetBarChildren(barID string) (json.RawMessage, error) {
+	return c.request("GET", "/bars/"+barID+"/child_bars", nil)
+}
+
+// Bar Comments
+func (c *APIClient) GetBarComments(barID string) (json.RawMessage, error) {
+	return c.request("GET", "/bars/"+barID+"/comments", nil)
+}
+
+func (c *APIClient) CreateBarComment(barID string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("POST", "/bars/"+barID+"/comments", data)
+}
+
+// Bar Connections (dependencies between bars)
+func (c *APIClient) GetBarConnections(barID string) (json.RawMessage, error) {
+	return c.request("GET", "/bars/"+barID+"/connections", nil)
+}
+
+func (c *APIClient) CreateBarConnection(barID string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("POST", "/bars/"+barID+"/connections", data)
+}
+
+func (c *APIClient) DeleteBarConnection(barID, connectionID string) (json.RawMessage, error) {
+	return c.request("DELETE", "/bars/"+barID+"/connections/"+connectionID, nil)
+}
+
+// Bar Links (external URLs)
+func (c *APIClient) GetBarLinks(barID string) (json.RawMessage, error) {
+	return c.request("GET", "/bars/"+barID+"/links", nil)
+}
+
+func (c *APIClient) CreateBarLink(barID string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("POST", "/bars/"+barID+"/links", data)
+}
+
+func (c *APIClient) UpdateBarLink(barID, linkID string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("PATCH", "/bars/"+barID+"/links/"+linkID, data)
+}
+
+func (c *APIClient) DeleteBarLink(barID, linkID string) (json.RawMessage, error) {
+	return c.request("DELETE", "/bars/"+barID+"/links/"+linkID, nil)
+}
+
 // Lanes
 func (c *APIClient) CreateLane(roadmapID string, data map[string]interface{}) (json.RawMessage, error) {
 	return c.request("POST", "/roadmaps/"+roadmapID+"/lanes", data)
@@ -413,6 +488,74 @@ func (c *APIClient) ListIdeas() (json.RawMessage, error) {
 
 func (c *APIClient) GetIdea(id string) (json.RawMessage, error) {
 	return c.request("GET", "/discovery/ideas/"+id, nil)
+}
+
+func (c *APIClient) CreateIdea(data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("POST", "/discovery/ideas", data)
+}
+
+func (c *APIClient) UpdateIdea(id string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("PATCH", "/discovery/ideas/"+id, data)
+}
+
+// Idea Customers
+func (c *APIClient) GetIdeaCustomers(ideaID string) (json.RawMessage, error) {
+	return c.request("GET", "/discovery/ideas/"+ideaID+"/customers", nil)
+}
+
+func (c *APIClient) AddIdeaCustomer(ideaID string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("POST", "/discovery/ideas/"+ideaID+"/customers", data)
+}
+
+func (c *APIClient) RemoveIdeaCustomer(ideaID, customerID string) (json.RawMessage, error) {
+	return c.request("DELETE", "/discovery/ideas/"+ideaID+"/customers/"+customerID, nil)
+}
+
+// Idea Tags
+func (c *APIClient) GetIdeaTags(ideaID string) (json.RawMessage, error) {
+	return c.request("GET", "/discovery/ideas/"+ideaID+"/tags", nil)
+}
+
+func (c *APIClient) AddIdeaTag(ideaID string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("POST", "/discovery/ideas/"+ideaID+"/tags", data)
+}
+
+func (c *APIClient) RemoveIdeaTag(ideaID, tagID string) (json.RawMessage, error) {
+	return c.request("DELETE", "/discovery/ideas/"+ideaID+"/tags/"+tagID, nil)
+}
+
+// Opportunities
+func (c *APIClient) ListOpportunities() (json.RawMessage, error) {
+	data, err := c.request("GET", "/discovery/opportunities", nil)
+	if err != nil {
+		return nil, err
+	}
+	return FormatOpportunities(data), nil
+}
+
+func (c *APIClient) GetOpportunity(id string) (json.RawMessage, error) {
+	return c.request("GET", "/discovery/opportunities/"+id, nil)
+}
+
+func (c *APIClient) CreateOpportunity(data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("POST", "/discovery/opportunities", data)
+}
+
+func (c *APIClient) UpdateOpportunity(id string, data map[string]interface{}) (json.RawMessage, error) {
+	return c.request("PATCH", "/discovery/opportunities/"+id, data)
+}
+
+func (c *APIClient) DeleteOpportunity(id string) (json.RawMessage, error) {
+	return c.request("DELETE", "/discovery/opportunities/"+id, nil)
+}
+
+// Idea Forms
+func (c *APIClient) ListIdeaForms() (json.RawMessage, error) {
+	return c.request("GET", "/discovery/idea_forms", nil)
+}
+
+func (c *APIClient) GetIdeaForm(id string) (json.RawMessage, error) {
+	return c.request("GET", "/discovery/idea_forms/"+id, nil)
 }
 
 // Launches
@@ -565,6 +708,50 @@ func (s *MCPServer) getTools() []Tool {
 			},
 		},
 		{
+			Name:        "get_bar_children",
+			Description: "Get child bars (sub-items) of a specific bar. Returns nested items under a parent bar.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"bar_id": {Type: "string", Description: "The parent bar ID"},
+				},
+				Required: []string{"bar_id"},
+			},
+		},
+		{
+			Name:        "get_bar_comments",
+			Description: "Get all comments on a specific bar. Shows discussion and feedback on roadmap items.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"bar_id": {Type: "string", Description: "The bar ID"},
+				},
+				Required: []string{"bar_id"},
+			},
+		},
+		{
+			Name:        "get_bar_connections",
+			Description: "Get connections (dependencies) between bars. Shows what bars are linked together.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"bar_id": {Type: "string", Description: "The bar ID"},
+				},
+				Required: []string{"bar_id"},
+			},
+		},
+		{
+			Name:        "get_bar_links",
+			Description: "Get external links attached to a bar (URLs to Jira, docs, designs, etc).",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"bar_id": {Type: "string", Description: "The bar ID"},
+				},
+				Required: []string{"bar_id"},
+			},
+		},
+		{
 			Name:        "list_objectives",
 			Description: "List all OKR objectives. Call this to see strategic goals. No parameters needed.",
 			InputSchema: InputSchema{
@@ -614,6 +801,66 @@ func (s *MCPServer) getTools() []Tool {
 			},
 		},
 		{
+			Name:        "get_idea_customers",
+			Description: "Get customers associated with an idea. Shows who requested or is impacted by an idea.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"idea_id": {Type: "string", Description: "The idea ID"},
+				},
+				Required: []string{"idea_id"},
+			},
+		},
+		{
+			Name:        "get_idea_tags",
+			Description: "Get tags attached to an idea. Tags help categorize and filter ideas.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"idea_id": {Type: "string", Description: "The idea ID"},
+				},
+				Required: []string{"idea_id"},
+			},
+		},
+		{
+			Name:        "list_opportunities",
+			Description: "List all opportunities in the discovery pipeline. Opportunities are validated ideas worth pursuing.",
+			InputSchema: InputSchema{
+				Type:       "object",
+				Properties: map[string]Property{},
+			},
+		},
+		{
+			Name:        "get_opportunity",
+			Description: "Get full details of a specific opportunity.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"opportunity_id": {Type: "string", Description: "The opportunity ID"},
+				},
+				Required: []string{"opportunity_id"},
+			},
+		},
+		{
+			Name:        "list_idea_forms",
+			Description: "List all idea submission forms. Forms collect feedback from users and stakeholders.",
+			InputSchema: InputSchema{
+				Type:       "object",
+				Properties: map[string]Property{},
+			},
+		},
+		{
+			Name:        "get_idea_form",
+			Description: "Get full details of an idea form including its fields.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"form_id": {Type: "string", Description: "The idea form ID"},
+				},
+				Required: []string{"form_id"},
+			},
+		},
+		{
 			Name:        "list_launches",
 			Description: "List all product launches. No parameters needed.",
 			InputSchema: InputSchema{
@@ -660,6 +907,47 @@ func (s *MCPServer) getTools() []Tool {
 					"description": {Type: "string", Description: "Description text"},
 				},
 				Required: []string{"action"},
+			},
+		},
+		{
+			Name:        "manage_bar_comment",
+			Description: "Add a comment to a bar.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"bar_id": {Type: "string", Description: "The bar ID to comment on"},
+					"body":   {Type: "string", Description: "Comment text content"},
+				},
+				Required: []string{"bar_id", "body"},
+			},
+		},
+		{
+			Name:        "manage_bar_connection",
+			Description: "Create or delete a connection (dependency) between bars.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":        {Type: "string", Description: "Action to perform", Enum: []string{"create", "delete"}},
+					"bar_id":        {Type: "string", Description: "Source bar ID"},
+					"target_bar_id": {Type: "string", Description: "Target bar ID to connect to (for create)"},
+					"connection_id": {Type: "string", Description: "Connection ID (required for delete)"},
+				},
+				Required: []string{"action", "bar_id"},
+			},
+		},
+		{
+			Name:        "manage_bar_link",
+			Description: "Create, update, or delete an external link on a bar.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":  {Type: "string", Description: "Action to perform", Enum: []string{"create", "update", "delete"}},
+					"bar_id":  {Type: "string", Description: "The bar ID"},
+					"link_id": {Type: "string", Description: "Link ID (required for update/delete)"},
+					"url":     {Type: "string", Description: "The URL to link to"},
+					"name":    {Type: "string", Description: "Display name for the link"},
+				},
+				Required: []string{"action", "bar_id"},
 			},
 		},
 		{
@@ -723,6 +1011,65 @@ func (s *MCPServer) getTools() []Tool {
 				Required: []string{"action", "objective_id"},
 			},
 		},
+		{
+			Name:        "manage_idea",
+			Description: "Create or update an idea in the discovery pipeline.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"create", "update"}},
+					"idea_id":     {Type: "string", Description: "Idea ID (required for update)"},
+					"title":       {Type: "string", Description: "Idea title"},
+					"description": {Type: "string", Description: "Idea description"},
+					"status":      {Type: "string", Description: "Idea status"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		{
+			Name:        "manage_idea_customer",
+			Description: "Add or remove a customer from an idea.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"add", "remove"}},
+					"idea_id":     {Type: "string", Description: "The idea ID"},
+					"customer_id": {Type: "string", Description: "Customer ID (required for remove)"},
+					"name":        {Type: "string", Description: "Customer name (for add)"},
+					"email":       {Type: "string", Description: "Customer email (for add)"},
+				},
+				Required: []string{"action", "idea_id"},
+			},
+		},
+		{
+			Name:        "manage_idea_tag",
+			Description: "Add or remove a tag from an idea.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":  {Type: "string", Description: "Action to perform", Enum: []string{"add", "remove"}},
+					"idea_id": {Type: "string", Description: "The idea ID"},
+					"tag_id":  {Type: "string", Description: "Tag ID (required for remove)"},
+					"name":    {Type: "string", Description: "Tag name (for add)"},
+				},
+				Required: []string{"action", "idea_id"},
+			},
+		},
+		{
+			Name:        "manage_opportunity",
+			Description: "Create, update, or delete an opportunity.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"action":            {Type: "string", Description: "Action to perform", Enum: []string{"create", "update", "delete"}},
+					"opportunity_id":    {Type: "string", Description: "Opportunity ID (required for update/delete)"},
+					"problem_statement": {Type: "string", Description: "The opportunity problem statement (name)"},
+					"description":       {Type: "string", Description: "Opportunity description"},
+					"workflow_status":   {Type: "string", Description: "Status: draft, in_discovery, etc."},
+				},
+				Required: []string{"action"},
+			},
+		},
 	}
 }
 
@@ -753,6 +1100,18 @@ func (s *MCPServer) handleToolCall(name string, args map[string]interface{}) (js
 
 	case "get_bar":
 		return s.client.GetBar(getString("bar_id"))
+
+	case "get_bar_children":
+		return s.client.GetBarChildren(getString("bar_id"))
+
+	case "get_bar_comments":
+		return s.client.GetBarComments(getString("bar_id"))
+
+	case "get_bar_connections":
+		return s.client.GetBarConnections(getString("bar_id"))
+
+	case "get_bar_links":
+		return s.client.GetBarLinks(getString("bar_id"))
 
 	case "list_objectives":
 		return s.client.ListObjectives()
@@ -815,6 +1174,48 @@ func (s *MCPServer) handleToolCall(name string, args map[string]interface{}) (js
 			return s.client.UpdateBar(getString("bar_id"), data)
 		case "delete":
 			return s.client.DeleteBar(getString("bar_id"))
+		}
+
+	case "manage_bar_comment":
+		data := map[string]interface{}{
+			"body": getString("body"),
+		}
+		return s.client.CreateBarComment(getString("bar_id"), data)
+
+	case "manage_bar_connection":
+		action := getString("action")
+		barID := getString("bar_id")
+		switch action {
+		case "create":
+			data := map[string]interface{}{
+				"target_bar_id": getString("target_bar_id"),
+			}
+			return s.client.CreateBarConnection(barID, data)
+		case "delete":
+			return s.client.DeleteBarConnection(barID, getString("connection_id"))
+		}
+
+	case "manage_bar_link":
+		action := getString("action")
+		barID := getString("bar_id")
+		switch action {
+		case "create":
+			data := map[string]interface{}{
+				"url":  getString("url"),
+				"name": getString("name"),
+			}
+			return s.client.CreateBarLink(barID, data)
+		case "update":
+			data := make(map[string]interface{})
+			if u := getString("url"); u != "" {
+				data["url"] = u
+			}
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			return s.client.UpdateBarLink(barID, getString("link_id"), data)
+		case "delete":
+			return s.client.DeleteBarLink(barID, getString("link_id"))
 		}
 
 	case "manage_lane":
@@ -912,6 +1313,102 @@ func (s *MCPServer) handleToolCall(name string, args map[string]interface{}) (js
 			return s.client.UpdateKeyResult(objectiveID, getString("key_result_id"), data)
 		case "delete":
 			return s.client.DeleteKeyResult(objectiveID, getString("key_result_id"))
+		}
+
+	// DISCOVERY MODULE - READ TOOLS
+	case "get_idea_customers":
+		return s.client.GetIdeaCustomers(getString("idea_id"))
+
+	case "get_idea_tags":
+		return s.client.GetIdeaTags(getString("idea_id"))
+
+	case "list_opportunities":
+		return s.client.ListOpportunities()
+
+	case "get_opportunity":
+		return s.client.GetOpportunity(getString("opportunity_id"))
+
+	case "list_idea_forms":
+		return s.client.ListIdeaForms()
+
+	case "get_idea_form":
+		return s.client.GetIdeaForm(getString("idea_form_id"))
+
+	// DISCOVERY MODULE - WRITE TOOLS
+	case "manage_idea":
+		action := getString("action")
+		switch action {
+		case "create":
+			data := map[string]interface{}{"name": getString("name")}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			if status := getString("status"); status != "" {
+				data["status"] = status
+			}
+			return s.client.CreateIdea(data)
+		case "update":
+			data := make(map[string]interface{})
+			if n := getString("name"); n != "" {
+				data["name"] = n
+			}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			if status := getString("status"); status != "" {
+				data["status"] = status
+			}
+			return s.client.UpdateIdea(getString("idea_id"), data)
+		}
+
+	case "manage_idea_customer":
+		action := getString("action")
+		ideaID := getString("idea_id")
+		switch action {
+		case "add":
+			data := map[string]interface{}{"customer_id": getString("customer_id")}
+			return s.client.AddIdeaCustomer(ideaID, data)
+		case "remove":
+			return s.client.RemoveIdeaCustomer(ideaID, getString("customer_id"))
+		}
+
+	case "manage_idea_tag":
+		action := getString("action")
+		ideaID := getString("idea_id")
+		switch action {
+		case "add":
+			data := map[string]interface{}{"tag_id": getString("tag_id")}
+			return s.client.AddIdeaTag(ideaID, data)
+		case "remove":
+			return s.client.RemoveIdeaTag(ideaID, getString("tag_id"))
+		}
+
+	case "manage_opportunity":
+		action := getString("action")
+		switch action {
+		case "create":
+			data := map[string]interface{}{"problem_statement": getString("problem_statement")}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			if status := getString("workflow_status"); status != "" {
+				data["workflow_status"] = status
+			}
+			return s.client.CreateOpportunity(data)
+		case "update":
+			data := make(map[string]interface{})
+			if ps := getString("problem_statement"); ps != "" {
+				data["problem_statement"] = ps
+			}
+			if desc := getString("description"); desc != "" {
+				data["description"] = desc
+			}
+			if status := getString("workflow_status"); status != "" {
+				data["workflow_status"] = status
+			}
+			return s.client.UpdateOpportunity(getString("opportunity_id"), data)
+		case "delete":
+			return s.client.DeleteOpportunity(getString("opportunity_id"))
 		}
 	}
 
@@ -1080,6 +1577,13 @@ func runCLI(args []string) {
 			result, err = client.GetLaunch(subArgs[0])
 		}
 
+	case "opportunities":
+		if len(subArgs) == 0 {
+			result, err = client.ListOpportunities()
+		} else {
+			result, err = client.GetOpportunity(subArgs[0])
+		}
+
 	case "status":
 		result, err = client.CheckStatus()
 
@@ -1111,15 +1615,18 @@ Commands:
   objectives [id]                      List objectives or get details
   key-results <objective_id>           List key results for an objective
   ideas [id]                           List ideas or get details
+  opportunities [id]                   List opportunities or get details
   launches [id]                        List launches or get details
   status                               Check API status
 
 Environment:
   PRODUCTPLAN_API_TOKEN                Your ProductPlan API token (required)
 
-Design (v4.0):
-  - 14 granular READ tools (no params needed for lists)
-  - 5 consolidated WRITE tools (action-based)
+Design (v4.2):
+  - 24 granular READ tools (no params needed for lists)
+  - 12 consolidated WRITE tools (action-based)
+  - Bar relationships: children, comments, connections, links
+  - Discovery module: ideas CRUD, customers, tags, opportunities, idea forms
   - Enriched responses (bars include lane names)
   - Clear tool descriptions for AI decision-making
 

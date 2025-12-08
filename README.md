@@ -281,15 +281,19 @@ Open your AI assistant and try:
 |---------|------|--------|------|--------|
 | **Roadmaps** | Yes | - | - | - |
 | **Bars** (roadmap items) | Yes | Yes | Yes | Yes |
+| **Bar Comments** | Yes | Yes | - | - |
+| **Bar Connections** | Yes | Yes | - | Yes |
+| **Bar Links** | Yes | Yes | Yes | Yes |
 | **Lanes** (categories) | Yes | Yes | Yes | Yes |
 | **Milestones** | Yes | Yes | Yes | Yes |
 | **Ideas** (Discovery) | Yes | Yes | Yes | - |
-| **Opportunities** | Yes | Yes | Yes | - |
+| **Idea Customers** | Yes | Yes | - | Yes |
+| **Idea Tags** | Yes | Yes | - | Yes |
+| **Opportunities** | Yes | Yes | Yes | Yes |
+| **Idea Forms** | Yes | - | - | - |
 | **Objectives** (OKRs) | Yes | Yes | Yes | Yes |
 | **Key Results** | Yes | Yes | Yes | Yes |
-| **Launches** | Yes | Yes | Yes | Yes |
-| **Tasks** (launch checklists) | Yes | Yes | Yes | Yes |
-| **Users & Teams** | Yes | - | - | - |
+| **Launches** | Yes | - | - | - |
 
 ---
 
@@ -338,6 +342,7 @@ productplan roadmaps         # List all roadmaps
 productplan bars 12345       # List bars in roadmap #12345
 productplan objectives       # List all OKRs
 productplan ideas            # List all ideas
+productplan opportunities    # List all opportunities
 productplan launches         # List all launches
 ```
 
@@ -377,18 +382,27 @@ make release
 <details>
 <summary>MCP tool reference</summary>
 
-v4.0 splits tools into 14 READ tools (no params needed for lists) and 5 WRITE tools (action-based):
+v4.2 provides 24 READ tools and 12 WRITE tools (action-based):
 
 **Read tools:**
-`list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_bar`, `list_objectives`, `get_objective`, `list_key_results`, `list_ideas`, `get_idea`, `list_launches`, `get_launch`, `check_status`
+- Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`
+- Bars: `get_bar`, `get_bar_children`, `get_bar_comments`, `get_bar_connections`, `get_bar_links`
+- OKRs: `list_objectives`, `get_objective`, `list_key_results`
+- Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
+- Launches: `list_launches`, `get_launch`
+- Admin: `check_status`
 
 **Write tools:**
-`manage_bar`, `manage_lane`, `manage_milestone`, `manage_objective`, `manage_key_result`
+- Roadmaps: `manage_bar`, `manage_lane`, `manage_milestone`
+- Bar relationships: `manage_bar_comment`, `manage_bar_connection`, `manage_bar_link`
+- OKRs: `manage_objective`, `manage_key_result`
+- Discovery: `manage_idea`, `manage_idea_customer`, `manage_idea_tag`, `manage_opportunity`
 
 Example:
 ```json
 {"tool": "list_roadmaps", "arguments": {}}
 {"tool": "manage_bar", "arguments": {"action": "create", "roadmap_id": "123", "lane_id": "456", "name": "New feature"}}
+{"tool": "manage_idea", "arguments": {"action": "create", "name": "Mobile app improvements"}}
 ```
 
 </details>
@@ -397,6 +411,8 @@ Example:
 
 ## Changelog
 
+**v4.2.0** - Discovery module: full CRUD for ideas, opportunities, idea customers/tags; read-only idea forms (36 tools total)
+**v4.1.0** - Bar relationships: children, comments, connections, links with full CRUD (26 tools)
 **v4.0.0** - Redesigned tool architecture: 14 granular READ tools + 5 action-based WRITE tools; bars now include lane names
 **v3.0.0** - Consolidated 58 tools into 15 (74% fewer tokens), added response summarization
 **v2.0.0** - Initial public release with full ProductPlan API v2 coverage
