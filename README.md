@@ -411,11 +411,7 @@ Example:
 
 ## Changelog
 
-**v4.2.0** - Discovery module: full CRUD for ideas, opportunities, idea customers/tags; read-only idea forms (36 tools total)
-**v4.1.0** - Bar relationships: children, comments, connections, links with full CRUD (26 tools)
-**v4.0.0** - Redesigned tool architecture: 14 granular READ tools + 5 action-based WRITE tools; bars now include lane names
-**v3.0.0** - Consolidated 58 tools into 15 (74% fewer tokens), added response summarization
-**v2.0.0** - Initial public release with full ProductPlan API v2 coverage
+See [CHANGELOG.md](CHANGELOG.md) for release history and detailed changes.
 
 ## License
 
