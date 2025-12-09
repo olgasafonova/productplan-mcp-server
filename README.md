@@ -148,13 +148,30 @@ Pick the tool you use:
 <details>
 <summary><strong>Claude Code (Terminal)</strong></summary>
 
-Add to `~/.claude.json`:
+Add to your config file:
+- **Mac/Linux**: `~/.claude.json`
+- **Windows**: `%USERPROFILE%\.claude.json`
 
+**Mac/Linux:**
 ```json
 {
   "mcpServers": {
     "productplan": {
       "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+**Windows:**
+```json
+{
+  "mcpServers": {
+    "productplan": {
+      "command": "C:\\Tools\\productplan.exe",
       "env": {
         "PRODUCTPLAN_API_TOKEN": "your-token"
       }
@@ -172,6 +189,7 @@ Add to `~/.claude.json`:
 2. Go to **Settings** → **MCP Servers**
 3. Add this configuration:
 
+**Mac/Linux:**
 ```json
 {
   "productplan": {
@@ -183,6 +201,20 @@ Add to `~/.claude.json`:
 }
 ```
 
+**Windows:**
+```json
+{
+  "productplan": {
+    "command": "C:\\Tools\\productplan.exe",
+    "env": {
+      "PRODUCTPLAN_API_TOKEN": "your-token"
+    }
+  }
+}
+```
+
+> **Windows users**: Use double backslashes (`\\`) in the path. This is required because backslash is an escape character in JSON.
+
 </details>
 
 <details>
@@ -191,11 +223,26 @@ Add to `~/.claude.json`:
 1. Install the [Cline extension](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev)
 2. Open VS Code settings (JSON) and add:
 
+**Mac/Linux:**
 ```json
 {
   "cline.mcpServers": {
     "productplan": {
       "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  }
+}
+```
+
+**Windows:**
+```json
+{
+  "cline.mcpServers": {
+    "productplan": {
+      "command": "C:\\Tools\\productplan.exe",
       "env": {
         "PRODUCTPLAN_API_TOKEN": "your-token"
       }
@@ -210,14 +257,32 @@ Add to `~/.claude.json`:
 <summary><strong>VS Code + Continue</strong></summary>
 
 1. Install the [Continue extension](https://marketplace.visualstudio.com/items?itemName=continue.continue)
-2. Add to `~/.continue/config.json`:
+2. Add to your config file:
+   - **Mac/Linux**: `~/.continue/config.json`
+   - **Windows**: `%USERPROFILE%\.continue\config.json`
 
+**Mac/Linux:**
 ```json
 {
   "mcpServers": [
     {
       "name": "productplan",
       "command": "/usr/local/bin/productplan",
+      "env": {
+        "PRODUCTPLAN_API_TOKEN": "your-token"
+      }
+    }
+  ]
+}
+```
+
+**Windows:**
+```json
+{
+  "mcpServers": [
+    {
+      "name": "productplan",
+      "command": "C:\\Tools\\productplan.exe",
       "env": {
         "PRODUCTPLAN_API_TOKEN": "your-token"
       }
@@ -237,7 +302,9 @@ Add to `~/.claude.json`:
    ```
 2. Add an **MCP Client** node to your workflow
 3. Configure:
-   - **Command**: `/usr/local/bin/productplan`
+   - **Command**:
+     - Mac/Linux: `/usr/local/bin/productplan`
+     - Windows: `C:\Tools\productplan.exe`
    - **Environment Variables**: `PRODUCTPLAN_API_TOKEN=your-token`
 4. Connect to an **AI Agent** node
 
@@ -306,6 +373,19 @@ Your AI assistant can't find the binary. This means:
 - **Windows**: The path in your config doesn't match where you saved the `.exe`
 
 Fix: Verify the binary exists at the path in your config. Run `ls -la /usr/local/bin/productplan` (Mac/Linux) or check if `C:\Tools\productplan.exe` exists (Windows).
+
+**Windows path issues**
+
+Common mistakes on Windows:
+
+| Wrong | Correct |
+|-------|---------|
+| `/usr/local/bin/productplan` | `C:\\Tools\\productplan.exe` |
+| `C:\Tools\productplan.exe` (single backslash in JSON) | `C:\\Tools\\productplan.exe` |
+| `productplan` (no path) | `C:\\Tools\\productplan.exe` |
+| Missing `.exe` extension | Include `.exe` in the path |
+
+Windows uses backslashes (`\`) for paths, but JSON treats backslash as an escape character. You must double them (`\\`) in your config file.
 
 **"Invalid API token"**
 
