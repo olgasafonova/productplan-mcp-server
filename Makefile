@@ -1,12 +1,13 @@
 .PHONY: build build-all clean test lint vet
 
-VERSION := 4.4.0
+VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BINARY := productplan-mcp-server
 BUILD_DIR := build
+LDFLAGS := -s -w -X main.version=$(VERSION)
 
 # Build for current platform
 build:
-	go build -ldflags="-s -w" -o $(BINARY) .
+	go build -ldflags="$(LDFLAGS)" -o $(BINARY) .
 
 # Run tests
 test:
@@ -29,13 +30,13 @@ vet:
 build-all: clean
 	mkdir -p $(BUILD_DIR)
 	# macOS
-	GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(BINARY)-darwin-amd64 .
-	GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(BINARY)-darwin-arm64 .
+	GOOS=darwin GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY)-darwin-amd64 .
+	GOOS=darwin GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY)-darwin-arm64 .
 	# Linux
-	GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(BINARY)-linux-amd64 .
-	GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(BINARY)-linux-arm64 .
+	GOOS=linux GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY)-linux-amd64 .
+	GOOS=linux GOARCH=arm64 go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY)-linux-arm64 .
 	# Windows
-	GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o $(BUILD_DIR)/$(BINARY)-windows-amd64.exe .
+	GOOS=windows GOARCH=amd64 go build -ldflags="$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY)-windows-amd64.exe .
 
 clean:
 	rm -rf $(BUILD_DIR) $(BINARY)

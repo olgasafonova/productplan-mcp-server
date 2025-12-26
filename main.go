@@ -14,10 +14,10 @@ import (
 	"github.com/olgasafonova/productplan-mcp-server/productplan"
 )
 
-const (
-	apiBase = "https://app.productplan.com/api/v2"
-	version = "4.5.0"
-)
+const apiBase = "https://app.productplan.com/api/v2"
+
+// version is set at build time via ldflags: -X main.version=v1.0.0
+var version = "dev"
 
 var apiToken string
 
@@ -1479,6 +1479,45 @@ func (s *MCPServer) handleRequest(req JSONRPCRequest) JSONRPCResponse {
 			"protocolVersion": "2024-11-05",
 			"serverInfo":      map[string]string{"name": "productplan-mcp-server", "version": version},
 			"capabilities":    map[string]interface{}{"tools": map[string]interface{}{}},
+			"instructions": `ProductPlan MCP Server - Access roadmaps, bars, objectives, ideas, and launches.
+
+## Quick Reference
+
+### Roadmaps
+- list_roadmaps: Get all roadmaps (start here to find roadmap_id)
+- get_roadmap: Get roadmap details including lanes
+
+### Bars (Roadmap Items)
+- list_bars: List items on a roadmap (requires roadmap_id)
+- get_bar: Get bar details including dates, lane, status
+- create_bar, update_bar, delete_bar: Manage bars
+
+### Objectives (OKRs)
+- list_objectives: List all objectives
+- get_objective: Get objective with key results and progress
+- create_objective, update_objective: Manage objectives
+
+### Ideas
+- list_ideas: List ideas with optional status filter
+- get_idea: Get idea details including votes and tags
+- create_idea, update_idea: Manage ideas
+
+### Launches
+- list_launches: List product launches
+- get_launch: Get launch details
+
+## Common Workflows
+
+1. "What's on our roadmap?" → list_roadmaps → list_bars with roadmap_id
+2. "How are OKRs progressing?" → list_objectives → check progress field
+3. "Show customer requests" → list_ideas with status or tag filter
+4. "Upcoming launches" → list_launches
+
+## Tips
+- Always get roadmap_id first before querying bars
+- Use expand parameter for nested data (comments, connections)
+- Dates use YYYY-MM-DD format
+- Colors use hex format (#FF0000)`,
 		}
 
 	case "notifications/initialized":
