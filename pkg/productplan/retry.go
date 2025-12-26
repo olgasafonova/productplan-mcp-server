@@ -112,9 +112,9 @@ func (r *Retryer) calculateDelay(attempt int) time.Duration {
 	// Exponential backoff: baseDelay * multiplier^(attempt-1)
 	delay := float64(r.config.BaseDelay) * math.Pow(r.config.Multiplier, float64(attempt-1))
 
-	// Apply jitter
+	// Apply jitter (math/rand is fine here - not security-sensitive)
 	if r.config.Jitter > 0 {
-		jitter := delay * r.config.Jitter * (rand.Float64()*2 - 1) // +/- jitter%
+		jitter := delay * r.config.Jitter * (rand.Float64()*2 - 1) // #nosec G404 - jitter doesn't need crypto randomness
 		delay += jitter
 	}
 
