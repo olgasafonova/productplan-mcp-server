@@ -16,7 +16,7 @@ import (
 
 const (
 	apiBase = "https://app.productplan.com/api/v2"
-	version = "4.4.0"
+	version = "4.5.0"
 )
 
 var apiToken string
@@ -70,7 +70,7 @@ func (c *APIClient) request(method, endpoint string, body interface{}) (json.Raw
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Update rate limiter from response headers
 	if c.rateLimiter != nil {
