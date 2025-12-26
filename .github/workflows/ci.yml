@@ -17,10 +17,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.24'
-          cache: true
-
-      - name: Download dependencies
-        run: go mod download
+          cache: false  # No external dependencies, cache not needed
 
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
@@ -41,7 +38,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.24'
-          cache: true
+          cache: false  # No external dependencies, cache not needed
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v9
@@ -73,7 +70,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.24'
-          cache: true
+          cache: false  # No external dependencies, cache not needed
 
       - name: Build
         env:
