@@ -125,9 +125,9 @@ func TestAPIError_Suggestion(t *testing.T) {
 			wantPrefix: "Invalid or expired API token",
 		},
 		{
-			name:       "unknown",
-			apiErr:     APIError{StatusCode: 418}, // I'm a teapot
-			wantEmpty:  true,
+			name:      "unknown",
+			apiErr:    APIError{StatusCode: 418}, // I'm a teapot
+			wantEmpty: true,
 		},
 	}
 

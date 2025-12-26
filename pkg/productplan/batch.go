@@ -14,7 +14,7 @@ type BatchConfig struct {
 // DefaultBatchConfig returns sensible defaults for batch operations.
 func DefaultBatchConfig() BatchConfig {
 	return BatchConfig{
-		Concurrency: 3,  // Reasonable parallelism without overwhelming API
+		Concurrency: 3, // Reasonable parallelism without overwhelming API
 		StopOnError: false,
 	}
 }

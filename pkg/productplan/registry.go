@@ -38,8 +38,8 @@ type PropertyDef struct {
 
 // ToolRegistry manages tool definitions.
 type ToolRegistry struct {
-	tools    map[string]*ToolDefinition
-	order    []string // Maintain insertion order
+	tools      map[string]*ToolDefinition
+	order      []string // Maintain insertion order
 	byCategory map[ToolCategory][]*ToolDefinition
 }
 

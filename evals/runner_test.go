@@ -485,7 +485,7 @@ func TestExportCombinedReportJSON(t *testing.T) {
 		OverallAccuracy: 0.85,
 		PassThreshold:   true,
 		Summary: map[string]*CategoryTotal{
-			"tool_selection": {Total: 10, Passed: 9, Rate: 0.9},
+			"tool_selection":  {Total: 10, Passed: 9, Rate: 0.9},
 			"confusion_pairs": {Total: 20, Passed: 17, Rate: 0.85},
 			"arguments":       {Total: 15, Passed: 12, Rate: 0.8},
 		},

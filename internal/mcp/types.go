@@ -98,10 +98,10 @@ type ToolCallParams struct {
 
 // InitializeResult represents the result of an initialize request.
 type InitializeResult struct {
-	ProtocolVersion string         `json:"protocolVersion"`
-	ServerInfo      ServerInfo     `json:"serverInfo"`
-	Capabilities    Capabilities   `json:"capabilities"`
-	Instructions    string         `json:"instructions,omitempty"`
+	ProtocolVersion string       `json:"protocolVersion"`
+	ServerInfo      ServerInfo   `json:"serverInfo"`
+	Capabilities    Capabilities `json:"capabilities"`
+	Instructions    string       `json:"instructions,omitempty"`
 }
 
 // ServerInfo contains server identification information.

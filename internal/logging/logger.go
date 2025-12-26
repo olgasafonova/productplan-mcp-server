@@ -64,15 +64,15 @@ func F(key string, value any) Field {
 }
 
 // Common field constructors for type safety and consistency.
-func RequestID(id string) Field    { return F("req_id", id) }
-func Operation(op string) Field    { return F("op", op) }
+func RequestID(id string) Field      { return F("req_id", id) }
+func Operation(op string) Field      { return F("op", op) }
 func Duration(d time.Duration) Field { return F("dur_ms", d.Milliseconds()) }
-func Status(s string) Field        { return F("status", s) }
-func Error(err error) Field        { return F("error", err.Error()) }
-func Tool(name string) Field       { return F("tool", name) }
-func Endpoint(e string) Field      { return F("endpoint", e) }
-func StatusCode(code int) Field    { return F("status_code", code) }
-func Count(n int) Field            { return F("count", n) }
+func Status(s string) Field          { return F("status", s) }
+func Error(err error) Field          { return F("error", err.Error()) }
+func Tool(name string) Field         { return F("tool", name) }
+func Endpoint(e string) Field        { return F("endpoint", e) }
+func StatusCode(code int) Field      { return F("status_code", code) }
+func Count(n int) Field              { return F("count", n) }
 
 // Logger is the interface for structured logging.
 type Logger interface {
