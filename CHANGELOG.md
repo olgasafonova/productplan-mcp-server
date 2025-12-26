@@ -5,6 +5,20 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.6.2] - 2025-12-26
+
+### Fixed
+- Go module version format (`go 1.24.0` with patch version) for Go proxy compatibility
+- Go Report Card now achieves A+ rating with 0 issues across 48 files
+
+## [4.6.1] - 2025-12-26
+
+### Added
+- Go Report Card badge in README
+
+### Fixed
+- Code formatting with gofmt across all packages
+
 ## [4.6.0] - 2025-12-26
 
 ### Changed
