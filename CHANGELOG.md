@@ -5,6 +5,17 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.7.0] - 2025-12-27
+
+### Added
+- `health_check` tool with deep API checks, rate limit status, and cache statistics
+- `get_roadmap_complete` tool for parallel fetching of roadmap details, bars, lanes, and milestones
+- AI-friendly response formatting with summaries (e.g., "Found 3 roadmaps", "Bar created successfully")
+- Comprehensive tests for rate limiter and health checker (100% coverage on health.go)
+
+### Improved
+- Tool descriptions with examples, return values, and use cases for better AI understanding
+
 ## [4.6.2] - 2025-12-26
 
 ### Fixed
