@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"sync"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/api"
 	"github.com/olgasafonova/productplan-mcp-server/internal/mcp"
@@ -10,7 +11,11 @@ import (
 
 func listRoadmapsHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		return client.ListRoadmaps(ctx)
+		data, err := client.ListRoadmaps(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "roadmap")
 	})
 }
 
@@ -21,7 +26,11 @@ func getRoadmapHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		return client.GetRoadmap(ctx, roadmapID)
+		data, err := client.GetRoadmap(ctx, roadmapID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatItem(data, "roadmap", roadmapID)
 	})
 }
 
@@ -70,20 +79,27 @@ func manageLaneHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 
+		var data json.RawMessage
+		laneID := h.String("lane_id")
+
 		switch action {
 		case "create":
-			data := map[string]any{"name": h.String("name")}
+			payload := map[string]any{"name": h.String("name")}
 			if c := h.String("color"); c != "" {
-				data["color"] = c
+				payload["color"] = c
 			}
-			return client.CreateLane(ctx, roadmapID, data)
+			data, err = client.CreateLane(ctx, roadmapID, payload)
 		case "update":
-			data := h.BuildData("name", "color")
-			return client.UpdateLane(ctx, roadmapID, h.String("lane_id"), data)
+			payload := h.BuildData("name", "color")
+			data, err = client.UpdateLane(ctx, roadmapID, laneID, payload)
 		case "delete":
-			return client.DeleteLane(ctx, roadmapID, h.String("lane_id"))
+			data, err = client.DeleteLane(ctx, roadmapID, laneID)
 		}
-		return nil, nil
+
+		if err != nil {
+			return nil, err
+		}
+		return FormatAction(data, action, "lane", laneID)
 	})
 }
 
@@ -113,5 +129,69 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 			return client.DeleteMilestone(ctx, roadmapID, h.String("milestone_id"))
 		}
 		return nil, nil
+	})
+}
+
+// getRoadmapCompleteHandler fetches roadmap details, bars, lanes, and milestones in parallel.
+func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		h := mcp.NewArgHelper(args)
+		roadmapID, err := h.RequiredString("roadmap_id")
+		if err != nil {
+			return nil, err
+		}
+
+		// Fetch all data in parallel
+		var wg sync.WaitGroup
+		var roadmap, bars, lanes, milestones json.RawMessage
+		var roadmapErr, barsErr, lanesErr, milestonesErr error
+
+		wg.Add(4)
+
+		go func() {
+			defer wg.Done()
+			roadmap, roadmapErr = client.GetRoadmap(ctx, roadmapID)
+		}()
+
+		go func() {
+			defer wg.Done()
+			bars, barsErr = client.GetRoadmapBars(ctx, roadmapID)
+		}()
+
+		go func() {
+			defer wg.Done()
+			lanes, lanesErr = client.GetRoadmapLanes(ctx, roadmapID)
+		}()
+
+		go func() {
+			defer wg.Done()
+			milestones, milestonesErr = client.GetRoadmapMilestones(ctx, roadmapID)
+		}()
+
+		wg.Wait()
+
+		// Return first error encountered
+		if roadmapErr != nil {
+			return nil, roadmapErr
+		}
+		if barsErr != nil {
+			return nil, barsErr
+		}
+		if lanesErr != nil {
+			return nil, lanesErr
+		}
+		if milestonesErr != nil {
+			return nil, milestonesErr
+		}
+
+		// Combine results into a single response
+		result := map[string]json.RawMessage{
+			"roadmap":    roadmap,
+			"bars":       bars,
+			"lanes":      lanes,
+			"milestones": milestones,
+		}
+
+		return json.Marshal(result)
 	})
 }
