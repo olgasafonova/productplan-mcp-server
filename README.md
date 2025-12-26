@@ -1,6 +1,7 @@
 # ProductPlan MCP Server
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/olgasafonova/productplan-mcp-server)](https://goreportcard.com/report/github.com/olgasafonova/productplan-mcp-server)
+[![CI](https://github.com/olgasafonova/productplan-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/olgasafonova/productplan-mcp-server/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/olgasafonova/productplan-mcp-server?v=1)](https://goreportcard.com/report/github.com/olgasafonova/productplan-mcp-server)
 
 **Talk to your roadmaps using AI.** Ask questions, create ideas, check OKR progress, and manage launches through natural conversation with Claude, Cursor, or other AI assistants.
 
