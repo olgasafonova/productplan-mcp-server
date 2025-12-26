@@ -262,6 +262,136 @@
           "rationale": "Removing an opportunity"
         }
       ]
+    },
+    {
+      "tools": ["list_launches", "get_launch"],
+      "distinction": "list_launches returns all launches. get_launch returns full details of one specific launch.",
+      "tests": [
+        {
+          "prompt": "What launches do we have planned?",
+          "expected_tool": "list_launches",
+          "rationale": "Listing all launches"
+        },
+        {
+          "prompt": "Show all product releases",
+          "expected_tool": "list_launches",
+          "rationale": "Getting all launches"
+        },
+        {
+          "prompt": "Get details of launch 123",
+          "expected_tool": "get_launch",
+          "rationale": "Specific launch details"
+        },
+        {
+          "prompt": "Show me the v2.0 release information",
+          "expected_tool": "get_launch",
+          "rationale": "Details of a specific launch"
+        }
+      ]
+    },
+    {
+      "tools": ["health_check", "check_status"],
+      "distinction": "health_check returns server health with optional deep API check. check_status returns ProductPlan API status only.",
+      "tests": [
+        {
+          "prompt": "Is the MCP server healthy?",
+          "expected_tool": "health_check",
+          "rationale": "Server health check"
+        },
+        {
+          "prompt": "Run server diagnostics",
+          "expected_tool": "health_check",
+          "rationale": "Diagnostic check on server"
+        },
+        {
+          "prompt": "Is the ProductPlan API working?",
+          "expected_tool": "check_status",
+          "rationale": "API status check"
+        },
+        {
+          "prompt": "Check if we can connect to ProductPlan",
+          "expected_tool": "check_status",
+          "rationale": "API connectivity check"
+        }
+      ]
+    },
+    {
+      "tools": ["get_roadmap_milestones", "manage_milestone"],
+      "distinction": "get_roadmap_milestones reads existing milestones. manage_milestone creates, updates, or deletes milestones.",
+      "tests": [
+        {
+          "prompt": "Show me the key dates on roadmap 123",
+          "expected_tool": "get_roadmap_milestones",
+          "rationale": "Reading existing milestones"
+        },
+        {
+          "prompt": "What milestones are set for Q2?",
+          "expected_tool": "get_roadmap_milestones",
+          "rationale": "Viewing milestones"
+        },
+        {
+          "prompt": "Add a launch milestone on June 30",
+          "expected_tool": "manage_milestone",
+          "rationale": "Creating a milestone"
+        },
+        {
+          "prompt": "Move the beta milestone to next month",
+          "expected_tool": "manage_milestone",
+          "rationale": "Updating a milestone"
+        }
+      ]
+    },
+    {
+      "tools": ["list_key_results", "manage_key_result"],
+      "distinction": "list_key_results reads key results for an objective. manage_key_result creates, updates, or deletes key results.",
+      "tests": [
+        {
+          "prompt": "What KRs does objective 123 have?",
+          "expected_tool": "list_key_results",
+          "rationale": "Reading key results"
+        },
+        {
+          "prompt": "Show progress on the revenue objective metrics",
+          "expected_tool": "list_key_results",
+          "rationale": "Viewing key results"
+        },
+        {
+          "prompt": "Add a new KR to the growth objective",
+          "expected_tool": "manage_key_result",
+          "rationale": "Creating a key result"
+        },
+        {
+          "prompt": "Update the current value to 85%",
+          "expected_tool": "manage_key_result",
+          "rationale": "Updating a key result"
+        }
+      ]
+    },
+    {
+      "tools": ["get_idea_tags", "manage_idea_tag"],
+      "distinction": "get_idea_tags reads tags on an idea. manage_idea_tag adds or removes tags.",
+      "tests": [
+        {
+          "prompt": "What labels are on idea 456?",
+          "expected_tool": "get_idea_tags",
+          "rationale": "Reading existing tags"
+        },
+        {
+          "prompt": "Show me the categories for this idea",
+          "expected_tool": "get_idea_tags",
+          "rationale": "Viewing tags as categories"
+        },
+        {
+          "prompt": "Tag idea 123 as high-priority",
+          "expected_tool": "manage_idea_tag",
+          "rationale": "Adding a tag"
+        },
+        {
+          "prompt": "Remove the deprecated tag from this idea",
+          "expected_tool": "manage_idea_tag",
+          "rationale": "Removing a tag"
+        }
+      ]
     }
   ]
 }

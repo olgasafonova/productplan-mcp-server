@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/olgasafonova/productplan-mcp-server/productplan"
+	"github.com/olgasafonova/productplan-mcp-server/pkg/productplan"
 )
 
 const apiBase = "https://app.productplan.com/api/v2"

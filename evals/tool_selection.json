@@ -485,6 +485,153 @@
       "expected_tool": "manage_opportunity",
       "category": "delete",
       "difficulty": "easy"
+    },
+    {
+      "id": "health-check-1",
+      "prompt": "Check server health",
+      "expected_tool": "health_check",
+      "category": "status",
+      "difficulty": "easy"
+    },
+    {
+      "id": "health-check-2",
+      "prompt": "Run diagnostics with API check",
+      "expected_tool": "health_check",
+      "category": "status",
+      "difficulty": "medium"
+    },
+    {
+      "id": "health-check-3",
+      "prompt": "Is the server healthy?",
+      "expected_tool": "health_check",
+      "category": "status",
+      "difficulty": "easy"
+    },
+    {
+      "id": "hard-ambiguous-1",
+      "prompt": "I need to see what we have on the roadmap",
+      "expected_tool": "list_roadmaps",
+      "category": "roadmaps",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-ambiguous-2",
+      "prompt": "Check if there are any issues with the API",
+      "expected_tool": "check_status",
+      "category": "status",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-ambiguous-3",
+      "prompt": "Get me everything about the mobile initiative",
+      "expected_tool": "get_bar",
+      "category": "bars",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-multi-step-1",
+      "prompt": "Before adding a bar, show me what lanes are available on roadmap 123",
+      "expected_tool": "get_roadmap_lanes",
+      "category": "lanes",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-multi-step-2",
+      "prompt": "I want to create a dependency but first show me bar 456",
+      "expected_tool": "get_bar",
+      "category": "bars",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-context-1",
+      "prompt": "The quarterly planning meeting is coming up, show all strategic goals",
+      "expected_tool": "list_objectives",
+      "category": "objectives",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-context-2",
+      "prompt": "We need to respond to customer requests, what feedback do we have?",
+      "expected_tool": "list_ideas",
+      "category": "ideas",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-context-3",
+      "prompt": "For the board presentation, I need the product timeline",
+      "expected_tool": "list_roadmaps",
+      "category": "roadmaps",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-synonym-1",
+      "prompt": "Display the timeline for project alpha",
+      "expected_tool": "get_roadmap_bars",
+      "category": "bars",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-synonym-2",
+      "prompt": "What are our OKR metrics for the revenue objective?",
+      "expected_tool": "list_key_results",
+      "category": "objectives",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-synonym-3",
+      "prompt": "Show me the categories on this roadmap",
+      "expected_tool": "get_roadmap_lanes",
+      "category": "lanes",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-negative-1",
+      "prompt": "Don't create anything, just show me the existing bars on roadmap 999",
+      "expected_tool": "get_roadmap_bars",
+      "category": "bars",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-workflow-1",
+      "prompt": "We're doing sprint planning, need to see what opportunities are validated",
+      "expected_tool": "list_opportunities",
+      "category": "opportunities",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-workflow-2",
+      "prompt": "Marketing needs the launch checklist for release 2.0",
+      "expected_tool": "get_launch",
+      "category": "launches",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-implicit-1",
+      "prompt": "What's blocking the API redesign work?",
+      "expected_tool": "get_bar_connections",
+      "category": "bars",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-implicit-2",
+      "prompt": "Who asked for the dark mode feature?",
+      "expected_tool": "get_idea_customers",
+      "category": "ideas",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-composite-1",
+      "prompt": "Set up the Q3 planning by creating an objective with key results",
+      "expected_tool": "manage_objective",
+      "category": "create",
+      "difficulty": "hard"
+    },
+    {
+      "id": "hard-composite-2",
+      "prompt": "Add a new epic to the roadmap with dependencies to existing work",
+      "expected_tool": "manage_bar",
+      "category": "create",
+      "difficulty": "hard"
     }
   ]
 }

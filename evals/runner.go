@@ -412,3 +412,91 @@ func FormatMetrics(metrics *EvalMetrics, suiteName string) string {
 
 	return sb.String()
 }
+
+// ExportMetricsJSON exports metrics to JSON for CI integration.
+func ExportMetricsJSON(metrics *EvalMetrics, suiteName string) ([]byte, error) {
+	report := map[string]any{
+		"suite":        suiteName,
+		"total_tests":  metrics.TotalTests,
+		"passed_tests": metrics.PassedTests,
+		"failed_tests": metrics.FailedTests,
+		"accuracy":     metrics.Accuracy,
+		"by_category":  metrics.ByCategory,
+	}
+
+	if len(metrics.FailedDetails) > 0 {
+		report["failed_details"] = metrics.FailedDetails
+	}
+
+	return json.MarshalIndent(report, "", "  ")
+}
+
+// CombinedReport holds results from all evaluation suites.
+type CombinedReport struct {
+	Timestamp       string                    `json:"timestamp"`
+	ToolSelection   *EvalMetrics              `json:"tool_selection"`
+	ConfusionPairs  *EvalMetrics              `json:"confusion_pairs"`
+	Arguments       *EvalMetrics              `json:"arguments"`
+	OverallAccuracy float64                   `json:"overall_accuracy"`
+	PassThreshold   bool                      `json:"pass_threshold"`
+	Summary         map[string]*CategoryTotal `json:"summary"`
+}
+
+// CategoryTotal aggregates totals across all suites.
+type CategoryTotal struct {
+	Total  int     `json:"total"`
+	Passed int     `json:"passed"`
+	Rate   float64 `json:"rate"`
+}
+
+// GenerateCombinedReport creates a unified report from all evaluation results.
+func GenerateCombinedReport(
+	toolSelection *EvalMetrics,
+	confusionPairs *EvalMetrics,
+	arguments *EvalMetrics,
+	threshold float64,
+) *CombinedReport {
+	totalTests := toolSelection.TotalTests + confusionPairs.TotalTests + arguments.TotalTests
+	totalPassed := toolSelection.PassedTests + confusionPairs.PassedTests + arguments.PassedTests
+
+	overallAccuracy := float64(0)
+	if totalTests > 0 {
+		overallAccuracy = float64(totalPassed) / float64(totalTests)
+	}
+
+	return &CombinedReport{
+		Timestamp:       fmt.Sprintf("%d", currentTimestamp()),
+		ToolSelection:   toolSelection,
+		ConfusionPairs:  confusionPairs,
+		Arguments:       arguments,
+		OverallAccuracy: overallAccuracy,
+		PassThreshold:   overallAccuracy >= threshold,
+		Summary: map[string]*CategoryTotal{
+			"tool_selection": {
+				Total:  toolSelection.TotalTests,
+				Passed: toolSelection.PassedTests,
+				Rate:   toolSelection.Accuracy,
+			},
+			"confusion_pairs": {
+				Total:  confusionPairs.TotalTests,
+				Passed: confusionPairs.PassedTests,
+				Rate:   confusionPairs.Accuracy,
+			},
+			"arguments": {
+				Total:  arguments.TotalTests,
+				Passed: arguments.PassedTests,
+				Rate:   arguments.Accuracy,
+			},
+		},
+	}
+}
+
+// ExportCombinedReportJSON exports the combined report to JSON.
+func ExportCombinedReportJSON(report *CombinedReport) ([]byte, error) {
+	return json.MarshalIndent(report, "", "  ")
+}
+
+// currentTimestamp returns Unix timestamp (allows testing override).
+var currentTimestamp = func() int64 {
+	return 0 // Would use time.Now().Unix() in production
+}

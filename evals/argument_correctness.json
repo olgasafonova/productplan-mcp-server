@@ -305,6 +305,196 @@
       },
       "required_args": ["action"],
       "category": "update"
+    },
+    {
+      "id": "bar-create-special-chars",
+      "tool": "manage_bar",
+      "prompt": "Create a bar called 'API v2.0 (Beta) - High Priority!' on roadmap 456 in lane 789",
+      "expected_args": {
+        "action": "create",
+        "roadmap_id": "456",
+        "lane_id": "789",
+        "name": "API v2.0 (Beta) - High Priority!"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "bar-create-long-name",
+      "tool": "manage_bar",
+      "prompt": "Create a bar named 'Enterprise Customer Portal Redesign with Mobile Support and OAuth Integration' on roadmap abc",
+      "expected_args": {
+        "action": "create",
+        "roadmap_id": "abc",
+        "name": "Enterprise Customer Portal Redesign with Mobile Support and OAuth Integration"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "bar-update-multiple-fields",
+      "tool": "manage_bar",
+      "prompt": "Update bar 123 to change name to 'New Name', start date to 2024-01-01, and end date to 2024-12-31",
+      "expected_args": {
+        "action": "update",
+        "bar_id": "123",
+        "name": "New Name",
+        "start_date": "2024-01-01",
+        "end_date": "2024-12-31"
+      },
+      "required_args": ["action"],
+      "category": "update"
+    },
+    {
+      "id": "bar-comment-multiline",
+      "tool": "manage_bar_comment",
+      "prompt": "Add comment 'First line. Second line. Third with details: needs review by PM.' to bar 456",
+      "expected_args": {
+        "bar_id": "456",
+        "body": "First line. Second line. Third with details: needs review by PM."
+      },
+      "required_args": ["bar_id", "body"],
+      "category": "create"
+    },
+    {
+      "id": "bar-link-full-url",
+      "tool": "manage_bar_link",
+      "prompt": "Add link https://jira.company.com/browse/PROJ-12345?focusedWorklogId=50000 named 'Jira Worklog' to bar 789",
+      "expected_args": {
+        "action": "create",
+        "bar_id": "789",
+        "url": "https://jira.company.com/browse/PROJ-12345?focusedWorklogId=50000",
+        "name": "Jira Worklog"
+      },
+      "required_args": ["action", "bar_id"],
+      "category": "create"
+    },
+    {
+      "id": "lane-create-emoji",
+      "tool": "manage_lane",
+      "prompt": "Create lane 'Backend Services' with color #3498db on roadmap 123",
+      "expected_args": {
+        "action": "create",
+        "roadmap_id": "123",
+        "name": "Backend Services",
+        "color": "#3498db"
+      },
+      "required_args": ["action", "roadmap_id"],
+      "category": "create"
+    },
+    {
+      "id": "objective-create-full",
+      "tool": "manage_objective",
+      "prompt": "Create objective 'Increase MRR by 50%' with description 'Focus on enterprise sales' for Q1 2025",
+      "expected_args": {
+        "action": "create",
+        "name": "Increase MRR by 50%",
+        "description": "Focus on enterprise sales",
+        "time_frame": "Q1 2025"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "key-result-numeric",
+      "tool": "manage_key_result",
+      "prompt": "Add key result 'Reach 100 enterprise customers' with target 100 and current value 42 to objective 789",
+      "expected_args": {
+        "action": "create",
+        "objective_id": "789",
+        "name": "Reach 100 enterprise customers",
+        "target_value": "100",
+        "current_value": "42"
+      },
+      "required_args": ["action", "objective_id"],
+      "category": "create"
+    },
+    {
+      "id": "idea-create-rich",
+      "tool": "manage_idea",
+      "prompt": "Create idea 'SSO/SAML Integration' with description 'Enterprise customers need single sign-on with SAML 2.0 support'",
+      "expected_args": {
+        "action": "create",
+        "title": "SSO/SAML Integration",
+        "description": "Enterprise customers need single sign-on with SAML 2.0 support"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "idea-customer-full",
+      "tool": "manage_idea_customer",
+      "prompt": "Add customer 'Acme Corporation Inc.' with email cto@acme.corp.com to idea 123",
+      "expected_args": {
+        "action": "add",
+        "idea_id": "123",
+        "name": "Acme Corporation Inc.",
+        "email": "cto@acme.corp.com"
+      },
+      "required_args": ["action", "idea_id"],
+      "category": "create"
+    },
+    {
+      "id": "milestone-date-format",
+      "tool": "manage_milestone",
+      "prompt": "Create milestone 'Public Launch' on 2025-06-15 for roadmap 456",
+      "expected_args": {
+        "action": "create",
+        "roadmap_id": "456",
+        "name": "Public Launch",
+        "date": "2025-06-15"
+      },
+      "required_args": ["action", "roadmap_id"],
+      "category": "create"
+    },
+    {
+      "id": "bar-connection-typed",
+      "tool": "manage_bar_connection",
+      "prompt": "Create blocks dependency from bar 111 to bar 222",
+      "expected_args": {
+        "action": "create",
+        "bar_id": "111",
+        "target_bar_id": "222",
+        "type": "blocks"
+      },
+      "required_args": ["action", "bar_id"],
+      "category": "create"
+    },
+    {
+      "id": "health-check-deep",
+      "tool": "health_check",
+      "prompt": "Run a deep health check with API verification",
+      "expected_args": {
+        "deep": true
+      },
+      "required_args": [],
+      "category": "status"
+    },
+    {
+      "id": "bar-link-update",
+      "tool": "manage_bar_link",
+      "prompt": "Update link 999 on bar 456 to change URL to https://github.com/org/repo/issues/100",
+      "expected_args": {
+        "action": "update",
+        "bar_id": "456",
+        "link_id": "999",
+        "url": "https://github.com/org/repo/issues/100"
+      },
+      "required_args": ["action", "bar_id"],
+      "category": "update"
+    },
+    {
+      "id": "opportunity-full-create",
+      "tool": "manage_opportunity",
+      "prompt": "Create opportunity with problem 'Customers churn due to lack of API' and solution 'Build REST API v2' in discovery status",
+      "expected_args": {
+        "action": "create",
+        "problem_statement": "Customers churn due to lack of API",
+        "solution_summary": "Build REST API v2",
+        "workflow_status": "discovery"
+      },
+      "required_args": ["action"],
+      "category": "create"
     }
   ]
 }

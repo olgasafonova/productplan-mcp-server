@@ -443,19 +443,96 @@ productplan launches         # List all launches
 ## For Developers
 
 <details>
+<summary>Project structure</summary>
+
+```
+productplan-mcp-server/
+├── cmd/productplan/main.go      # Entry point (~100 lines)
+├── internal/
+│   ├── api/                     # ProductPlan API client
+│   │   ├── client.go            # HTTP client with rate limiting
+│   │   ├── endpoints.go         # 40+ API endpoint methods
+│   │   └── formatters.go        # Response enrichment for AI
+│   ├── mcp/                     # MCP protocol implementation
+│   │   ├── server.go            # JSON-RPC server, stdio I/O
+│   │   ├── handler.go           # Tool dispatch via registry
+│   │   └── types.go             # Protocol types
+│   ├── tools/                   # Tool definitions and handlers
+│   │   └── registry.go          # 36 tools registered via builder
+│   ├── cli/                     # CLI commands (status, roadmaps, etc.)
+│   │   └── cli.go
+│   └── logging/                 # Structured JSON logging
+│       └── logger.go
+├── pkg/productplan/             # Reusable utilities
+│   ├── registry.go              # ToolBuilder for schema generation
+│   ├── requestid.go             # Request tracing
+│   └── errors.go                # Error suggestions
+└── evals/                       # LLM evaluation test suite
+    ├── tool_selection.json
+    ├── confusion_pairs.json
+    └── argument_correctness.json
+```
+
+</details>
+
+<details>
 <summary>Build from source</summary>
 
 ```bash
 git clone https://github.com/olgasafonova/productplan-mcp-server.git
 cd productplan-mcp-server
-go build -o productplan .
+go build -o productplan ./cmd/productplan
 ```
 
 Build for all platforms:
 ```bash
-make build-all
-make release
+# macOS Apple Silicon
+GOOS=darwin GOARCH=arm64 go build -o dist/productplan-darwin-arm64 ./cmd/productplan
+
+# macOS Intel
+GOOS=darwin GOARCH=amd64 go build -o dist/productplan-darwin-amd64 ./cmd/productplan
+
+# Linux
+GOOS=linux GOARCH=amd64 go build -o dist/productplan-linux-amd64 ./cmd/productplan
+
+# Windows
+GOOS=windows GOARCH=amd64 go build -o dist/productplan-windows-amd64.exe ./cmd/productplan
 ```
+
+</details>
+
+<details>
+<summary>Testing</summary>
+
+Run all tests:
+```bash
+go test ./...
+```
+
+Run with coverage:
+```bash
+go test ./... -cover
+```
+
+Run benchmarks:
+```bash
+go test ./internal/... -bench=. -benchmem
+```
+
+Run evaluation suite:
+```bash
+./scripts/run-evals.sh
+```
+
+**Coverage targets:**
+
+| Package | Coverage |
+|---------|----------|
+| internal/mcp | 97% |
+| internal/logging | 97% |
+| internal/api | 95% |
+| internal/cli | 95% |
+| internal/tools | 90% |
 
 </details>
 
@@ -470,7 +547,7 @@ v4.2 provides 24 READ tools and 12 WRITE tools (action-based):
 - OKRs: `list_objectives`, `get_objective`, `list_key_results`
 - Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
 - Launches: `list_launches`, `get_launch`
-- Admin: `check_status`
+- Admin: `check_status`, `health_check`
 
 **Write tools:**
 - Roadmaps: `manage_bar`, `manage_lane`, `manage_milestone`
@@ -483,6 +560,61 @@ Example:
 {"tool": "list_roadmaps", "arguments": {}}
 {"tool": "manage_bar", "arguments": {"action": "create", "roadmap_id": "123", "lane_id": "456", "name": "New feature"}}
 {"tool": "manage_idea", "arguments": {"action": "create", "name": "Mobile app improvements"}}
+```
+
+</details>
+
+<details>
+<summary>Architecture</summary>
+
+The server uses a clean layered architecture:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                        cmd/productplan                        │
+│                     (entry point, DI)                         │
+└──────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+┌───────────────┐    ┌───────────────┐    ┌───────────────┐
+│  internal/cli │    │  internal/mcp │    │internal/tools │
+│  (CLI cmds)   │    │ (JSON-RPC IO) │    │  (handlers)   │
+└───────────────┘    └───────────────┘    └───────────────┘
+                              │                     │
+                              └──────────┬──────────┘
+                                         ▼
+                              ┌───────────────────┐
+                              │   internal/api    │
+                              │  (HTTP client)    │
+                              └───────────────────┘
+                                         │
+                                         ▼
+                              ┌───────────────────┐
+                              │  ProductPlan API  │
+                              └───────────────────┘
+```
+
+**Key interfaces:**
+
+```go
+// Tool handler interface (internal/mcp)
+type Handler interface {
+    Handle(ctx context.Context, args map[string]any) (json.RawMessage, error)
+}
+
+// Logger interface (internal/logging)
+type Logger interface {
+    Debug(msg string, fields ...Field)
+    Info(msg string, fields ...Field)
+    Warn(msg string, fields ...Field)
+    Error(msg string, fields ...Field)
+}
+```
+
+**Logging format:**
+```json
+{"ts":"2024-12-26T10:30:00Z","level":"info","req_id":"ab12","op":"get_roadmap_bars","dur_ms":245}
 ```
 
 </details>
