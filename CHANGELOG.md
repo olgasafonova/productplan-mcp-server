@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### No Breaking Changes
 - All 36 tool names unchanged
 - All tool schemas identical
-- MCP protocol version 2024-11-05
+- MCP protocol version 2025-11-25
 - Environment variable `PRODUCTPLAN_API_TOKEN` unchanged
 
 ## [4.2.0] - 2024-12-05

@@ -4,7 +4,7 @@ package mcp
 import "encoding/json"
 
 // ProtocolVersion is the MCP protocol version supported by this server.
-const ProtocolVersion = "2024-11-05"
+const ProtocolVersion = "2025-11-25"
 
 // JSONRPCRequest represents an incoming JSON-RPC 2.0 request.
 type JSONRPCRequest struct {

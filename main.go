@@ -1476,7 +1476,7 @@ func (s *MCPServer) handleRequest(req JSONRPCRequest) JSONRPCResponse {
 	switch req.Method {
 	case "initialize":
 		resp.Result = map[string]interface{}{
-			"protocolVersion": "2024-11-05",
+			"protocolVersion": "2025-11-25",
 			"serverInfo":      map[string]string{"name": "productplan-mcp-server", "version": version},
 			"capabilities":    map[string]interface{}{"tools": map[string]interface{}{}},
 			"instructions": `ProductPlan MCP Server - Access roadmaps, bars, objectives, ideas, and launches.

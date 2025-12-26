@@ -208,7 +208,7 @@ func TestHandleRequestInitialize(t *testing.T) {
 		t.Fatal("expected map result")
 	}
 
-	if result["protocolVersion"] != "2024-11-05" {
+	if result["protocolVersion"] != "2025-11-25" {
 		t.Errorf("unexpected protocol version: %v", result["protocolVersion"])
 	}
 
