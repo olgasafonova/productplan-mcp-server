@@ -9,8 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strings"
-	"text/tabwriter"
 	"time"
 
 	"github.com/olgasafonova/productplan-mcp-server/productplan"
@@ -132,8 +130,12 @@ func (c *APIClient) FormatBarsWithContext(bars json.RawMessage, lanes json.RawMe
 	var barList []map[string]interface{}
 	var laneList []map[string]interface{}
 
-	json.Unmarshal(bars, &barList)
-	json.Unmarshal(lanes, &laneList)
+	if err := json.Unmarshal(bars, &barList); err != nil {
+		return bars
+	}
+	if err := json.Unmarshal(lanes, &laneList); err != nil {
+		return bars
+	}
 
 	// Build lane lookup
 	laneLookup := make(map[float64]string)
@@ -1546,18 +1548,11 @@ func (s *MCPServer) Run() {
 
 func printJSON(data json.RawMessage) {
 	var pretty bytes.Buffer
-	json.Indent(&pretty, data, "", "  ")
-	fmt.Println(pretty.String())
-}
-
-func printTable(headers []string, rows [][]string) {
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(w, strings.Join(headers, "\t"))
-	fmt.Fprintln(w, strings.Repeat("-", len(strings.Join(headers, "  "))))
-	for _, row := range rows {
-		fmt.Fprintln(w, strings.Join(row, "\t"))
+	if err := json.Indent(&pretty, data, "", "  "); err != nil {
+		fmt.Println(string(data))
+		return
 	}
-	w.Flush()
+	fmt.Println(pretty.String())
 }
 
 func runCLI(args []string) {
