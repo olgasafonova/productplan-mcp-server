@@ -20,7 +20,10 @@ linters:
       disable:
         - fieldalignment
     staticcheck:
-      checks: ["all"]
+      checks:
+        - "all"
+        - "-ST1020"  # Don't require exported method comments to start with method name
+        - "-ST1021"  # Don't require exported type comments to start with type name
   exclusions:
     rules:
       - path: _test\.go
