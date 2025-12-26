@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,11 +12,13 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+
+	"github.com/olgasafonova/productplan-mcp-server/productplan"
 )
 
 const (
 	apiBase = "https://app.productplan.com/api/v2"
-	version = "4.3.0"
+	version = "4.4.0"
 )
 
 var apiToken string
@@ -25,18 +28,27 @@ var apiToken string
 // ============================================================================
 
 type APIClient struct {
-	token      string
-	httpClient *http.Client
+	token       string
+	httpClient  *http.Client
+	rateLimiter *productplan.AdaptiveRateLimiter
+	cache       *productplan.Cache
 }
 
 func NewAPIClient(token string) *APIClient {
 	return &APIClient{
-		token:      token,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		token:       token,
+		httpClient:  &http.Client{Timeout: 30 * time.Second},
+		rateLimiter: productplan.NewAdaptiveRateLimiter(productplan.DefaultRateLimiterConfig()),
+		cache:       productplan.NewCache(productplan.DefaultCacheConfig()),
 	}
 }
 
 func (c *APIClient) request(method, endpoint string, body interface{}) (json.RawMessage, error) {
+	// Wait if rate limited
+	if c.rateLimiter != nil {
+		c.rateLimiter.Wait()
+	}
+
 	url := apiBase + endpoint
 
 	var reqBody io.Reader
@@ -62,13 +74,22 @@ func (c *APIClient) request(method, endpoint string, body interface{}) (json.Raw
 	}
 	defer resp.Body.Close()
 
+	// Update rate limiter from response headers
+	if c.rateLimiter != nil {
+		c.rateLimiter.UpdateFromResponse(resp)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(respBody))
+		apiErr := productplan.ParseAPIError(resp, respBody)
+		if suggestion := apiErr.Suggestion(); suggestion != "" {
+			return nil, fmt.Errorf("%s. %s", apiErr.Error(), suggestion)
+		}
+		return nil, apiErr
 	}
 
 	if resp.StatusCode == 204 {
@@ -589,7 +610,8 @@ func (c *APIClient) CheckStatus() (json.RawMessage, error) {
 // ============================================================================
 
 type MCPServer struct {
-	client *APIClient
+	client        *APIClient
+	healthChecker *productplan.HealthChecker
 }
 
 type JSONRPCRequest struct {
@@ -635,7 +657,17 @@ type ToolContent struct {
 }
 
 func NewMCPServer(client *APIClient) *MCPServer {
-	return &MCPServer{client: client}
+	healthChecker := productplan.NewHealthChecker(version, client.rateLimiter, client.cache)
+	// Set API checker to verify ProductPlan API connectivity
+	healthChecker.SetAPIChecker(func(ctx context.Context) (int64, error) {
+		start := time.Now()
+		_, err := client.ListRoadmaps()
+		return time.Since(start).Milliseconds(), err
+	})
+	return &MCPServer{
+		client:        client,
+		healthChecker: healthChecker,
+	}
 }
 
 // getTools returns well-designed tools optimized for AI decision-making
@@ -1070,6 +1102,19 @@ func (s *MCPServer) getTools() []Tool {
 				Required: []string{"action"},
 			},
 		},
+		// =====================
+		// UTILITY TOOLS
+		// =====================
+		{
+			Name:        "health_check",
+			Description: "Check server health, rate limit status, and cache statistics. Use 'deep' mode to also verify ProductPlan API connectivity.",
+			InputSchema: InputSchema{
+				Type: "object",
+				Properties: map[string]Property{
+					"deep": {Type: "boolean", Description: "If true, also checks ProductPlan API connectivity (slower but more thorough)"},
+				},
+			},
+		},
 	}
 }
 
@@ -1410,6 +1455,14 @@ func (s *MCPServer) handleToolCall(name string, args map[string]interface{}) (js
 		case "delete":
 			return s.client.DeleteOpportunity(getString("opportunity_id"))
 		}
+
+	case "health_check":
+		deep := false
+		if v, ok := args["deep"].(bool); ok {
+			deep = v
+		}
+		report := s.healthChecker.Check(context.Background(), deep)
+		return json.Marshal(report)
 	}
 
 	return nil, fmt.Errorf("unknown tool: %s", name)

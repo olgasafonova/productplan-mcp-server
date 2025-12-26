@@ -1,12 +1,29 @@
-.PHONY: build build-all clean test
+.PHONY: build build-all clean test lint vet
 
-VERSION := 4.2.0
-BINARY := productplan
+VERSION := 4.4.0
+BINARY := productplan-mcp-server
 BUILD_DIR := build
 
 # Build for current platform
 build:
 	go build -ldflags="-s -w" -o $(BINARY) .
+
+# Run tests
+test:
+	go test -v -race ./...
+
+# Run tests with coverage
+test-coverage:
+	go test -v -race -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+
+# Run linter
+lint:
+	golangci-lint run --timeout=5m
+
+# Run go vet
+vet:
+	go vet ./...
 
 # Build for all platforms
 build-all: clean
