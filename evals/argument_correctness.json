@@ -1,0 +1,310 @@
+{
+  "name": "ProductPlan MCP Argument Correctness",
+  "description": "Tests for correct argument extraction in ProductPlan tool calls",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "id": "roadmap-id-1",
+      "tool": "get_roadmap",
+      "prompt": "Show me roadmap 12345",
+      "expected_args": {
+        "roadmap_id": "12345"
+      },
+      "required_args": ["roadmap_id"],
+      "category": "roadmaps"
+    },
+    {
+      "id": "roadmap-bars-1",
+      "tool": "get_roadmap_bars",
+      "prompt": "Get bars from roadmap abc",
+      "expected_args": {
+        "roadmap_id": "abc"
+      },
+      "required_args": ["roadmap_id"],
+      "category": "bars"
+    },
+    {
+      "id": "bar-get-1",
+      "tool": "get_bar",
+      "prompt": "Show details of bar 789",
+      "expected_args": {
+        "bar_id": "789"
+      },
+      "required_args": ["bar_id"],
+      "category": "bars"
+    },
+    {
+      "id": "bar-create-1",
+      "tool": "manage_bar",
+      "prompt": "Create a bar called 'API Integration' on roadmap 123 in lane 456 starting 2024-01-15 ending 2024-03-15",
+      "expected_args": {
+        "action": "create",
+        "roadmap_id": "123",
+        "lane_id": "456",
+        "name": "API Integration",
+        "start_date": "2024-01-15",
+        "end_date": "2024-03-15"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "bar-update-1",
+      "tool": "manage_bar",
+      "prompt": "Update bar 789 to end on 2024-06-30",
+      "expected_args": {
+        "action": "update",
+        "bar_id": "789",
+        "end_date": "2024-06-30"
+      },
+      "required_args": ["action"],
+      "category": "update"
+    },
+    {
+      "id": "bar-delete-1",
+      "tool": "manage_bar",
+      "prompt": "Delete bar 456",
+      "expected_args": {
+        "action": "delete",
+        "bar_id": "456"
+      },
+      "required_args": ["action"],
+      "category": "delete"
+    },
+    {
+      "id": "bar-comment-1",
+      "tool": "manage_bar_comment",
+      "prompt": "Add comment 'Needs review' to bar 123",
+      "expected_args": {
+        "bar_id": "123",
+        "body": "Needs review"
+      },
+      "required_args": ["bar_id", "body"],
+      "category": "create"
+    },
+    {
+      "id": "bar-connection-create-1",
+      "tool": "manage_bar_connection",
+      "prompt": "Create dependency from bar 111 to bar 222",
+      "expected_args": {
+        "action": "create",
+        "bar_id": "111",
+        "target_bar_id": "222"
+      },
+      "required_args": ["action", "bar_id"],
+      "category": "create"
+    },
+    {
+      "id": "bar-connection-delete-1",
+      "tool": "manage_bar_connection",
+      "prompt": "Remove connection 999 from bar 123",
+      "expected_args": {
+        "action": "delete",
+        "bar_id": "123",
+        "connection_id": "999"
+      },
+      "required_args": ["action", "bar_id"],
+      "category": "delete"
+    },
+    {
+      "id": "bar-link-create-1",
+      "tool": "manage_bar_link",
+      "prompt": "Add link to Jira ticket https://jira.example.com/PROJ-123 on bar 456 named 'Jira Ticket'",
+      "expected_args": {
+        "action": "create",
+        "bar_id": "456",
+        "url": "https://jira.example.com/PROJ-123",
+        "name": "Jira Ticket"
+      },
+      "required_args": ["action", "bar_id"],
+      "category": "create"
+    },
+    {
+      "id": "lane-create-1",
+      "tool": "manage_lane",
+      "prompt": "Create lane 'Mobile' with color #FF5733 on roadmap 123",
+      "expected_args": {
+        "action": "create",
+        "roadmap_id": "123",
+        "name": "Mobile",
+        "color": "#FF5733"
+      },
+      "required_args": ["action", "roadmap_id"],
+      "category": "create"
+    },
+    {
+      "id": "lane-update-1",
+      "tool": "manage_lane",
+      "prompt": "Rename lane 456 to 'Backend' on roadmap 123",
+      "expected_args": {
+        "action": "update",
+        "roadmap_id": "123",
+        "lane_id": "456",
+        "name": "Backend"
+      },
+      "required_args": ["action", "roadmap_id"],
+      "category": "update"
+    },
+    {
+      "id": "lane-delete-1",
+      "tool": "manage_lane",
+      "prompt": "Delete lane 789 from roadmap 123",
+      "expected_args": {
+        "action": "delete",
+        "roadmap_id": "123",
+        "lane_id": "789"
+      },
+      "required_args": ["action", "roadmap_id"],
+      "category": "delete"
+    },
+    {
+      "id": "milestone-create-1",
+      "tool": "manage_milestone",
+      "prompt": "Create milestone 'Q2 Release' on 2024-06-30 for roadmap 123",
+      "expected_args": {
+        "action": "create",
+        "roadmap_id": "123",
+        "name": "Q2 Release",
+        "date": "2024-06-30"
+      },
+      "required_args": ["action", "roadmap_id"],
+      "category": "create"
+    },
+    {
+      "id": "milestone-update-1",
+      "tool": "manage_milestone",
+      "prompt": "Move milestone 456 to 2024-07-15 on roadmap 123",
+      "expected_args": {
+        "action": "update",
+        "roadmap_id": "123",
+        "milestone_id": "456",
+        "date": "2024-07-15"
+      },
+      "required_args": ["action", "roadmap_id"],
+      "category": "update"
+    },
+    {
+      "id": "objective-create-1",
+      "tool": "manage_objective",
+      "prompt": "Create objective 'Increase Revenue' for Q2 2024",
+      "expected_args": {
+        "action": "create",
+        "name": "Increase Revenue",
+        "time_frame": "Q2 2024"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "objective-update-1",
+      "tool": "manage_objective",
+      "prompt": "Update objective 789 description to 'Focus on enterprise sales'",
+      "expected_args": {
+        "action": "update",
+        "objective_id": "789",
+        "description": "Focus on enterprise sales"
+      },
+      "required_args": ["action"],
+      "category": "update"
+    },
+    {
+      "id": "key-result-create-1",
+      "tool": "manage_key_result",
+      "prompt": "Add key result 'Reach $1M ARR' with target 1000000 to objective 123",
+      "expected_args": {
+        "action": "create",
+        "objective_id": "123",
+        "name": "Reach $1M ARR",
+        "target_value": "1000000"
+      },
+      "required_args": ["action", "objective_id"],
+      "category": "create"
+    },
+    {
+      "id": "key-result-update-1",
+      "tool": "manage_key_result",
+      "prompt": "Update key result 456 on objective 123 current value to 750000",
+      "expected_args": {
+        "action": "update",
+        "objective_id": "123",
+        "key_result_id": "456",
+        "current_value": "750000"
+      },
+      "required_args": ["action", "objective_id"],
+      "category": "update"
+    },
+    {
+      "id": "idea-create-1",
+      "tool": "manage_idea",
+      "prompt": "Create idea 'Mobile app dark mode' with description 'Users want dark mode support'",
+      "expected_args": {
+        "action": "create",
+        "title": "Mobile app dark mode",
+        "description": "Users want dark mode support"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "idea-customer-add-1",
+      "tool": "manage_idea_customer",
+      "prompt": "Add customer Acme Corp with email contact@acme.com to idea 456",
+      "expected_args": {
+        "action": "add",
+        "idea_id": "456",
+        "name": "Acme Corp",
+        "email": "contact@acme.com"
+      },
+      "required_args": ["action", "idea_id"],
+      "category": "create"
+    },
+    {
+      "id": "idea-customer-remove-1",
+      "tool": "manage_idea_customer",
+      "prompt": "Remove customer 789 from idea 456",
+      "expected_args": {
+        "action": "remove",
+        "idea_id": "456",
+        "customer_id": "789"
+      },
+      "required_args": ["action", "idea_id"],
+      "category": "delete"
+    },
+    {
+      "id": "idea-tag-add-1",
+      "tool": "manage_idea_tag",
+      "prompt": "Add tag 'high-priority' to idea 123",
+      "expected_args": {
+        "action": "add",
+        "idea_id": "123",
+        "name": "high-priority"
+      },
+      "required_args": ["action", "idea_id"],
+      "category": "create"
+    },
+    {
+      "id": "opportunity-create-1",
+      "tool": "manage_opportunity",
+      "prompt": "Create opportunity with problem 'Enterprise customers need SSO' in draft status",
+      "expected_args": {
+        "action": "create",
+        "problem_statement": "Enterprise customers need SSO",
+        "workflow_status": "draft"
+      },
+      "required_args": ["action"],
+      "category": "create"
+    },
+    {
+      "id": "opportunity-update-1",
+      "tool": "manage_opportunity",
+      "prompt": "Update opportunity 789 status to in_discovery",
+      "expected_args": {
+        "action": "update",
+        "opportunity_id": "789",
+        "workflow_status": "in_discovery"
+      },
+      "required_args": ["action"],
+      "category": "update"
+    }
+  ]
+}

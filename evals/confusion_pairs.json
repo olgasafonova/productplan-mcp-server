@@ -1,0 +1,267 @@
+{
+  "name": "ProductPlan MCP Confusion Pairs",
+  "description": "Tests for distinguishing commonly confused ProductPlan tools",
+  "version": "1.0.0",
+  "pairs": [
+    {
+      "tools": ["list_roadmaps", "get_roadmap"],
+      "distinction": "list_roadmaps returns all roadmaps (no ID needed). get_roadmap returns full details of one specific roadmap (ID required).",
+      "tests": [
+        {
+          "prompt": "What roadmaps do I have?",
+          "expected_tool": "list_roadmaps",
+          "rationale": "Listing all roadmaps without specifying one"
+        },
+        {
+          "prompt": "Show all my roadmaps",
+          "expected_tool": "list_roadmaps",
+          "rationale": "Asking for all roadmaps"
+        },
+        {
+          "prompt": "Get the settings for roadmap 12345",
+          "expected_tool": "get_roadmap",
+          "rationale": "Requesting details for a specific roadmap"
+        },
+        {
+          "prompt": "What are the details of roadmap abc?",
+          "expected_tool": "get_roadmap",
+          "rationale": "Asking for specific roadmap information"
+        }
+      ]
+    },
+    {
+      "tools": ["get_roadmap", "get_roadmap_bars"],
+      "distinction": "get_roadmap returns roadmap metadata and settings. get_roadmap_bars returns the bars (items) planned on the roadmap.",
+      "tests": [
+        {
+          "prompt": "Show me roadmap 123 settings",
+          "expected_tool": "get_roadmap",
+          "rationale": "Asking for roadmap configuration/settings"
+        },
+        {
+          "prompt": "What's the configuration of roadmap abc?",
+          "expected_tool": "get_roadmap",
+          "rationale": "Asking for roadmap metadata"
+        },
+        {
+          "prompt": "What items are planned on roadmap 123?",
+          "expected_tool": "get_roadmap_bars",
+          "rationale": "Asking for planned items (bars)"
+        },
+        {
+          "prompt": "Show me the work planned on the Q1 roadmap",
+          "expected_tool": "get_roadmap_bars",
+          "rationale": "Asking for roadmap content/items"
+        }
+      ]
+    },
+    {
+      "tools": ["get_bar", "get_bar_children"],
+      "distinction": "get_bar returns details of one bar. get_bar_children returns nested sub-items under a parent bar.",
+      "tests": [
+        {
+          "prompt": "Show me details of bar 456",
+          "expected_tool": "get_bar",
+          "rationale": "Requesting bar details"
+        },
+        {
+          "prompt": "What is the description of this roadmap item?",
+          "expected_tool": "get_bar",
+          "rationale": "Asking for bar information"
+        },
+        {
+          "prompt": "What sub-items are under bar 789?",
+          "expected_tool": "get_bar_children",
+          "rationale": "Asking for child/nested items"
+        },
+        {
+          "prompt": "Show nested tasks for this bar",
+          "expected_tool": "get_bar_children",
+          "rationale": "Asking for hierarchical children"
+        }
+      ]
+    },
+    {
+      "tools": ["get_bar_comments", "manage_bar_comment"],
+      "distinction": "get_bar_comments reads existing comments. manage_bar_comment adds a new comment.",
+      "tests": [
+        {
+          "prompt": "Show me the comments on bar 123",
+          "expected_tool": "get_bar_comments",
+          "rationale": "Reading existing comments"
+        },
+        {
+          "prompt": "What feedback has been left on this item?",
+          "expected_tool": "get_bar_comments",
+          "rationale": "Viewing discussion"
+        },
+        {
+          "prompt": "Add a comment to bar 456",
+          "expected_tool": "manage_bar_comment",
+          "rationale": "Creating a new comment"
+        },
+        {
+          "prompt": "Leave feedback on this roadmap item",
+          "expected_tool": "manage_bar_comment",
+          "rationale": "Writing a comment"
+        }
+      ]
+    },
+    {
+      "tools": ["get_bar_connections", "manage_bar_connection"],
+      "distinction": "get_bar_connections reads existing dependencies. manage_bar_connection creates or deletes dependencies.",
+      "tests": [
+        {
+          "prompt": "What dependencies does bar 123 have?",
+          "expected_tool": "get_bar_connections",
+          "rationale": "Reading existing connections"
+        },
+        {
+          "prompt": "Show me what this bar is linked to",
+          "expected_tool": "get_bar_connections",
+          "rationale": "Viewing dependencies"
+        },
+        {
+          "prompt": "Create a dependency from bar A to bar B",
+          "expected_tool": "manage_bar_connection",
+          "rationale": "Creating a connection"
+        },
+        {
+          "prompt": "Remove the dependency between bars",
+          "expected_tool": "manage_bar_connection",
+          "rationale": "Deleting a connection"
+        }
+      ]
+    },
+    {
+      "tools": ["get_bar_links", "manage_bar_link"],
+      "distinction": "get_bar_links reads external URLs attached to a bar. manage_bar_link adds, updates, or removes links.",
+      "tests": [
+        {
+          "prompt": "What links are attached to bar 789?",
+          "expected_tool": "get_bar_links",
+          "rationale": "Reading existing links"
+        },
+        {
+          "prompt": "Show me the Jira tickets linked to this item",
+          "expected_tool": "get_bar_links",
+          "rationale": "Viewing external URLs"
+        },
+        {
+          "prompt": "Add a Jira link to bar 123",
+          "expected_tool": "manage_bar_link",
+          "rationale": "Creating a new link"
+        },
+        {
+          "prompt": "Remove the documentation link from this bar",
+          "expected_tool": "manage_bar_link",
+          "rationale": "Deleting a link"
+        }
+      ]
+    },
+    {
+      "tools": ["list_ideas", "list_opportunities"],
+      "distinction": "list_ideas shows raw feedback/ideas. list_opportunities shows validated ideas that have been promoted.",
+      "tests": [
+        {
+          "prompt": "Show all customer feedback",
+          "expected_tool": "list_ideas",
+          "rationale": "Ideas are raw feedback"
+        },
+        {
+          "prompt": "What ideas have been submitted?",
+          "expected_tool": "list_ideas",
+          "rationale": "Listing idea submissions"
+        },
+        {
+          "prompt": "What validated ideas are we pursuing?",
+          "expected_tool": "list_opportunities",
+          "rationale": "Opportunities are validated/promoted ideas"
+        },
+        {
+          "prompt": "Show me the opportunities in the pipeline",
+          "expected_tool": "list_opportunities",
+          "rationale": "Asking for opportunities"
+        }
+      ]
+    },
+    {
+      "tools": ["list_objectives", "get_objective"],
+      "distinction": "list_objectives returns all OKRs. get_objective returns full details including key results for one objective.",
+      "tests": [
+        {
+          "prompt": "What are our strategic goals?",
+          "expected_tool": "list_objectives",
+          "rationale": "Listing all objectives"
+        },
+        {
+          "prompt": "Show me all OKRs",
+          "expected_tool": "list_objectives",
+          "rationale": "Getting all objectives"
+        },
+        {
+          "prompt": "Get details of objective 123",
+          "expected_tool": "get_objective",
+          "rationale": "Specific objective details"
+        },
+        {
+          "prompt": "What are the key results for the Q1 revenue objective?",
+          "expected_tool": "get_objective",
+          "rationale": "Full objective with key results"
+        }
+      ]
+    },
+    {
+      "tools": ["manage_bar", "manage_lane"],
+      "distinction": "manage_bar operates on roadmap items (bars). manage_lane operates on swim lanes that organize bars.",
+      "tests": [
+        {
+          "prompt": "Create a new item called 'API v2' on the roadmap",
+          "expected_tool": "manage_bar",
+          "rationale": "Creating a roadmap item"
+        },
+        {
+          "prompt": "Delete the 'Mobile App' bar",
+          "expected_tool": "manage_bar",
+          "rationale": "Removing a roadmap item"
+        },
+        {
+          "prompt": "Add a new lane called 'Infrastructure'",
+          "expected_tool": "manage_lane",
+          "rationale": "Creating a swim lane"
+        },
+        {
+          "prompt": "Rename the 'Backend' lane to 'Platform'",
+          "expected_tool": "manage_lane",
+          "rationale": "Updating a lane"
+        }
+      ]
+    },
+    {
+      "tools": ["manage_idea", "manage_opportunity"],
+      "distinction": "manage_idea creates/updates raw ideas. manage_opportunity manages validated opportunities.",
+      "tests": [
+        {
+          "prompt": "Create a new idea from customer feedback",
+          "expected_tool": "manage_idea",
+          "rationale": "Creating raw idea"
+        },
+        {
+          "prompt": "Update the status of idea 456",
+          "expected_tool": "manage_idea",
+          "rationale": "Modifying an idea"
+        },
+        {
+          "prompt": "Create a new opportunity for enterprise expansion",
+          "expected_tool": "manage_opportunity",
+          "rationale": "Creating validated opportunity"
+        },
+        {
+          "prompt": "Delete opportunity 789",
+          "expected_tool": "manage_opportunity",
+          "rationale": "Removing an opportunity"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,490 @@
+{
+  "name": "ProductPlan MCP Tool Selection",
+  "description": "Tests for correct tool selection across ProductPlan operations",
+  "version": "1.0.0",
+  "tests": [
+    {
+      "id": "roadmap-list-1",
+      "prompt": "Show me all my roadmaps",
+      "expected_tool": "list_roadmaps",
+      "category": "roadmaps",
+      "difficulty": "easy"
+    },
+    {
+      "id": "roadmap-list-2",
+      "prompt": "What roadmaps do I have?",
+      "expected_tool": "list_roadmaps",
+      "category": "roadmaps",
+      "difficulty": "easy"
+    },
+    {
+      "id": "roadmap-list-3",
+      "prompt": "Get all roadmaps in my account",
+      "expected_tool": "list_roadmaps",
+      "category": "roadmaps",
+      "difficulty": "easy"
+    },
+    {
+      "id": "roadmap-get-1",
+      "prompt": "Show me the details of roadmap 12345",
+      "expected_tool": "get_roadmap",
+      "category": "roadmaps",
+      "difficulty": "easy"
+    },
+    {
+      "id": "roadmap-get-2",
+      "prompt": "Get settings for roadmap abc",
+      "expected_tool": "get_roadmap",
+      "category": "roadmaps",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bars-list-1",
+      "prompt": "What items are on roadmap 123?",
+      "expected_tool": "get_roadmap_bars",
+      "category": "bars",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bars-list-2",
+      "prompt": "Show all bars on the Q1 roadmap",
+      "expected_tool": "get_roadmap_bars",
+      "category": "bars",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bars-list-3",
+      "prompt": "List the planned items in roadmap abc",
+      "expected_tool": "get_roadmap_bars",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-get-1",
+      "prompt": "Get details of bar 456",
+      "expected_tool": "get_bar",
+      "category": "bars",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-get-2",
+      "prompt": "Show me the full description of item abc",
+      "expected_tool": "get_bar",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-children-1",
+      "prompt": "What sub-items are under bar 789?",
+      "expected_tool": "get_bar_children",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-children-2",
+      "prompt": "Show nested items for this bar",
+      "expected_tool": "get_bar_children",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-comments-1",
+      "prompt": "Show me the comments on bar 123",
+      "expected_tool": "get_bar_comments",
+      "category": "bars",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-comments-2",
+      "prompt": "What feedback has been left on this item?",
+      "expected_tool": "get_bar_comments",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-connections-1",
+      "prompt": "What dependencies does bar 123 have?",
+      "expected_tool": "get_bar_connections",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-connections-2",
+      "prompt": "Show connections for this roadmap item",
+      "expected_tool": "get_bar_connections",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-links-1",
+      "prompt": "What external links are attached to bar 456?",
+      "expected_tool": "get_bar_links",
+      "category": "bars",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-links-2",
+      "prompt": "Show me the Jira links for this bar",
+      "expected_tool": "get_bar_links",
+      "category": "bars",
+      "difficulty": "medium"
+    },
+    {
+      "id": "lanes-list-1",
+      "prompt": "Show the lanes in roadmap 123",
+      "expected_tool": "get_roadmap_lanes",
+      "category": "lanes",
+      "difficulty": "easy"
+    },
+    {
+      "id": "lanes-list-2",
+      "prompt": "What swim lanes exist on this roadmap?",
+      "expected_tool": "get_roadmap_lanes",
+      "category": "lanes",
+      "difficulty": "medium"
+    },
+    {
+      "id": "milestones-list-1",
+      "prompt": "Show milestones on roadmap 123",
+      "expected_tool": "get_roadmap_milestones",
+      "category": "milestones",
+      "difficulty": "easy"
+    },
+    {
+      "id": "milestones-list-2",
+      "prompt": "What key dates are marked on the roadmap?",
+      "expected_tool": "get_roadmap_milestones",
+      "category": "milestones",
+      "difficulty": "medium"
+    },
+    {
+      "id": "objectives-list-1",
+      "prompt": "Show me all OKRs",
+      "expected_tool": "list_objectives",
+      "category": "objectives",
+      "difficulty": "easy"
+    },
+    {
+      "id": "objectives-list-2",
+      "prompt": "What strategic objectives do we have?",
+      "expected_tool": "list_objectives",
+      "category": "objectives",
+      "difficulty": "medium"
+    },
+    {
+      "id": "objectives-list-3",
+      "prompt": "List our company goals",
+      "expected_tool": "list_objectives",
+      "category": "objectives",
+      "difficulty": "medium"
+    },
+    {
+      "id": "objective-get-1",
+      "prompt": "Get details of objective 789",
+      "expected_tool": "get_objective",
+      "category": "objectives",
+      "difficulty": "easy"
+    },
+    {
+      "id": "objective-get-2",
+      "prompt": "Show me the key results for objective abc",
+      "expected_tool": "get_objective",
+      "category": "objectives",
+      "difficulty": "medium"
+    },
+    {
+      "id": "key-results-list-1",
+      "prompt": "What are the key results for objective 123?",
+      "expected_tool": "list_key_results",
+      "category": "objectives",
+      "difficulty": "easy"
+    },
+    {
+      "id": "ideas-list-1",
+      "prompt": "Show me all ideas in the pipeline",
+      "expected_tool": "list_ideas",
+      "category": "ideas",
+      "difficulty": "easy"
+    },
+    {
+      "id": "ideas-list-2",
+      "prompt": "What feedback have we collected?",
+      "expected_tool": "list_ideas",
+      "category": "ideas",
+      "difficulty": "medium"
+    },
+    {
+      "id": "idea-get-1",
+      "prompt": "Get details of idea 456",
+      "expected_tool": "get_idea",
+      "category": "ideas",
+      "difficulty": "easy"
+    },
+    {
+      "id": "idea-customers-1",
+      "prompt": "Who requested idea 789?",
+      "expected_tool": "get_idea_customers",
+      "category": "ideas",
+      "difficulty": "medium"
+    },
+    {
+      "id": "idea-customers-2",
+      "prompt": "Show customers associated with this idea",
+      "expected_tool": "get_idea_customers",
+      "category": "ideas",
+      "difficulty": "medium"
+    },
+    {
+      "id": "idea-tags-1",
+      "prompt": "What tags are on idea 123?",
+      "expected_tool": "get_idea_tags",
+      "category": "ideas",
+      "difficulty": "easy"
+    },
+    {
+      "id": "opportunities-list-1",
+      "prompt": "Show all opportunities",
+      "expected_tool": "list_opportunities",
+      "category": "opportunities",
+      "difficulty": "easy"
+    },
+    {
+      "id": "opportunities-list-2",
+      "prompt": "What validated ideas do we have?",
+      "expected_tool": "list_opportunities",
+      "category": "opportunities",
+      "difficulty": "medium"
+    },
+    {
+      "id": "opportunity-get-1",
+      "prompt": "Get details of opportunity 789",
+      "expected_tool": "get_opportunity",
+      "category": "opportunities",
+      "difficulty": "easy"
+    },
+    {
+      "id": "idea-forms-list-1",
+      "prompt": "Show all idea submission forms",
+      "expected_tool": "list_idea_forms",
+      "category": "ideas",
+      "difficulty": "easy"
+    },
+    {
+      "id": "idea-form-get-1",
+      "prompt": "Get details of idea form abc",
+      "expected_tool": "get_idea_form",
+      "category": "ideas",
+      "difficulty": "easy"
+    },
+    {
+      "id": "launches-list-1",
+      "prompt": "Show all product launches",
+      "expected_tool": "list_launches",
+      "category": "launches",
+      "difficulty": "easy"
+    },
+    {
+      "id": "launches-list-2",
+      "prompt": "What launches are planned?",
+      "expected_tool": "list_launches",
+      "category": "launches",
+      "difficulty": "easy"
+    },
+    {
+      "id": "launch-get-1",
+      "prompt": "Get details of launch 123",
+      "expected_tool": "get_launch",
+      "category": "launches",
+      "difficulty": "easy"
+    },
+    {
+      "id": "status-check-1",
+      "prompt": "Check API status",
+      "expected_tool": "check_status",
+      "category": "status",
+      "difficulty": "easy"
+    },
+    {
+      "id": "status-check-2",
+      "prompt": "Is ProductPlan working?",
+      "expected_tool": "check_status",
+      "category": "status",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-create-1",
+      "prompt": "Create a new bar called 'API Integration' on roadmap 123",
+      "expected_tool": "manage_bar",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-update-1",
+      "prompt": "Update bar 456 to end on 2024-06-30",
+      "expected_tool": "manage_bar",
+      "category": "update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-delete-1",
+      "prompt": "Delete bar 789",
+      "expected_tool": "manage_bar",
+      "category": "delete",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-comment-1",
+      "prompt": "Add a comment to bar 123",
+      "expected_tool": "manage_bar_comment",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-connection-1",
+      "prompt": "Create a dependency from bar A to bar B",
+      "expected_tool": "manage_bar_connection",
+      "category": "create",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-connection-2",
+      "prompt": "Link bars 123 and 456 together",
+      "expected_tool": "manage_bar_connection",
+      "category": "create",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bar-link-1",
+      "prompt": "Add a Jira link to bar 123",
+      "expected_tool": "manage_bar_link",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "bar-link-2",
+      "prompt": "Attach a URL to this roadmap item",
+      "expected_tool": "manage_bar_link",
+      "category": "create",
+      "difficulty": "medium"
+    },
+    {
+      "id": "lane-create-1",
+      "prompt": "Create a new lane called 'Mobile' on roadmap 123",
+      "expected_tool": "manage_lane",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "lane-update-1",
+      "prompt": "Rename lane 456 to 'Backend'",
+      "expected_tool": "manage_lane",
+      "category": "update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "milestone-create-1",
+      "prompt": "Add a milestone for product launch on roadmap 123",
+      "expected_tool": "manage_milestone",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "milestone-update-1",
+      "prompt": "Move the Q2 milestone to June 30",
+      "expected_tool": "manage_milestone",
+      "category": "update",
+      "difficulty": "medium"
+    },
+    {
+      "id": "objective-create-1",
+      "prompt": "Create a new objective for Q2",
+      "expected_tool": "manage_objective",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "objective-update-1",
+      "prompt": "Update objective 123 description",
+      "expected_tool": "manage_objective",
+      "category": "update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "key-result-create-1",
+      "prompt": "Add a key result to objective 789",
+      "expected_tool": "manage_key_result",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "key-result-update-1",
+      "prompt": "Update the current value of key result 456",
+      "expected_tool": "manage_key_result",
+      "category": "update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "idea-create-1",
+      "prompt": "Create a new idea for mobile app",
+      "expected_tool": "manage_idea",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "idea-update-1",
+      "prompt": "Update idea 123 status to approved",
+      "expected_tool": "manage_idea",
+      "category": "update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "idea-customer-1",
+      "prompt": "Add customer Acme Corp to idea 456",
+      "expected_tool": "manage_idea_customer",
+      "category": "create",
+      "difficulty": "medium"
+    },
+    {
+      "id": "idea-customer-2",
+      "prompt": "Remove customer from idea 789",
+      "expected_tool": "manage_idea_customer",
+      "category": "delete",
+      "difficulty": "medium"
+    },
+    {
+      "id": "idea-tag-1",
+      "prompt": "Add tag 'urgent' to idea 123",
+      "expected_tool": "manage_idea_tag",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "idea-tag-2",
+      "prompt": "Remove tag from idea 456",
+      "expected_tool": "manage_idea_tag",
+      "category": "delete",
+      "difficulty": "easy"
+    },
+    {
+      "id": "opportunity-create-1",
+      "prompt": "Create a new opportunity for enterprise customers",
+      "expected_tool": "manage_opportunity",
+      "category": "create",
+      "difficulty": "easy"
+    },
+    {
+      "id": "opportunity-update-1",
+      "prompt": "Update opportunity 789 workflow status",
+      "expected_tool": "manage_opportunity",
+      "category": "update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "opportunity-delete-1",
+      "prompt": "Delete opportunity 456",
+      "expected_tool": "manage_opportunity",
+      "category": "delete",
+      "difficulty": "easy"
+    }
+  ]
+}

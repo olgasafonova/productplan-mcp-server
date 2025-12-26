@@ -15,7 +15,7 @@ import (
 
 const (
 	apiBase = "https://app.productplan.com/api/v2"
-	version = "4.2.0"
+	version = "4.3.0"
 )
 
 var apiToken string
@@ -268,10 +268,10 @@ func FormatOpportunities(data json.RawMessage) json.RawMessage {
 	results := make([]map[string]interface{}, 0, len(wrapper.Results))
 	for _, opp := range wrapper.Results {
 		results = append(results, map[string]interface{}{
-			"id":               opp["id"],
+			"id":                opp["id"],
 			"problem_statement": opp["problem_statement"],
-			"workflow_status":  opp["workflow_status"],
-			"ideas_count":      opp["ideas_count"],
+			"workflow_status":   opp["workflow_status"],
+			"ideas_count":       opp["ideas_count"],
 		})
 	}
 
