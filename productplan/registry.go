@@ -219,17 +219,19 @@ func (r *ToolRegistry) ToMCPFormat() []map[string]interface{} {
 			props[p.Name] = propDef
 		}
 
-		tool := map[string]interface{}{
-			"name":        def.Name,
-			"description": def.Description,
-			"inputSchema": map[string]interface{}{
-				"type":       "object",
-				"properties": props,
-			},
+		inputSchema := map[string]interface{}{
+			"type":       "object",
+			"properties": props,
 		}
 
 		if len(def.Required) > 0 {
-			tool["inputSchema"].(map[string]interface{})["required"] = def.Required
+			inputSchema["required"] = def.Required
+		}
+
+		tool := map[string]interface{}{
+			"name":        def.Name,
+			"description": def.Description,
+			"inputSchema": inputSchema,
 		}
 
 		result = append(result, tool)
