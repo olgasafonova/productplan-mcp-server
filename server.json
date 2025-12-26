@@ -1,0 +1,10 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.olgasafonova/productplan-mcp-server",
+  "description": "ProductPlan roadmap integration with tools for ideas, launches, and OKRs",
+  "repository": {
+    "url": "https://github.com/olgasafonova/productplan-mcp-server",
+    "source": "github"
+  },
+  "version": "4.6.2"
+}

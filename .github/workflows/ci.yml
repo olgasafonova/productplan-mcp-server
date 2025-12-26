@@ -46,8 +46,26 @@ jobs:
           version: v2.7.2
           args: --timeout=5m
 
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: false
+
+      - name: Run Gosec
+        uses: securego/gosec@master
+        with:
+          args: -exclude-generated ./...
+
   build:
     runs-on: ubuntu-latest
+    needs: [test, lint, security]
     strategy:
       matrix:
         include:
