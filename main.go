@@ -1599,7 +1599,15 @@ func (s *MCPServer) RunHTTP(addr string) error {
 	mux.HandleFunc("/mcp", s.handleHTTP)
 	mux.HandleFunc("/", s.handleHTTP)
 
-	return http.ListenAndServe(addr, mux)
+	// Use http.Server with timeouts to satisfy gosec G114
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	return server.ListenAndServe()
 }
 
 func (s *MCPServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
