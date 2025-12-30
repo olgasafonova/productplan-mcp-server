@@ -628,6 +628,25 @@ type Logger interface {
 
 See [CHANGELOG.md](CHANGELOG.md) for release history and detailed changes.
 
+---
+
+## Like This Project?
+
+If this server saved you time, consider giving it a ⭐ on GitHub. It helps others discover the project.
+
+---
+
+## More MCP Servers
+
+Check out my other MCP servers:
+
+| Server | Description | Stars |
+|--------|-------------|-------|
+| [mediawiki-mcp-server](https://github.com/olgasafonova/mediawiki-mcp-server) | Connect AI to any MediaWiki wiki. Search, read, edit wiki content. | ![GitHub stars](https://img.shields.io/github/stars/olgasafonova/mediawiki-mcp-server?style=flat) |
+| [miro-mcp-server](https://github.com/olgasafonova/miro-mcp-server) | Control Miro whiteboards with AI. 76 tools for boards, diagrams, mindmaps. | ![GitHub stars](https://img.shields.io/github/stars/olgasafonova/miro-mcp-server?style=flat) |
+
+---
+
 ## License
 
 MIT License - see [LICENSE](LICENSE)
