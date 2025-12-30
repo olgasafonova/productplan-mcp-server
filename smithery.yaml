@@ -11,10 +11,4 @@ startCommand:
         type: string
         description: "Your ProductPlan API token. Get one from ProductPlan settings."
   commandFunction: |-
-    (config) => ({
-      command: './productplan-mcp-server',
-      args: [],
-      env: {
-        PRODUCTPLAN_API_TOKEN: config.productplanApiToken
-      }
-    })
+    (config) => ({ command: './productplan-mcp-server', args: [], env: { PRODUCTPLAN_API_TOKEN: config.productplanApiToken } })
