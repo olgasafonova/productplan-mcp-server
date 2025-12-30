@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -1581,6 +1582,67 @@ func (s *MCPServer) Run() {
 	}
 }
 
+// RunHTTP starts the server in HTTP mode
+func (s *MCPServer) RunHTTP(addr string) error {
+	fmt.Fprintf(os.Stderr, "ProductPlan MCP Server v%s running on HTTP %s\n", version, addr)
+
+	mux := http.NewServeMux()
+
+	// Health check endpoint
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	// MCP endpoint - handles JSON-RPC
+	mux.HandleFunc("/mcp", s.handleHTTP)
+	mux.HandleFunc("/", s.handleHTTP)
+
+	return http.ListenAndServe(addr, mux)
+}
+
+func (s *MCPServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read body", http.StatusBadRequest)
+		return
+	}
+	defer func() { _ = r.Body.Close() }()
+
+	var req JSONRPCRequest
+	if err := json.Unmarshal(body, &req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		errResp := JSONRPCResponse{
+			JSONRPC: "2.0",
+			ID:      nil,
+			Error:   &RPCError{Code: -32700, Message: "Parse error: " + err.Error()},
+		}
+		respJSON, _ := json.Marshal(errResp)
+		_, _ = w.Write(respJSON)
+		return
+	}
+
+	resp := s.handleRequest(req)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if resp.JSONRPC == "" {
+		_, _ = w.Write([]byte(`{"jsonrpc":"2.0","result":{}}`))
+		return
+	}
+
+	respJSON, _ := json.Marshal(resp)
+	_, _ = w.Write(respJSON)
+}
+
 // ============================================================================
 // CLI Implementation
 // ============================================================================
@@ -1725,14 +1787,36 @@ Design (v4.2):
 // ============================================================================
 
 func main() {
+	httpAddr := flag.String("http", "", "HTTP address to listen on (e.g., :8080). If not set, runs in stdio mode.")
+	showHelp := flag.Bool("h", false, "Show help")
+	flag.BoolVar(showHelp, "help", false, "Show help")
+	flag.Parse()
+
+	if *showHelp {
+		printUsage()
+		return
+	}
+
 	apiToken = os.Getenv("PRODUCTPLAN_API_TOKEN")
 	if apiToken == "" {
 		fmt.Fprintln(os.Stderr, "Error: PRODUCTPLAN_API_TOKEN environment variable is required")
 		os.Exit(1)
 	}
 
-	args := os.Args[1:]
+	args := flag.Args()
 
+	// HTTP mode
+	if *httpAddr != "" {
+		client := NewAPIClient(apiToken)
+		server := NewMCPServer(client)
+		if err := server.RunHTTP(*httpAddr); err != nil {
+			fmt.Fprintf(os.Stderr, "HTTP server error: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	// stdio mode (default when no args or "serve"/"mcp" command)
 	if len(args) == 0 || args[0] == "serve" || args[0] == "mcp" {
 		client := NewAPIClient(apiToken)
 		server := NewMCPServer(client)
@@ -1740,7 +1824,7 @@ func main() {
 		return
 	}
 
-	if args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
+	if args[0] == "help" {
 		printUsage()
 		return
 	}
