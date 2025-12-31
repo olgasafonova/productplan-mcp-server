@@ -5,6 +5,11 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.8.1] - 2025-12-31
+
+### Improved
+- Added "Shared Principles" section to README documenting output conventions across agent skills
+
 ## [4.8.0] - 2025-12-31
 
 ### Added
