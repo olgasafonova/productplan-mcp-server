@@ -367,9 +367,9 @@ Open your AI assistant and try:
 
 ---
 
-## Claude Code Skills
+## Agent Skills
 
-Pre-built workflow guides that teach Claude how to use ProductPlan tools effectively. Each skill targets a specific persona with tailored workflows.
+Pre-built workflow guides that teach AI assistants how to use ProductPlan tools effectively. Each skill targets a specific persona with tailored workflows.
 
 | Skill | Audience | Focus |
 |-------|----------|-------|
