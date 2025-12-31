@@ -367,6 +367,30 @@ Open your AI assistant and try:
 
 ---
 
+## Claude Code Skills
+
+Pre-built workflow guides that teach Claude how to use ProductPlan tools effectively. Each skill targets a specific persona with tailored workflows.
+
+| Skill | Audience | Focus |
+|-------|----------|-------|
+| [productplan-workflows](skills/productplan-workflows/) | General | Core patterns and tool reference |
+| [productplan-pm](skills/productplan-pm/) | Product Managers | Full toolkit: roadmaps, OKRs, ideas, launches |
+| [productplan-leadership](skills/productplan-leadership/) | Executives | Portfolio health, cross-roadmap views |
+| [productplan-customer-facing](skills/productplan-customer-facing/) | Sales & CS | Customer-ready roadmap timelines |
+
+**To use a skill**, copy the `SKILL.md` file to your Claude Code skills directory:
+
+```bash
+# Copy a skill (example: PM skill)
+cp skills/productplan-pm/SKILL.md ~/.claude/skills/productplan-pm.md
+```
+
+Or reference skills directly in your prompts:
+
+> "Use the productplan-pm workflow to show me our Q1 roadmap"
+
+---
+
 ## Troubleshooting
 
 **"Command not found" or "spawn ENOENT"**
