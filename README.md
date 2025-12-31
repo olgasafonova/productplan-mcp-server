@@ -378,6 +378,18 @@ Pre-built workflow guides that teach AI assistants how to use ProductPlan tools 
 | [productplan-leadership](skills/productplan-leadership/) | Executives | Portfolio health, cross-roadmap views |
 | [productplan-customer-facing](skills/productplan-customer-facing/) | Sales & CS | Customer-ready roadmap timelines |
 
+### Shared Principles
+
+All skills follow these output conventions:
+- **No raw JSON** - Format responses as readable text and tables
+- **Human-readable dates** - Use "March 2025" or "Q1 2025", not "2025-03-15"
+- **Summarize large lists** - Don't overwhelm with 50 items; offer to expand
+
+Persona-specific variations:
+- **PM** includes `bar_id` for follow-up actions
+- **Leadership** leads with executive summary, hides implementation details
+- **Customer-facing** omits internal IDs, lane names, and OKRs entirely
+
 **To use a skill**, copy the `SKILL.md` file to your Claude Code skills directory:
 
 ```bash
