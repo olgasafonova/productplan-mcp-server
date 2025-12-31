@@ -1,10 +1,89 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.olgasafonova/productplan-mcp-server",
-  "description": "ProductPlan roadmap integration with tools for ideas, launches, and OKRs",
+  "title": "ProductPlan MCP Server",
+  "description": "Talk to your roadmaps using AI. Query, create, and manage roadmap items, OKRs, ideas, and launches through natural conversation.",
+  "websiteUrl": "https://github.com/olgasafonova/productplan-mcp-server",
   "repository": {
     "url": "https://github.com/olgasafonova/productplan-mcp-server",
     "source": "github"
   },
-  "version": "4.6.2"
+  "version": "4.8.1",
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.1/productplan-mcp-server-darwin-arm64.mcpb",
+      "version": "4.8.1",
+      "fileSha256": "b3fca7cac6544af5d279c6130926250f82539d9fa45c061a4059a00c94e0cdb6",
+      "transport": {"type": "stdio"},
+      "environmentVariables": [
+        {
+          "name": "PRODUCTPLAN_API_TOKEN",
+          "description": "Your ProductPlan API token from Settings → API",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.1/productplan-mcp-server-darwin-amd64.mcpb",
+      "version": "4.8.1",
+      "fileSha256": "76b30dae87c5eac2ab48165f220b7ab8b36112964e15d9bab8b488a8c0a064bf",
+      "transport": {"type": "stdio"},
+      "environmentVariables": [
+        {
+          "name": "PRODUCTPLAN_API_TOKEN",
+          "description": "Your ProductPlan API token from Settings → API",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.1/productplan-mcp-server-linux-amd64.mcpb",
+      "version": "4.8.1",
+      "fileSha256": "bcdfde324c0fe4e406f571e3f5f8389c7a34d99ec76fdd1ac0660d53efadbb6f",
+      "transport": {"type": "stdio"},
+      "environmentVariables": [
+        {
+          "name": "PRODUCTPLAN_API_TOKEN",
+          "description": "Your ProductPlan API token from Settings → API",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.1/productplan-mcp-server-linux-arm64.mcpb",
+      "version": "4.8.1",
+      "fileSha256": "fc6bf334c793c94be7d444c11eb0cc781d058cab5bc1a53a6789e632221e5c4c",
+      "transport": {"type": "stdio"},
+      "environmentVariables": [
+        {
+          "name": "PRODUCTPLAN_API_TOKEN",
+          "description": "Your ProductPlan API token from Settings → API",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    },
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.1/productplan-mcp-server-windows-amd64.mcpb",
+      "version": "4.8.1",
+      "fileSha256": "b5535d6d788c454588a9940fff4093542f847799b290e2a962a92f3007c623ef",
+      "transport": {"type": "stdio"},
+      "environmentVariables": [
+        {
+          "name": "PRODUCTPLAN_API_TOKEN",
+          "description": "Your ProductPlan API token from Settings → API",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
 }
