@@ -10,89 +10,113 @@ import (
 
 func getBarHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		barID, err := h.RequiredString("bar_id")
+		a, err := ParseArgs[GetBarArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetBar(ctx, barID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetBar(ctx, a.BarID)
 	})
 }
 
 func getBarChildrenHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		barID, err := h.RequiredString("bar_id")
+		a, err := ParseArgs[GetBarArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetBarChildren(ctx, barID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetBarChildren(ctx, a.BarID)
 	})
 }
 
 func getBarCommentsHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		barID, err := h.RequiredString("bar_id")
+		a, err := ParseArgs[GetBarArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetBarComments(ctx, barID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetBarComments(ctx, a.BarID)
 	})
 }
 
 func getBarConnectionsHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		barID, err := h.RequiredString("bar_id")
+		a, err := ParseArgs[GetBarArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetBarConnections(ctx, barID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetBarConnections(ctx, a.BarID)
 	})
 }
 
 func getBarLinksHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		barID, err := h.RequiredString("bar_id")
+		a, err := ParseArgs[GetBarArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetBarLinks(ctx, barID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetBarLinks(ctx, a.BarID)
 	})
 }
 
 func manageBarHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageBarArgs](args)
 		if err != nil {
 			return nil, err
 		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{
-				"roadmap_id": h.String("roadmap_id"),
-				"lane_id":    h.String("lane_id"),
-				"name":       h.String("name"),
+			payload := map[string]any{
+				"roadmap_id": a.RoadmapID,
+				"lane_id":    a.LaneID,
+				"name":       a.Name,
 			}
-			if sd := h.String("start_date"); sd != "" {
-				data["start_date"] = sd
+			if a.StartDate != "" {
+				payload["start_date"] = a.StartDate
 			}
-			if ed := h.String("end_date"); ed != "" {
-				data["end_date"] = ed
+			if a.EndDate != "" {
+				payload["end_date"] = a.EndDate
 			}
-			if desc := h.String("description"); desc != "" {
-				data["description"] = desc
+			if a.Description != "" {
+				payload["description"] = a.Description
 			}
-			return client.CreateBar(ctx, data)
+			return client.CreateBar(ctx, payload)
 		case "update":
-			data := h.BuildData("name", "start_date", "end_date", "description")
-			return client.UpdateBar(ctx, h.String("bar_id"), data)
+			payload := make(map[string]any)
+			if a.Name != "" {
+				payload["name"] = a.Name
+			}
+			if a.StartDate != "" {
+				payload["start_date"] = a.StartDate
+			}
+			if a.EndDate != "" {
+				payload["end_date"] = a.EndDate
+			}
+			if a.Description != "" {
+				payload["description"] = a.Description
+			}
+			return client.UpdateBar(ctx, a.BarID, payload)
 		case "delete":
-			return client.DeleteBar(ctx, h.String("bar_id"))
+			return client.DeleteBar(ctx, a.BarID)
 		}
 		return nil, nil
 	})
@@ -100,38 +124,34 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 
 func manageBarCommentHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		barID, err := h.RequiredString("bar_id")
+		a, err := ParseArgs[ManageBarCommentArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		body, err := h.RequiredString("body")
-		if err != nil {
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		data := map[string]any{"body": body}
-		return client.CreateBarComment(ctx, barID, data)
+		payload := map[string]any{"body": a.Body}
+		return client.CreateBarComment(ctx, a.BarID, payload)
 	})
 }
 
 func manageBarConnectionHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageBarConnectionArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		barID, err := h.RequiredString("bar_id")
-		if err != nil {
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{"target_bar_id": h.String("target_bar_id")}
-			return client.CreateBarConnection(ctx, barID, data)
+			payload := map[string]any{"target_bar_id": a.TargetBarID}
+			return client.CreateBarConnection(ctx, a.BarID, payload)
 		case "delete":
-			return client.DeleteBarConnection(ctx, barID, h.String("connection_id"))
+			return client.DeleteBarConnection(ctx, a.BarID, a.ConnectionID)
 		}
 		return nil, nil
 	})
@@ -139,28 +159,32 @@ func manageBarConnectionHandler(client *api.Client) mcp.Handler {
 
 func manageBarLinkHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageBarLinkArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		barID, err := h.RequiredString("bar_id")
-		if err != nil {
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{
-				"url":  h.String("url"),
-				"name": h.String("name"),
+			payload := map[string]any{
+				"url":  a.URL,
+				"name": a.Name,
 			}
-			return client.CreateBarLink(ctx, barID, data)
+			return client.CreateBarLink(ctx, a.BarID, payload)
 		case "update":
-			data := h.BuildData("url", "name")
-			return client.UpdateBarLink(ctx, barID, h.String("link_id"), data)
+			payload := make(map[string]any)
+			if a.URL != "" {
+				payload["url"] = a.URL
+			}
+			if a.Name != "" {
+				payload["name"] = a.Name
+			}
+			return client.UpdateBarLink(ctx, a.BarID, a.LinkID, payload)
 		case "delete":
-			return client.DeleteBarLink(ctx, barID, h.String("link_id"))
+			return client.DeleteBarLink(ctx, a.BarID, a.LinkID)
 		}
 		return nil, nil
 	})

@@ -16,49 +16,61 @@ func listObjectivesHandler(client *api.Client) mcp.Handler {
 
 func getObjectiveHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		objectiveID, err := h.RequiredString("objective_id")
+		a, err := ParseArgs[GetObjectiveArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetObjective(ctx, objectiveID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetObjective(ctx, a.ObjectiveID)
 	})
 }
 
 func listKeyResultsHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		objectiveID, err := h.RequiredString("objective_id")
+		a, err := ParseArgs[GetObjectiveArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.ListKeyResults(ctx, objectiveID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.ListKeyResults(ctx, a.ObjectiveID)
 	})
 }
 
 func manageObjectiveHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageObjectiveArgs](args)
 		if err != nil {
 			return nil, err
 		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{"name": h.String("name")}
-			if desc := h.String("description"); desc != "" {
-				data["description"] = desc
+			payload := map[string]any{"name": a.Name}
+			if a.Description != "" {
+				payload["description"] = a.Description
 			}
-			if tf := h.String("time_frame"); tf != "" {
-				data["time_frame"] = tf
+			if a.TimeFrame != "" {
+				payload["time_frame"] = a.TimeFrame
 			}
-			return client.CreateObjective(ctx, data)
+			return client.CreateObjective(ctx, payload)
 		case "update":
-			data := h.BuildData("name", "description")
-			return client.UpdateObjective(ctx, h.String("objective_id"), data)
+			payload := make(map[string]any)
+			if a.Name != "" {
+				payload["name"] = a.Name
+			}
+			if a.Description != "" {
+				payload["description"] = a.Description
+			}
+			return client.UpdateObjective(ctx, a.ObjectiveID, payload)
 		case "delete":
-			return client.DeleteObjective(ctx, h.String("objective_id"))
+			return client.DeleteObjective(ctx, a.ObjectiveID)
 		}
 		return nil, nil
 	})
@@ -66,31 +78,35 @@ func manageObjectiveHandler(client *api.Client) mcp.Handler {
 
 func manageKeyResultHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageKeyResultArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		objectiveID, err := h.RequiredString("objective_id")
-		if err != nil {
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{"name": h.String("name")}
-			if tv := h.String("target_value"); tv != "" {
-				data["target_value"] = tv
+			payload := map[string]any{"name": a.Name}
+			if a.TargetValue != "" {
+				payload["target_value"] = a.TargetValue
 			}
-			if cv := h.String("current_value"); cv != "" {
-				data["current_value"] = cv
+			if a.CurrentValue != "" {
+				payload["current_value"] = a.CurrentValue
 			}
-			return client.CreateKeyResult(ctx, objectiveID, data)
+			return client.CreateKeyResult(ctx, a.ObjectiveID, payload)
 		case "update":
-			data := h.BuildData("name", "current_value")
-			return client.UpdateKeyResult(ctx, objectiveID, h.String("key_result_id"), data)
+			payload := make(map[string]any)
+			if a.Name != "" {
+				payload["name"] = a.Name
+			}
+			if a.CurrentValue != "" {
+				payload["current_value"] = a.CurrentValue
+			}
+			return client.UpdateKeyResult(ctx, a.ObjectiveID, a.KeyResultID, payload)
 		case "delete":
-			return client.DeleteKeyResult(ctx, objectiveID, h.String("key_result_id"))
+			return client.DeleteKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
 		}
 		return nil, nil
 	})

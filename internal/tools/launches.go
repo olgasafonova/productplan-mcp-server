@@ -16,11 +16,13 @@ func listLaunchesHandler(client *api.Client) mcp.Handler {
 
 func getLaunchHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		launchID, err := h.RequiredString("launch_id")
+		a, err := ParseArgs[GetLaunchArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetLaunch(ctx, launchID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetLaunch(ctx, a.LaunchID)
 	})
 }

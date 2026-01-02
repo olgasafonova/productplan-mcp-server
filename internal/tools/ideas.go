@@ -16,34 +16,40 @@ func listIdeasHandler(client *api.Client) mcp.Handler {
 
 func getIdeaHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		ideaID, err := h.RequiredString("idea_id")
+		a, err := ParseArgs[GetIdeaArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetIdea(ctx, ideaID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetIdea(ctx, a.IdeaID)
 	})
 }
 
 func getIdeaCustomersHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		ideaID, err := h.RequiredString("idea_id")
+		a, err := ParseArgs[GetIdeaArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetIdeaCustomers(ctx, ideaID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetIdeaCustomers(ctx, a.IdeaID)
 	})
 }
 
 func getIdeaTagsHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		ideaID, err := h.RequiredString("idea_id")
+		a, err := ParseArgs[GetIdeaArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetIdeaTags(ctx, ideaID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetIdeaTags(ctx, a.IdeaID)
 	})
 }
 
@@ -55,12 +61,14 @@ func listOpportunitiesHandler(client *api.Client) mcp.Handler {
 
 func getOpportunityHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		opportunityID, err := h.RequiredString("opportunity_id")
+		a, err := ParseArgs[GetOpportunityArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetOpportunity(ctx, opportunityID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetOpportunity(ctx, a.OpportunityID)
 	})
 }
 
@@ -72,45 +80,49 @@ func listIdeaFormsHandler(client *api.Client) mcp.Handler {
 
 func getIdeaFormHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		formID, err := h.RequiredString("form_id")
+		a, err := ParseArgs[GetIdeaFormArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetIdeaForm(ctx, formID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetIdeaForm(ctx, a.FormID)
 	})
 }
 
 func manageIdeaHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageIdeaArgs](args)
 		if err != nil {
 			return nil, err
 		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{"name": h.String("title")}
-			if desc := h.String("description"); desc != "" {
-				data["description"] = desc
+			payload := map[string]any{"name": a.Title}
+			if a.Description != "" {
+				payload["description"] = a.Description
 			}
-			if status := h.String("status"); status != "" {
-				data["status"] = status
+			if a.Status != "" {
+				payload["status"] = a.Status
 			}
-			return client.CreateIdea(ctx, data)
+			return client.CreateIdea(ctx, payload)
 		case "update":
-			data := make(map[string]any)
-			if n := h.String("title"); n != "" {
-				data["name"] = n
+			payload := make(map[string]any)
+			if a.Title != "" {
+				payload["name"] = a.Title
 			}
-			if desc := h.String("description"); desc != "" {
-				data["description"] = desc
+			if a.Description != "" {
+				payload["description"] = a.Description
 			}
-			if status := h.String("status"); status != "" {
-				data["status"] = status
+			if a.Status != "" {
+				payload["status"] = a.Status
 			}
-			return client.UpdateIdea(ctx, h.String("idea_id"), data)
+			return client.UpdateIdea(ctx, a.IdeaID, payload)
 		}
 		return nil, nil
 	})
@@ -118,22 +130,20 @@ func manageIdeaHandler(client *api.Client) mcp.Handler {
 
 func manageIdeaCustomerHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageIdeaCustomerArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		ideaID, err := h.RequiredString("idea_id")
-		if err != nil {
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
 
-		switch action {
+		switch a.Action {
 		case "add":
-			data := map[string]any{"customer_id": h.String("customer_id")}
-			return client.AddIdeaCustomer(ctx, ideaID, data)
+			payload := map[string]any{"customer_id": a.CustomerID}
+			return client.AddIdeaCustomer(ctx, a.IdeaID, payload)
 		case "remove":
-			return client.RemoveIdeaCustomer(ctx, ideaID, h.String("customer_id"))
+			return client.RemoveIdeaCustomer(ctx, a.IdeaID, a.CustomerID)
 		}
 		return nil, nil
 	})
@@ -141,22 +151,20 @@ func manageIdeaCustomerHandler(client *api.Client) mcp.Handler {
 
 func manageIdeaTagHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageIdeaTagArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		ideaID, err := h.RequiredString("idea_id")
-		if err != nil {
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
 
-		switch action {
+		switch a.Action {
 		case "add":
-			data := map[string]any{"tag_id": h.String("tag_id")}
-			return client.AddIdeaTag(ctx, ideaID, data)
+			payload := map[string]any{"tag_id": a.TagID}
+			return client.AddIdeaTag(ctx, a.IdeaID, payload)
 		case "remove":
-			return client.RemoveIdeaTag(ctx, ideaID, h.String("tag_id"))
+			return client.RemoveIdeaTag(ctx, a.IdeaID, a.TagID)
 		}
 		return nil, nil
 	})
@@ -164,27 +172,38 @@ func manageIdeaTagHandler(client *api.Client) mcp.Handler {
 
 func manageOpportunityHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageOpportunityArgs](args)
 		if err != nil {
 			return nil, err
 		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{"problem_statement": h.String("problem_statement")}
-			if desc := h.String("description"); desc != "" {
-				data["description"] = desc
+			payload := map[string]any{"problem_statement": a.ProblemStatement}
+			if a.Description != "" {
+				payload["description"] = a.Description
 			}
-			if status := h.String("workflow_status"); status != "" {
-				data["workflow_status"] = status
+			if a.WorkflowStatus != "" {
+				payload["workflow_status"] = a.WorkflowStatus
 			}
-			return client.CreateOpportunity(ctx, data)
+			return client.CreateOpportunity(ctx, payload)
 		case "update":
-			data := h.BuildData("problem_statement", "description", "workflow_status")
-			return client.UpdateOpportunity(ctx, h.String("opportunity_id"), data)
+			payload := make(map[string]any)
+			if a.ProblemStatement != "" {
+				payload["problem_statement"] = a.ProblemStatement
+			}
+			if a.Description != "" {
+				payload["description"] = a.Description
+			}
+			if a.WorkflowStatus != "" {
+				payload["workflow_status"] = a.WorkflowStatus
+			}
+			return client.UpdateOpportunity(ctx, a.OpportunityID, payload)
 		case "delete":
-			return client.DeleteOpportunity(ctx, h.String("opportunity_id"))
+			return client.DeleteOpportunity(ctx, a.OpportunityID)
 		}
 		return nil, nil
 	})

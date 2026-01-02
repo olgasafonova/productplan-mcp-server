@@ -21,112 +21,127 @@ func listRoadmapsHandler(client *api.Client) mcp.Handler {
 
 func getRoadmapHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		roadmapID, err := h.RequiredString("roadmap_id")
+		a, err := ParseArgs[GetRoadmapArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		data, err := client.GetRoadmap(ctx, roadmapID)
+		if err = a.Validate(); err != nil {
+			return nil, err
+		}
+		data, err := client.GetRoadmap(ctx, a.RoadmapID)
 		if err != nil {
 			return nil, err
 		}
-		return FormatItem(data, "roadmap", roadmapID)
+		return FormatItem(data, "roadmap", a.RoadmapID)
 	})
 }
 
 func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		roadmapID, err := h.RequiredString("roadmap_id")
+		a, err := ParseArgs[GetRoadmapArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapBars(ctx, roadmapID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetRoadmapBars(ctx, a.RoadmapID)
 	})
 }
 
 func getRoadmapLanesHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		roadmapID, err := h.RequiredString("roadmap_id")
+		a, err := ParseArgs[GetRoadmapArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapLanes(ctx, roadmapID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetRoadmapLanes(ctx, a.RoadmapID)
 	})
 }
 
 func getRoadmapMilestonesHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		roadmapID, err := h.RequiredString("roadmap_id")
+		a, err := ParseArgs[GetRoadmapArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapMilestones(ctx, roadmapID)
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetRoadmapMilestones(ctx, a.RoadmapID)
 	})
 }
 
 func manageLaneHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageLaneArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		roadmapID, err := h.RequiredString("roadmap_id")
-		if err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
 		var data json.RawMessage
-		laneID := h.String("lane_id")
 
-		switch action {
+		switch a.Action {
 		case "create":
-			payload := map[string]any{"name": h.String("name")}
-			if c := h.String("color"); c != "" {
-				payload["color"] = c
+			payload := map[string]any{"name": a.Name}
+			if a.Color != "" {
+				payload["color"] = a.Color
 			}
-			data, err = client.CreateLane(ctx, roadmapID, payload)
+			data, err = client.CreateLane(ctx, a.RoadmapID, payload)
 		case "update":
-			payload := h.BuildData("name", "color")
-			data, err = client.UpdateLane(ctx, roadmapID, laneID, payload)
+			payload := make(map[string]any)
+			if a.Name != "" {
+				payload["name"] = a.Name
+			}
+			if a.Color != "" {
+				payload["color"] = a.Color
+			}
+			data, err = client.UpdateLane(ctx, a.RoadmapID, a.LaneID, payload)
 		case "delete":
-			data, err = client.DeleteLane(ctx, roadmapID, laneID)
+			data, err = client.DeleteLane(ctx, a.RoadmapID, a.LaneID)
 		}
 
 		if err != nil {
 			return nil, err
 		}
-		return FormatAction(data, action, "lane", laneID)
+		return FormatAction(data, a.Action, "lane", a.LaneID)
 	})
 }
 
 func manageMilestoneHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		action, err := h.RequiredString("action")
+		a, err := ParseArgs[ManageMilestoneArgs](args)
 		if err != nil {
 			return nil, err
 		}
-		roadmapID, err := h.RequiredString("roadmap_id")
-		if err != nil {
+		if err := a.Validate(); err != nil {
 			return nil, err
 		}
 
-		switch action {
+		switch a.Action {
 		case "create":
-			data := map[string]any{
-				"name": h.String("name"),
-				"date": h.String("date"),
+			payload := map[string]any{
+				"name": a.Name,
+				"date": a.Date,
 			}
-			return client.CreateMilestone(ctx, roadmapID, data)
+			return client.CreateMilestone(ctx, a.RoadmapID, payload)
 		case "update":
-			data := h.BuildData("name", "date")
-			return client.UpdateMilestone(ctx, roadmapID, h.String("milestone_id"), data)
+			payload := make(map[string]any)
+			if a.Name != "" {
+				payload["name"] = a.Name
+			}
+			if a.Date != "" {
+				payload["date"] = a.Date
+			}
+			return client.UpdateMilestone(ctx, a.RoadmapID, a.MilestoneID, payload)
 		case "delete":
-			return client.DeleteMilestone(ctx, roadmapID, h.String("milestone_id"))
+			return client.DeleteMilestone(ctx, a.RoadmapID, a.MilestoneID)
 		}
 		return nil, nil
 	})
@@ -135,11 +150,14 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 // getRoadmapCompleteHandler fetches roadmap details, bars, lanes, and milestones in parallel.
 func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		h := mcp.NewArgHelper(args)
-		roadmapID, err := h.RequiredString("roadmap_id")
+		a, err := ParseArgs[GetRoadmapArgs](args)
 		if err != nil {
 			return nil, err
 		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		roadmapID := a.RoadmapID
 
 		// Fetch all data in parallel
 		var wg sync.WaitGroup
