@@ -489,7 +489,7 @@ productplan-mcp-server/
 ├── cmd/productplan/main.go      # Entry point (~100 lines)
 ├── internal/
 │   ├── api/                     # ProductPlan API client
-│   │   ├── client.go            # HTTP client with rate limiting
+│   │   ├── client.go            # HTTP client with caching, retry, rate limiting
 │   │   ├── endpoints.go         # 40+ API endpoint methods
 │   │   └── formatters.go        # Response enrichment for AI
 │   ├── mcp/                     # MCP protocol implementation
@@ -504,6 +504,9 @@ productplan-mcp-server/
 │   └── logging/                 # Structured JSON logging
 │       └── logger.go
 ├── pkg/productplan/             # Reusable utilities
+│   ├── cache.go                 # LRU cache with TTL
+│   ├── retry.go                 # Exponential backoff with jitter
+│   ├── ratelimit.go             # Adaptive rate limiting
 │   ├── registry.go              # ToolBuilder for schema generation
 │   ├── requestid.go             # Request tracing
 │   └── errors.go                # Error suggestions
