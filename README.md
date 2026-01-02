@@ -497,7 +497,8 @@ productplan-mcp-server/
 │   │   ├── handler.go           # Tool dispatch via registry
 │   │   └── types.go             # Protocol types
 │   ├── tools/                   # Tool definitions and handlers
-│   │   └── registry.go          # 36 tools registered via builder
+│   │   ├── registry.go          # Tool registration and dispatch
+│   │   └── types.go             # Typed argument structs for handlers
 │   ├── cli/                     # CLI commands (status, roadmaps, etc.)
 │   │   └── cli.go
 │   └── logging/                 # Structured JSON logging
@@ -578,10 +579,10 @@ Run evaluation suite:
 <details>
 <summary>MCP tool reference</summary>
 
-v4.2 provides 24 READ tools and 12 WRITE tools (action-based):
+38 tools available: 26 READ tools and 12 WRITE tools (action-based):
 
 **Read tools:**
-- Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`
+- Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_complete`
 - Bars: `get_bar`, `get_bar_children`, `get_bar_comments`, `get_bar_connections`, `get_bar_links`
 - OKRs: `list_objectives`, `get_objective`, `list_key_results`
 - Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
