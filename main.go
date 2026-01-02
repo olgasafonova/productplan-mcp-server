@@ -31,6 +31,7 @@ type APIClient struct {
 	httpClient  *http.Client
 	rateLimiter *productplan.AdaptiveRateLimiter
 	cache       *productplan.Cache
+	retryer     *productplan.Retryer
 }
 
 func NewAPIClient(token string) *APIClient {
@@ -39,60 +40,101 @@ func NewAPIClient(token string) *APIClient {
 		httpClient:  &http.Client{Timeout: 30 * time.Second},
 		rateLimiter: productplan.NewAdaptiveRateLimiter(productplan.DefaultRateLimiterConfig()),
 		cache:       productplan.NewCache(productplan.DefaultCacheConfig()),
+		retryer:     productplan.NewRetryer(productplan.DefaultRetryConfig()),
 	}
 }
 
 func (c *APIClient) request(method, endpoint string, body interface{}) (json.RawMessage, error) {
-	// Wait if rate limited
-	if c.rateLimiter != nil {
-		c.rateLimiter.Wait()
+	// Check cache for GET requests
+	cacheKey := productplan.CacheKey(method, endpoint)
+	if method == http.MethodGet && c.cache != nil {
+		if cached, found := c.cache.Get(cacheKey); found {
+			if data, ok := cached.(json.RawMessage); ok {
+				return data, nil
+			}
+		}
+	}
+
+	// Invalidate related cache on write operations
+	if method != http.MethodGet && c.cache != nil {
+		c.cache.InvalidatePrefix("GET:" + endpoint)
+	}
+
+	// Prepare request body (marshal once for potential retries)
+	var jsonBody []byte
+	if body != nil {
+		var err error
+		jsonBody, err = json.Marshal(body)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	url := apiBase + endpoint
 
-	var reqBody io.Reader
-	if body != nil {
-		jsonBody, err := json.Marshal(body)
+	// Execute with retry
+	result, retryResult := c.retryer.DoSimple(context.Background(), func() (interface{}, error) {
+		// Wait if rate limited
+		if c.rateLimiter != nil {
+			c.rateLimiter.Wait()
+		}
+
+		var reqBody io.Reader
+		if jsonBody != nil {
+			reqBody = bytes.NewReader(jsonBody)
+		}
+
+		req, err := http.NewRequest(method, url, reqBody)
 		if err != nil {
 			return nil, err
 		}
-		reqBody = bytes.NewReader(jsonBody)
-	}
 
-	req, err := http.NewRequest(method, url, reqBody)
-	if err != nil {
-		return nil, err
-	}
+		req.Header.Set("Authorization", "Bearer "+c.token)
+		req.Header.Set("Content-Type", "application/json")
 
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	// Update rate limiter from response headers
-	if c.rateLimiter != nil {
-		c.rateLimiter.UpdateFromResponse(resp)
-	}
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode >= 400 {
-		apiErr := productplan.ParseAPIError(resp, respBody)
-		if suggestion := apiErr.Suggestion(); suggestion != "" {
-			return nil, fmt.Errorf("%s. %s", apiErr.Error(), suggestion)
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			return nil, err
 		}
-		return nil, apiErr
+		defer func() { _ = resp.Body.Close() }()
+
+		// Update rate limiter from response headers
+		if c.rateLimiter != nil {
+			c.rateLimiter.UpdateFromResponse(resp)
+		}
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		if resp.StatusCode >= 400 {
+			apiErr := productplan.ParseAPIError(resp, respBody)
+			if suggestion := apiErr.Suggestion(); suggestion != "" {
+				return nil, fmt.Errorf("%s. %s", apiErr.Error(), suggestion)
+			}
+			return nil, apiErr
+		}
+
+		if resp.StatusCode == 204 {
+			return json.RawMessage(`{"success": true}`), nil
+		}
+
+		return json.RawMessage(respBody), nil
+	})
+
+	if retryResult.LastError != nil {
+		return nil, retryResult.LastError
 	}
 
-	if resp.StatusCode == 204 {
-		return json.RawMessage(`{"success": true}`), nil
+	respBody, ok := result.(json.RawMessage)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response type")
+	}
+
+	// Cache successful GET responses (5 min TTL)
+	if method == http.MethodGet && c.cache != nil {
+		c.cache.Set(cacheKey, respBody, 5*time.Minute)
 	}
 
 	return respBody, nil
