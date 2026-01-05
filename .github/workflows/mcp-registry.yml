@@ -1,0 +1,105 @@
+name: Publish to MCP Registry
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish to MCP Registry
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Download release assets and compute checksums
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="olgasafonova/productplan-mcp-server"
+          BASE_URL="https://github.com/${REPO}/releases/download/v${VERSION}"
+
+          # Download each .mcpb file and compute SHA256
+          declare -A CHECKSUMS
+          for platform in darwin-arm64 darwin-amd64 linux-amd64 linux-arm64 windows-amd64; do
+            FILE="productplan-mcp-server-${platform}.mcpb"
+            URL="${BASE_URL}/${FILE}"
+            echo "Downloading ${URL}..."
+            curl -sL -o "${FILE}" "${URL}"
+            CHECKSUM=$(sha256sum "${FILE}" | cut -d' ' -f1)
+            echo "${platform}=${CHECKSUM}" >> checksums.txt
+            echo "  ${platform}: ${CHECKSUM}"
+          done
+
+      - name: Update server.json
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO="olgasafonova/productplan-mcp-server"
+          BASE_URL="https://github.com/${REPO}/releases/download/v${VERSION}"
+
+          # Read checksums
+          DARWIN_ARM64=$(grep "darwin-arm64=" checksums.txt | cut -d'=' -f2)
+          DARWIN_AMD64=$(grep "darwin-amd64=" checksums.txt | cut -d'=' -f2)
+          LINUX_AMD64=$(grep "linux-amd64=" checksums.txt | cut -d'=' -f2)
+          LINUX_ARM64=$(grep "linux-arm64=" checksums.txt | cut -d'=' -f2)
+          WINDOWS_AMD64=$(grep "windows-amd64=" checksums.txt | cut -d'=' -f2)
+
+          # Update server.json with new version, URLs, and checksums
+          jq --arg v "$VERSION" \
+             --arg base "$BASE_URL" \
+             --arg sha_darwin_arm64 "$DARWIN_ARM64" \
+             --arg sha_darwin_amd64 "$DARWIN_AMD64" \
+             --arg sha_linux_amd64 "$LINUX_AMD64" \
+             --arg sha_linux_arm64 "$LINUX_ARM64" \
+             --arg sha_windows_amd64 "$WINDOWS_AMD64" \
+             '.version = $v |
+              .packages[0].identifier = ($base + "/productplan-mcp-server-darwin-arm64.mcpb") |
+              .packages[0].version = $v |
+              .packages[0].fileSha256 = $sha_darwin_arm64 |
+              .packages[1].identifier = ($base + "/productplan-mcp-server-darwin-amd64.mcpb") |
+              .packages[1].version = $v |
+              .packages[1].fileSha256 = $sha_darwin_amd64 |
+              .packages[2].identifier = ($base + "/productplan-mcp-server-linux-amd64.mcpb") |
+              .packages[2].version = $v |
+              .packages[2].fileSha256 = $sha_linux_amd64 |
+              .packages[3].identifier = ($base + "/productplan-mcp-server-linux-arm64.mcpb") |
+              .packages[3].version = $v |
+              .packages[3].fileSha256 = $sha_linux_arm64 |
+              .packages[4].identifier = ($base + "/productplan-mcp-server-windows-amd64.mcpb") |
+              .packages[4].version = $v |
+              .packages[4].fileSha256 = $sha_windows_amd64' \
+             server.json > server.json.tmp
+          mv server.json.tmp server.json
+          cat server.json
+
+      - name: Install mcp-publisher
+        run: |
+          curl -sL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz
+          chmod +x mcp-publisher
+          ./mcp-publisher --version
+
+      - name: Authenticate with MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish to MCP Registry
+        run: ./mcp-publisher publish
