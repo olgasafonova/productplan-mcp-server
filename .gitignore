@@ -24,3 +24,9 @@ Thumbs.db
 dist/
 build/
 coverage.out
+
+# Binary in root (for local testing)
+/productplan-mcp-server
+
+# MCP Registry tokens
+.mcpregistry_*
