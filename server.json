@@ -11,6 +11,19 @@
   "version": "4.8.2",
   "packages": [
     {
+      "registryType": "oci",
+      "identifier": "ghcr.io/olgasafonova/productplan-mcp-server:4.8.2",
+      "transport": {"type": "stdio"},
+      "environmentVariables": [
+        {
+          "name": "PRODUCTPLAN_API_TOKEN",
+          "description": "Your ProductPlan API token from Settings → API",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    },
+    {
       "registryType": "mcpb",
       "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.2/productplan-mcp-server-darwin-arm64.mcpb",
       "version": "4.8.2",

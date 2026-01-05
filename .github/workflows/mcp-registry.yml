@@ -40,7 +40,6 @@ jobs:
           BASE_URL="https://github.com/${REPO}/releases/download/v${VERSION}"
 
           # Download each .mcpb file and compute SHA256
-          declare -A CHECKSUMS
           for platform in darwin-arm64 darwin-amd64 linux-amd64 linux-arm64 windows-amd64; do
             FILE="productplan-mcp-server-${platform}.mcpb"
             URL="${BASE_URL}/${FILE}"
@@ -51,7 +50,7 @@ jobs:
             echo "  ${platform}: ${CHECKSUM}"
           done
 
-      - name: Update server.json
+      - name: Build server.json with OCI and MCPB packages
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           REPO="olgasafonova/productplan-mcp-server"
@@ -64,32 +63,111 @@ jobs:
           LINUX_ARM64=$(grep "linux-arm64=" checksums.txt | cut -d'=' -f2)
           WINDOWS_AMD64=$(grep "windows-amd64=" checksums.txt | cut -d'=' -f2)
 
-          # Update server.json with new version, URLs, and checksums
-          jq --arg v "$VERSION" \
-             --arg base "$BASE_URL" \
-             --arg sha_darwin_arm64 "$DARWIN_ARM64" \
-             --arg sha_darwin_amd64 "$DARWIN_AMD64" \
-             --arg sha_linux_amd64 "$LINUX_AMD64" \
-             --arg sha_linux_arm64 "$LINUX_ARM64" \
-             --arg sha_windows_amd64 "$WINDOWS_AMD64" \
-             '.version = $v |
-              .packages[0].identifier = ($base + "/productplan-mcp-server-darwin-arm64.mcpb") |
-              .packages[0].version = $v |
-              .packages[0].fileSha256 = $sha_darwin_arm64 |
-              .packages[1].identifier = ($base + "/productplan-mcp-server-darwin-amd64.mcpb") |
-              .packages[1].version = $v |
-              .packages[1].fileSha256 = $sha_darwin_amd64 |
-              .packages[2].identifier = ($base + "/productplan-mcp-server-linux-amd64.mcpb") |
-              .packages[2].version = $v |
-              .packages[2].fileSha256 = $sha_linux_amd64 |
-              .packages[3].identifier = ($base + "/productplan-mcp-server-linux-arm64.mcpb") |
-              .packages[3].version = $v |
-              .packages[3].fileSha256 = $sha_linux_arm64 |
-              .packages[4].identifier = ($base + "/productplan-mcp-server-windows-amd64.mcpb") |
-              .packages[4].version = $v |
-              .packages[4].fileSha256 = $sha_windows_amd64' \
-             server.json > server.json.tmp
-          mv server.json.tmp server.json
+          # Build server.json with both OCI and MCPB packages
+          cat > server.json << EOF
+          {
+            "\$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+            "name": "io.github.olgasafonova/productplan-mcp-server",
+            "title": "ProductPlan MCP Server",
+            "description": "Talk to roadmaps with AI. Query and manage bars, OKRs, ideas, and launches.",
+            "websiteUrl": "https://github.com/olgasafonova/productplan-mcp-server",
+            "repository": {
+              "url": "https://github.com/olgasafonova/productplan-mcp-server",
+              "source": "github"
+            },
+            "version": "${VERSION}",
+            "packages": [
+              {
+                "registryType": "oci",
+                "identifier": "ghcr.io/olgasafonova/productplan-mcp-server:${VERSION}",
+                "transport": {"type": "stdio"},
+                "environmentVariables": [
+                  {
+                    "name": "PRODUCTPLAN_API_TOKEN",
+                    "description": "Your ProductPlan API token from Settings → API",
+                    "isRequired": true,
+                    "isSecret": true
+                  }
+                ]
+              },
+              {
+                "registryType": "mcpb",
+                "identifier": "${BASE_URL}/productplan-mcp-server-darwin-arm64.mcpb",
+                "version": "${VERSION}",
+                "fileSha256": "${DARWIN_ARM64}",
+                "transport": {"type": "stdio"},
+                "environmentVariables": [
+                  {
+                    "name": "PRODUCTPLAN_API_TOKEN",
+                    "description": "Your ProductPlan API token from Settings → API",
+                    "isRequired": true,
+                    "isSecret": true
+                  }
+                ]
+              },
+              {
+                "registryType": "mcpb",
+                "identifier": "${BASE_URL}/productplan-mcp-server-darwin-amd64.mcpb",
+                "version": "${VERSION}",
+                "fileSha256": "${DARWIN_AMD64}",
+                "transport": {"type": "stdio"},
+                "environmentVariables": [
+                  {
+                    "name": "PRODUCTPLAN_API_TOKEN",
+                    "description": "Your ProductPlan API token from Settings → API",
+                    "isRequired": true,
+                    "isSecret": true
+                  }
+                ]
+              },
+              {
+                "registryType": "mcpb",
+                "identifier": "${BASE_URL}/productplan-mcp-server-linux-amd64.mcpb",
+                "version": "${VERSION}",
+                "fileSha256": "${LINUX_AMD64}",
+                "transport": {"type": "stdio"},
+                "environmentVariables": [
+                  {
+                    "name": "PRODUCTPLAN_API_TOKEN",
+                    "description": "Your ProductPlan API token from Settings → API",
+                    "isRequired": true,
+                    "isSecret": true
+                  }
+                ]
+              },
+              {
+                "registryType": "mcpb",
+                "identifier": "${BASE_URL}/productplan-mcp-server-linux-arm64.mcpb",
+                "version": "${VERSION}",
+                "fileSha256": "${LINUX_ARM64}",
+                "transport": {"type": "stdio"},
+                "environmentVariables": [
+                  {
+                    "name": "PRODUCTPLAN_API_TOKEN",
+                    "description": "Your ProductPlan API token from Settings → API",
+                    "isRequired": true,
+                    "isSecret": true
+                  }
+                ]
+              },
+              {
+                "registryType": "mcpb",
+                "identifier": "${BASE_URL}/productplan-mcp-server-windows-amd64.mcpb",
+                "version": "${VERSION}",
+                "fileSha256": "${WINDOWS_AMD64}",
+                "transport": {"type": "stdio"},
+                "environmentVariables": [
+                  {
+                    "name": "PRODUCTPLAN_API_TOKEN",
+                    "description": "Your ProductPlan API token from Settings → API",
+                    "isRequired": true,
+                    "isSecret": true
+                  }
+                ]
+              }
+            ]
+          }
+          EOF
           cat server.json
 
       - name: Install mcp-publisher
