@@ -5,6 +5,11 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.1] - 2025-01-13
+
+### Fixed
+- Build configuration now uses `cmd/productplan` entry point, ensuring release binaries include all 52 tools (was incorrectly building from root `main.go` with only 37 tools)
+
 ## [4.11.0] - 2025-01-13
 
 ### Added
