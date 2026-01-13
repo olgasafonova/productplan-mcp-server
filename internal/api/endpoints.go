@@ -417,6 +417,11 @@ func (c *Client) GetLaunchSections(ctx context.Context, launchID string) (json.R
 	return c.Get(ctx, "/launches/"+launchID+"/checklist_sections")
 }
 
+// GetLaunchSection returns a single checklist section by ID.
+func (c *Client) GetLaunchSection(ctx context.Context, launchID, sectionID string) (json.RawMessage, error) {
+	return c.Get(ctx, fmt.Sprintf("/launches/%s/checklist_sections/%s", launchID, sectionID))
+}
+
 // CreateLaunchSection creates a new checklist section.
 func (c *Client) CreateLaunchSection(ctx context.Context, launchID string, data map[string]any) (json.RawMessage, error) {
 	return c.Post(ctx, "/launches/"+launchID+"/checklist_sections", data)
@@ -439,6 +444,11 @@ func (c *Client) DeleteLaunchSection(ctx context.Context, launchID, sectionID st
 // GetLaunchTasks returns all tasks for a launch.
 func (c *Client) GetLaunchTasks(ctx context.Context, launchID string) (json.RawMessage, error) {
 	return c.Get(ctx, "/launches/"+launchID+"/tasks")
+}
+
+// GetLaunchTask returns a single task by ID.
+func (c *Client) GetLaunchTask(ctx context.Context, launchID, taskID string) (json.RawMessage, error) {
+	return c.Get(ctx, fmt.Sprintf("/launches/%s/tasks/%s", launchID, taskID))
 }
 
 // CreateLaunchTask creates a new task in a launch.

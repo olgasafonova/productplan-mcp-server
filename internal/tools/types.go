@@ -101,24 +101,33 @@ func (a GetBarArgs) Validate() error {
 	return nil
 }
 
+// CustomFieldValue represents a name-value pair for custom fields.
+type CustomFieldValue struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 // ManageBarArgs holds arguments for bar management operations.
 type ManageBarArgs struct {
-	Action         string `json:"action"`
-	BarID          string `json:"bar_id,omitempty"`
-	RoadmapID      string `json:"roadmap_id,omitempty"`
-	LaneID         string `json:"lane_id,omitempty"`
-	Name           string `json:"name,omitempty"`
-	StartDate      string `json:"start_date,omitempty"`
-	EndDate        string `json:"end_date,omitempty"`
-	Description    string `json:"description,omitempty"`
-	LegendID       string `json:"legend_id,omitempty"`
-	PercentDone    *int   `json:"percent_done,omitempty"`
-	Container      *bool  `json:"container,omitempty"`
-	Parked         *bool  `json:"parked,omitempty"`
-	ParentID       string `json:"parent_id,omitempty"`
-	StrategicValue string `json:"strategic_value,omitempty"`
-	Notes          string `json:"notes,omitempty"`
-	Effort         *int   `json:"effort,omitempty"`
+	Action               string             `json:"action"`
+	BarID                string             `json:"bar_id,omitempty"`
+	RoadmapID            string             `json:"roadmap_id,omitempty"`
+	LaneID               string             `json:"lane_id,omitempty"`
+	Name                 string             `json:"name,omitempty"`
+	StartDate            string             `json:"start_date,omitempty"`
+	EndDate              string             `json:"end_date,omitempty"`
+	Description          string             `json:"description,omitempty"`
+	LegendID             string             `json:"legend_id,omitempty"`
+	PercentDone          *int               `json:"percent_done,omitempty"`
+	Container            *bool              `json:"container,omitempty"`
+	Parked               *bool              `json:"parked,omitempty"`
+	ParentID             string             `json:"parent_id,omitempty"`
+	StrategicValue       string             `json:"strategic_value,omitempty"`
+	Notes                string             `json:"notes,omitempty"`
+	Effort               *int               `json:"effort,omitempty"`
+	Tags                 []string           `json:"tags,omitempty"`
+	CustomTextFields     []CustomFieldValue `json:"custom_text_fields,omitempty"`
+	CustomDropdownFields []CustomFieldValue `json:"custom_dropdown_fields,omitempty"`
 }
 
 // Validate checks required fields based on action.
@@ -464,6 +473,40 @@ type GetLaunchArgs struct {
 func (a GetLaunchArgs) Validate() error {
 	if a.LaunchID == "" {
 		return fmt.Errorf("required parameter missing: launch_id")
+	}
+	return nil
+}
+
+// GetLaunchSectionArgs holds arguments for getting a single launch section.
+type GetLaunchSectionArgs struct {
+	LaunchID  string `json:"launch_id"`
+	SectionID string `json:"section_id"`
+}
+
+// Validate checks required fields.
+func (a GetLaunchSectionArgs) Validate() error {
+	if a.LaunchID == "" {
+		return fmt.Errorf("required parameter missing: launch_id")
+	}
+	if a.SectionID == "" {
+		return fmt.Errorf("required parameter missing: section_id")
+	}
+	return nil
+}
+
+// GetLaunchTaskArgs holds arguments for getting a single launch task.
+type GetLaunchTaskArgs struct {
+	LaunchID string `json:"launch_id"`
+	TaskID   string `json:"task_id"`
+}
+
+// Validate checks required fields.
+func (a GetLaunchTaskArgs) Validate() error {
+	if a.LaunchID == "" {
+		return fmt.Errorf("required parameter missing: launch_id")
+	}
+	if a.TaskID == "" {
+		return fmt.Errorf("required parameter missing: task_id")
 	}
 	return nil
 }

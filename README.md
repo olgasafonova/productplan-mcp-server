@@ -588,14 +588,14 @@ Run evaluation suite:
 <details>
 <summary>MCP tool reference</summary>
 
-50 tools available: 35 READ tools and 15 WRITE tools (action-based):
+52 tools available: 37 READ tools and 15 WRITE tools (action-based):
 
 **Read tools:**
 - Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_legends`, `get_roadmap_comments`, `get_roadmap_complete`
 - Bars: `get_bar`, `get_bar_children`, `get_bar_comments`, `get_bar_connections`, `get_bar_links`
 - OKRs: `list_objectives`, `get_objective`, `list_key_results`, `get_key_result`
 - Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_all_customers`, `list_all_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
-- Launches: `list_launches`, `get_launch`, `get_launch_sections`, `get_launch_tasks`
+- Launches: `list_launches`, `get_launch`, `get_launch_sections`, `get_launch_section`, `get_launch_tasks`, `get_launch_task`
 - Admin: `check_status`, `health_check`, `list_users`, `list_teams`
 
 **Write tools:**

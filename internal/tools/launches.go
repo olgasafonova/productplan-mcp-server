@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/api"
 	"github.com/olgasafonova/productplan-mcp-server/internal/mcp"
@@ -40,29 +41,20 @@ func manageLaunchHandler(client *api.Client) mcp.Handler {
 		switch a.Action {
 		case "create":
 			payload := map[string]any{"name": a.Name}
-			if a.Date != "" {
-				payload["date"] = a.Date
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
+			setIfNotEmpty(payload, "date", a.Date)
+			setIfNotEmpty(payload, "description", a.Description)
 			return client.CreateLaunch(ctx, payload)
 		case "update":
 			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
-			if a.Date != "" {
-				payload["date"] = a.Date
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
+			setIfNotEmpty(payload, "name", a.Name)
+			setIfNotEmpty(payload, "date", a.Date)
+			setIfNotEmpty(payload, "description", a.Description)
 			return client.UpdateLaunch(ctx, a.LaunchID, payload)
 		case "delete":
 			return client.DeleteLaunch(ctx, a.LaunchID)
+		default:
+			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
-		return nil, nil
 	})
 }
 
@@ -76,6 +68,19 @@ func getLaunchSectionsHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 		return client.GetLaunchSections(ctx, a.LaunchID)
+	})
+}
+
+func getLaunchSectionHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		a, err := ParseArgs[GetLaunchSectionArgs](args)
+		if err != nil {
+			return nil, err
+		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetLaunchSection(ctx, a.LaunchID, a.SectionID)
 	})
 }
 
@@ -95,14 +100,13 @@ func manageLaunchSectionHandler(client *api.Client) mcp.Handler {
 			return client.CreateLaunchSection(ctx, a.LaunchID, payload)
 		case "update":
 			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
+			setIfNotEmpty(payload, "name", a.Name)
 			return client.UpdateLaunchSection(ctx, a.LaunchID, a.SectionID, payload)
 		case "delete":
 			return client.DeleteLaunchSection(ctx, a.LaunchID, a.SectionID)
+		default:
+			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
-		return nil, nil
 	})
 }
 
@@ -116,6 +120,19 @@ func getLaunchTasksHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 		return client.GetLaunchTasks(ctx, a.LaunchID)
+	})
+}
+
+func getLaunchTaskHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		a, err := ParseArgs[GetLaunchTaskArgs](args)
+		if err != nil {
+			return nil, err
+		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetLaunchTask(ctx, a.LaunchID, a.TaskID)
 	})
 }
 
@@ -165,7 +182,8 @@ func manageLaunchTaskHandler(client *api.Client) mcp.Handler {
 			return client.UpdateLaunchTask(ctx, a.LaunchID, a.TaskID, payload)
 		case "delete":
 			return client.DeleteLaunchTask(ctx, a.LaunchID, a.TaskID)
+		default:
+			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
-		return nil, nil
 	})
 }

@@ -3,10 +3,32 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/api"
 	"github.com/olgasafonova/productplan-mcp-server/internal/mcp"
 )
+
+// setIfNotEmpty adds a key-value pair to the payload if the value is not empty.
+func setIfNotEmpty(payload map[string]any, key, value string) {
+	if value != "" {
+		payload[key] = value
+	}
+}
+
+// setIfNotNil adds a key-value pair to the payload if the pointer is not nil.
+func setIfNotNil[T any](payload map[string]any, key string, value *T) {
+	if value != nil {
+		payload[key] = *value
+	}
+}
+
+// setIfNotEmptySlice adds a key-value pair to the payload if the slice is not empty.
+func setIfNotEmptySlice[T any](payload map[string]any, key string, value []T) {
+	if len(value) > 0 {
+		payload[key] = value
+	}
+}
 
 func getBarHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
@@ -90,87 +112,38 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 				"lane_id":    a.LaneID,
 				"name":       a.Name,
 			}
-			if a.StartDate != "" {
-				payload["start_date"] = a.StartDate
-			}
-			if a.EndDate != "" {
-				payload["end_date"] = a.EndDate
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.LegendID != "" {
-				payload["legend_id"] = a.LegendID
-			}
-			if a.PercentDone != nil {
-				payload["percent_done"] = *a.PercentDone
-			}
-			if a.Container != nil {
-				payload["container"] = *a.Container
-			}
-			if a.Parked != nil {
-				payload["parked"] = *a.Parked
-			}
-			if a.ParentID != "" {
-				payload["parent_id"] = a.ParentID
-			}
-			if a.StrategicValue != "" {
-				payload["strategic_value"] = a.StrategicValue
-			}
-			if a.Notes != "" {
-				payload["notes"] = a.Notes
-			}
-			if a.Effort != nil {
-				payload["effort"] = *a.Effort
-			}
+			addBarOptionalFields(payload, a)
 			return client.CreateBar(ctx, payload)
 		case "update":
 			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
-			if a.StartDate != "" {
-				payload["start_date"] = a.StartDate
-			}
-			if a.EndDate != "" {
-				payload["end_date"] = a.EndDate
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.LaneID != "" {
-				payload["lane_id"] = a.LaneID
-			}
-			if a.LegendID != "" {
-				payload["legend_id"] = a.LegendID
-			}
-			if a.PercentDone != nil {
-				payload["percent_done"] = *a.PercentDone
-			}
-			if a.Container != nil {
-				payload["container"] = *a.Container
-			}
-			if a.Parked != nil {
-				payload["parked"] = *a.Parked
-			}
-			if a.ParentID != "" {
-				payload["parent_id"] = a.ParentID
-			}
-			if a.StrategicValue != "" {
-				payload["strategic_value"] = a.StrategicValue
-			}
-			if a.Notes != "" {
-				payload["notes"] = a.Notes
-			}
-			if a.Effort != nil {
-				payload["effort"] = *a.Effort
-			}
+			setIfNotEmpty(payload, "name", a.Name)
+			setIfNotEmpty(payload, "lane_id", a.LaneID)
+			addBarOptionalFields(payload, a)
 			return client.UpdateBar(ctx, a.BarID, payload)
 		case "delete":
 			return client.DeleteBar(ctx, a.BarID)
+		default:
+			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
-		return nil, nil
 	})
+}
+
+// addBarOptionalFields adds optional bar fields to the payload.
+func addBarOptionalFields(payload map[string]any, a ManageBarArgs) {
+	setIfNotEmpty(payload, "start_date", a.StartDate)
+	setIfNotEmpty(payload, "end_date", a.EndDate)
+	setIfNotEmpty(payload, "description", a.Description)
+	setIfNotEmpty(payload, "legend_id", a.LegendID)
+	setIfNotEmpty(payload, "parent_id", a.ParentID)
+	setIfNotEmpty(payload, "strategic_value", a.StrategicValue)
+	setIfNotEmpty(payload, "notes", a.Notes)
+	setIfNotNil(payload, "percent_done", a.PercentDone)
+	setIfNotNil(payload, "container", a.Container)
+	setIfNotNil(payload, "parked", a.Parked)
+	setIfNotNil(payload, "effort", a.Effort)
+	setIfNotEmptySlice(payload, "tags", a.Tags)
+	setIfNotEmptySlice(payload, "custom_text_fields", a.CustomTextFields)
+	setIfNotEmptySlice(payload, "custom_dropdown_fields", a.CustomDropdownFields)
 }
 
 func manageBarCommentHandler(client *api.Client) mcp.Handler {
@@ -203,8 +176,9 @@ func manageBarConnectionHandler(client *api.Client) mcp.Handler {
 			return client.CreateBarConnection(ctx, a.BarID, payload)
 		case "delete":
 			return client.DeleteBarConnection(ctx, a.BarID, a.ConnectionID)
+		default:
+			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
-		return nil, nil
 	})
 }
 
@@ -227,16 +201,13 @@ func manageBarLinkHandler(client *api.Client) mcp.Handler {
 			return client.CreateBarLink(ctx, a.BarID, payload)
 		case "update":
 			payload := make(map[string]any)
-			if a.URL != "" {
-				payload["url"] = a.URL
-			}
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
+			setIfNotEmpty(payload, "url", a.URL)
+			setIfNotEmpty(payload, "name", a.Name)
 			return client.UpdateBarLink(ctx, a.BarID, a.LinkID, payload)
 		case "delete":
 			return client.DeleteBarLink(ctx, a.BarID, a.LinkID)
+		default:
+			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
-		return nil, nil
 	})
 }

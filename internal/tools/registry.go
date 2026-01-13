@@ -127,10 +127,14 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return manageLaunchHandler(cfg.Client)
 	case "get_launch_sections":
 		return getLaunchSectionsHandler(cfg.Client)
+	case "get_launch_section":
+		return getLaunchSectionHandler(cfg.Client)
 	case "manage_launch_section":
 		return manageLaunchSectionHandler(cfg.Client)
 	case "get_launch_tasks":
 		return getLaunchTasksHandler(cfg.Client)
+	case "get_launch_task":
+		return getLaunchTaskHandler(cfg.Client)
 	case "manage_launch_task":
 		return manageLaunchTaskHandler(cfg.Client)
 

@@ -160,8 +160,8 @@ func TestIdeaTools(t *testing.T) {
 func TestLaunchTools(t *testing.T) {
 	tools := launchTools()
 
-	if len(tools) != 7 {
-		t.Errorf("expected 7 launch tools, got %d", len(tools))
+	if len(tools) != 9 {
+		t.Errorf("expected 9 launch tools, got %d", len(tools))
 	}
 }
 
