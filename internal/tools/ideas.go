@@ -91,6 +91,18 @@ func getIdeaFormHandler(client *api.Client) mcp.Handler {
 	})
 }
 
+func listAllCustomersHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		return client.ListAllCustomers(ctx)
+	})
+}
+
+func listAllTagsHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		return client.ListAllTags(ctx)
+	})
+}
+
 func manageIdeaHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
 		a, err := ParseArgs[ManageIdeaArgs](args)

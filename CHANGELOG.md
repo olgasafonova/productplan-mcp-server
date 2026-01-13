@@ -5,6 +5,20 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.10.0] - 2025-01-13
+
+### Added
+- 11 new tools completing ProductPlan API coverage:
+  - **Roadmap**: `get_roadmap_comments` - roadmap-level discussion threads
+  - **OKRs**: `get_key_result` - individual key result details
+  - **Discovery**: `list_all_customers`, `list_all_tags` - global customer and tag lists
+  - **Launches**: `manage_launch` (CRUD), `get_launch_sections`, `manage_launch_section` (CRUD), `get_launch_tasks`, `manage_launch_task` (CRUD) - full launch checklist management
+  - **Utility**: `list_users`, `list_teams` - account user and team data
+
+### Changed
+- Tool count increased from 39 to 50 (35 READ + 15 WRITE)
+- Launches now support full CRUD operations (was read-only)
+
 ## [4.9.0] - 2025-01-13
 
 ### Added

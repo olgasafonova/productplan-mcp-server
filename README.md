@@ -350,6 +350,7 @@ Open your AI assistant and try:
 | Feature | View | Create | Edit | Delete |
 |---------|------|--------|------|--------|
 | **Roadmaps** | Yes | - | - | - |
+| **Roadmap Comments** | Yes | - | - | - |
 | **Bars** (roadmap items) | Yes | Yes | Yes | Yes |
 | **Bar Comments** | Yes | Yes | - | - |
 | **Bar Connections** | Yes | Yes | - | Yes |
@@ -364,7 +365,11 @@ Open your AI assistant and try:
 | **Idea Forms** | Yes | - | - | - |
 | **Objectives** (OKRs) | Yes | Yes | Yes | Yes |
 | **Key Results** | Yes | Yes | Yes | Yes |
-| **Launches** | Yes | - | - | - |
+| **Launches** | Yes | Yes | Yes | Yes |
+| **Launch Sections** | Yes | Yes | Yes | Yes |
+| **Launch Tasks** | Yes | Yes | Yes | Yes |
+| **Users** | Yes | - | - | - |
+| **Teams** | Yes | - | - | - |
 
 ---
 
@@ -583,21 +588,22 @@ Run evaluation suite:
 <details>
 <summary>MCP tool reference</summary>
 
-39 tools available: 27 READ tools and 12 WRITE tools (action-based):
+50 tools available: 35 READ tools and 15 WRITE tools (action-based):
 
 **Read tools:**
-- Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_legends`, `get_roadmap_complete`
+- Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_legends`, `get_roadmap_comments`, `get_roadmap_complete`
 - Bars: `get_bar`, `get_bar_children`, `get_bar_comments`, `get_bar_connections`, `get_bar_links`
-- OKRs: `list_objectives`, `get_objective`, `list_key_results`
-- Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
-- Launches: `list_launches`, `get_launch`
-- Admin: `check_status`, `health_check`
+- OKRs: `list_objectives`, `get_objective`, `list_key_results`, `get_key_result`
+- Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_all_customers`, `list_all_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
+- Launches: `list_launches`, `get_launch`, `get_launch_sections`, `get_launch_tasks`
+- Admin: `check_status`, `health_check`, `list_users`, `list_teams`
 
 **Write tools:**
 - Roadmaps: `manage_bar`, `manage_lane`, `manage_milestone`
 - Bar relationships: `manage_bar_comment`, `manage_bar_connection`, `manage_bar_link`
 - OKRs: `manage_objective`, `manage_key_result`
 - Discovery: `manage_idea`, `manage_idea_customer`, `manage_idea_tag`, `manage_opportunity`
+- Launches: `manage_launch`, `manage_launch_section`, `manage_launch_task`
 
 Example:
 ```json

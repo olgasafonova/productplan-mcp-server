@@ -61,6 +61,11 @@ func (c *Client) GetRoadmapLegends(ctx context.Context, id string) (json.RawMess
 	return FormatLegends(data), nil
 }
 
+// GetRoadmapComments returns all comments on a roadmap.
+func (c *Client) GetRoadmapComments(ctx context.Context, id string) (json.RawMessage, error) {
+	return c.Get(ctx, "/roadmaps/"+id+"/comments")
+}
+
 // ============================================================================
 // Bars
 // ============================================================================
@@ -227,6 +232,11 @@ func (c *Client) ListKeyResults(ctx context.Context, objectiveID string) (json.R
 	return c.Get(ctx, "/strategy/objectives/"+objectiveID+"/key_results")
 }
 
+// GetKeyResult returns a single key result by ID.
+func (c *Client) GetKeyResult(ctx context.Context, objectiveID, keyResultID string) (json.RawMessage, error) {
+	return c.Get(ctx, fmt.Sprintf("/strategy/objectives/%s/key_results/%s", objectiveID, keyResultID))
+}
+
 // CreateKeyResult creates a new key result.
 func (c *Client) CreateKeyResult(ctx context.Context, objectiveID string, data map[string]any) (json.RawMessage, error) {
 	return c.Post(ctx, "/strategy/objectives/"+objectiveID+"/key_results", data)
@@ -274,6 +284,11 @@ func (c *Client) UpdateIdea(ctx context.Context, id string, data map[string]any)
 // Idea Customers
 // ============================================================================
 
+// ListAllCustomers returns all customers across all ideas.
+func (c *Client) ListAllCustomers(ctx context.Context) (json.RawMessage, error) {
+	return c.Get(ctx, "/discovery/ideas/customers")
+}
+
 // GetIdeaCustomers returns customers for an idea.
 func (c *Client) GetIdeaCustomers(ctx context.Context, ideaID string) (json.RawMessage, error) {
 	return c.Get(ctx, "/discovery/ideas/"+ideaID+"/customers")
@@ -292,6 +307,11 @@ func (c *Client) RemoveIdeaCustomer(ctx context.Context, ideaID, customerID stri
 // ============================================================================
 // Idea Tags
 // ============================================================================
+
+// ListAllTags returns all tags across all ideas.
+func (c *Client) ListAllTags(ctx context.Context) (json.RawMessage, error) {
+	return c.Get(ctx, "/discovery/ideas/tags")
+}
 
 // GetIdeaTags returns tags for an idea.
 func (c *Client) GetIdeaTags(ctx context.Context, ideaID string) (json.RawMessage, error) {
@@ -371,6 +391,69 @@ func (c *Client) ListLaunches(ctx context.Context) (json.RawMessage, error) {
 // GetLaunch returns a single launch by ID.
 func (c *Client) GetLaunch(ctx context.Context, id string) (json.RawMessage, error) {
 	return c.Get(ctx, "/launches/"+id)
+}
+
+// CreateLaunch creates a new launch.
+func (c *Client) CreateLaunch(ctx context.Context, data map[string]any) (json.RawMessage, error) {
+	return c.Post(ctx, "/launches", data)
+}
+
+// UpdateLaunch updates an existing launch.
+func (c *Client) UpdateLaunch(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
+	return c.Patch(ctx, "/launches/"+id, data)
+}
+
+// DeleteLaunch deletes a launch.
+func (c *Client) DeleteLaunch(ctx context.Context, id string) (json.RawMessage, error) {
+	return c.Delete(ctx, "/launches/"+id)
+}
+
+// ============================================================================
+// Launch Checklist Sections
+// ============================================================================
+
+// GetLaunchSections returns all checklist sections for a launch.
+func (c *Client) GetLaunchSections(ctx context.Context, launchID string) (json.RawMessage, error) {
+	return c.Get(ctx, "/launches/"+launchID+"/checklist_sections")
+}
+
+// CreateLaunchSection creates a new checklist section.
+func (c *Client) CreateLaunchSection(ctx context.Context, launchID string, data map[string]any) (json.RawMessage, error) {
+	return c.Post(ctx, "/launches/"+launchID+"/checklist_sections", data)
+}
+
+// UpdateLaunchSection updates an existing checklist section.
+func (c *Client) UpdateLaunchSection(ctx context.Context, launchID, sectionID string, data map[string]any) (json.RawMessage, error) {
+	return c.Patch(ctx, fmt.Sprintf("/launches/%s/checklist_sections/%s", launchID, sectionID), data)
+}
+
+// DeleteLaunchSection deletes a checklist section.
+func (c *Client) DeleteLaunchSection(ctx context.Context, launchID, sectionID string) (json.RawMessage, error) {
+	return c.Delete(ctx, fmt.Sprintf("/launches/%s/checklist_sections/%s", launchID, sectionID))
+}
+
+// ============================================================================
+// Launch Tasks
+// ============================================================================
+
+// GetLaunchTasks returns all tasks for a launch.
+func (c *Client) GetLaunchTasks(ctx context.Context, launchID string) (json.RawMessage, error) {
+	return c.Get(ctx, "/launches/"+launchID+"/tasks")
+}
+
+// CreateLaunchTask creates a new task in a launch.
+func (c *Client) CreateLaunchTask(ctx context.Context, launchID string, data map[string]any) (json.RawMessage, error) {
+	return c.Post(ctx, "/launches/"+launchID+"/tasks", data)
+}
+
+// UpdateLaunchTask updates an existing task.
+func (c *Client) UpdateLaunchTask(ctx context.Context, launchID, taskID string, data map[string]any) (json.RawMessage, error) {
+	return c.Patch(ctx, fmt.Sprintf("/launches/%s/tasks/%s", launchID, taskID), data)
+}
+
+// DeleteLaunchTask deletes a task.
+func (c *Client) DeleteLaunchTask(ctx context.Context, launchID, taskID string) (json.RawMessage, error) {
+	return c.Delete(ctx, fmt.Sprintf("/launches/%s/tasks/%s", launchID, taskID))
 }
 
 // ============================================================================

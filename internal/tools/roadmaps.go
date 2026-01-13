@@ -88,6 +88,19 @@ func getRoadmapLegendsHandler(client *api.Client) mcp.Handler {
 	})
 }
 
+func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		a, err := ParseArgs[GetRoadmapArgs](args)
+		if err != nil {
+			return nil, err
+		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetRoadmapComments(ctx, a.RoadmapID)
+	})
+}
+
 func manageLaneHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
 		a, err := ParseArgs[ManageLaneArgs](args)

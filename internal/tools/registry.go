@@ -45,6 +45,8 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return getRoadmapMilestonesHandler(cfg.Client)
 	case "get_roadmap_legends":
 		return getRoadmapLegendsHandler(cfg.Client)
+	case "get_roadmap_comments":
+		return getRoadmapCommentsHandler(cfg.Client)
 	case "get_roadmap_complete":
 		return getRoadmapCompleteHandler(cfg.Client)
 	case "manage_lane":
@@ -79,6 +81,8 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return getObjectiveHandler(cfg.Client)
 	case "list_key_results":
 		return listKeyResultsHandler(cfg.Client)
+	case "get_key_result":
+		return getKeyResultHandler(cfg.Client)
 	case "manage_objective":
 		return manageObjectiveHandler(cfg.Client)
 	case "manage_key_result":
@@ -101,6 +105,10 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return listIdeaFormsHandler(cfg.Client)
 	case "get_idea_form":
 		return getIdeaFormHandler(cfg.Client)
+	case "list_all_customers":
+		return listAllCustomersHandler(cfg.Client)
+	case "list_all_tags":
+		return listAllTagsHandler(cfg.Client)
 	case "manage_idea":
 		return manageIdeaHandler(cfg.Client)
 	case "manage_idea_customer":
@@ -115,12 +123,26 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return listLaunchesHandler(cfg.Client)
 	case "get_launch":
 		return getLaunchHandler(cfg.Client)
+	case "manage_launch":
+		return manageLaunchHandler(cfg.Client)
+	case "get_launch_sections":
+		return getLaunchSectionsHandler(cfg.Client)
+	case "manage_launch_section":
+		return manageLaunchSectionHandler(cfg.Client)
+	case "get_launch_tasks":
+		return getLaunchTasksHandler(cfg.Client)
+	case "manage_launch_task":
+		return manageLaunchTaskHandler(cfg.Client)
 
 	// Utility handlers
 	case "check_status":
 		return checkStatusHandler(cfg.Client)
 	case "health_check":
 		return healthCheckHandler(cfg.HealthChecker)
+	case "list_users":
+		return listUsersHandler(cfg.Client)
+	case "list_teams":
+		return listTeamsHandler(cfg.Client)
 
 	default:
 		return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {

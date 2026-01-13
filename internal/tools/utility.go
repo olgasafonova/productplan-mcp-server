@@ -25,3 +25,15 @@ func healthCheckHandler(checker HealthChecker) mcp.Handler {
 		return json.Marshal(report)
 	})
 }
+
+func listUsersHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		return client.ListUsers(ctx)
+	})
+}
+
+func listTeamsHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		return client.ListTeams(ctx)
+	})
+}

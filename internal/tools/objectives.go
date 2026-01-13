@@ -40,6 +40,19 @@ func listKeyResultsHandler(client *api.Client) mcp.Handler {
 	})
 }
 
+func getKeyResultHandler(client *api.Client) mcp.Handler {
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		a, err := ParseArgs[GetKeyResultArgs](args)
+		if err != nil {
+			return nil, err
+		}
+		if err := a.Validate(); err != nil {
+			return nil, err
+		}
+		return client.GetKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
+	})
+}
+
 func manageObjectiveHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
 		a, err := ParseArgs[ManageObjectiveArgs](args)

@@ -137,6 +137,21 @@ Requires: roadmap_id`,
 			},
 		},
 		{
+			Name: "get_roadmap_comments",
+			Description: `Get all comments on a roadmap (roadmap-level discussion, not bar comments).
+
+Use when: "Show roadmap comments", "What feedback is on this roadmap?", "Roadmap discussion"
+Returns: Array of comments with authors, dates, and content
+Requires: roadmap_id`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"roadmap_id": {Type: "string", Description: "The roadmap ID"},
+				},
+				Required: []string{"roadmap_id"},
+			},
+		},
+		{
 			Name: "manage_lane",
 			Description: `Create, update, or delete a lane (swim lane/category) on a roadmap.
 
@@ -386,6 +401,22 @@ Requires: objective_id`,
 			},
 		},
 		{
+			Name: "get_key_result",
+			Description: `Get full details of a specific key result.
+
+Use when: "Tell me about this KR", "What's the progress on key result X?"
+Returns: Complete key result with target, current value, and progress
+Requires: objective_id + key_result_id`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"objective_id":  {Type: "string", Description: "The parent objective ID"},
+					"key_result_id": {Type: "string", Description: "The key result ID (get from list_key_results)"},
+				},
+				Required: []string{"objective_id", "key_result_id"},
+			},
+		},
+		{
 			Name: "manage_objective",
 			Description: `Create, update, or delete an OKR objective.
 
@@ -542,6 +573,30 @@ Requires: form_id (get from list_idea_forms)`,
 			},
 		},
 		{
+			Name: "list_all_customers",
+			Description: `List all customers across all ideas in your account.
+
+Use when: "Who are our customers?", "Show all customer feedback sources", "List everyone who submitted ideas"
+Returns: Array of customers with IDs, names, emails, and idea counts
+No parameters needed.`,
+			InputSchema: mcp.InputSchema{
+				Type:       "object",
+				Properties: map[string]mcp.Property{},
+			},
+		},
+		{
+			Name: "list_all_tags",
+			Description: `List all tags/labels used across ideas for categorization.
+
+Use when: "What tags exist?", "Show all categories", "How are ideas organized?"
+Returns: Array of tags with IDs and names
+No parameters needed.`,
+			InputSchema: mcp.InputSchema{
+				Type:       "object",
+				Properties: map[string]mcp.Property{},
+			},
+		},
+		{
 			Name: "manage_idea",
 			Description: `Create or update an idea in the discovery pipeline.
 
@@ -650,6 +705,96 @@ Requires: launch_id (get from list_launches)`,
 				Required: []string{"launch_id"},
 			},
 		},
+		{
+			Name: "manage_launch",
+			Description: `Create, update, or delete a product launch.
+
+Use when: "Create a new launch", "Update launch date", "Delete this launch"
+Actions: create (needs name + date), update (needs launch_id + fields), delete (needs launch_id)
+Requires: action`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"create", "update", "delete"}},
+					"launch_id":   {Type: "string", Description: "Launch ID (required for update/delete)"},
+					"name":        {Type: "string", Description: "Launch name/title"},
+					"date":        {Type: "string", Description: "Launch date in YYYY-MM-DD format"},
+					"description": {Type: "string", Description: "Launch description"},
+				},
+				Required: []string{"action"},
+			},
+		},
+		{
+			Name: "get_launch_sections",
+			Description: `Get all checklist sections for a launch. Sections organize tasks into categories.
+
+Use when: "Show launch checklist sections", "What categories are in this launch?"
+Returns: Array of sections with IDs, names, and task counts
+Requires: launch_id`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"launch_id": {Type: "string", Description: "The launch ID"},
+				},
+				Required: []string{"launch_id"},
+			},
+		},
+		{
+			Name: "manage_launch_section",
+			Description: `Create, update, or delete a checklist section in a launch.
+
+Use when: "Add a Marketing section", "Rename this section", "Delete empty section"
+Actions: create (needs name), update (needs section_id + fields), delete (needs section_id)
+Requires: action + launch_id`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"action":     {Type: "string", Description: "Action to perform", Enum: []string{"create", "update", "delete"}},
+					"launch_id":  {Type: "string", Description: "Launch ID (required for all actions)"},
+					"section_id": {Type: "string", Description: "Section ID (required for update/delete)"},
+					"name":       {Type: "string", Description: "Section name"},
+				},
+				Required: []string{"action", "launch_id"},
+			},
+		},
+		{
+			Name: "get_launch_tasks",
+			Description: `Get all tasks for a launch checklist.
+
+Use when: "Show launch tasks", "What needs to be done?", "Task list"
+Returns: Array of tasks with IDs, names, assignees, status, and due dates
+Requires: launch_id`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"launch_id": {Type: "string", Description: "The launch ID"},
+				},
+				Required: []string{"launch_id"},
+			},
+		},
+		{
+			Name: "manage_launch_task",
+			Description: `Create, update, or delete a task in a launch checklist.
+
+Use when: "Add a task", "Mark task complete", "Assign task to John", "Delete task"
+Actions: create (needs name + section_id), update (needs task_id + fields), delete (needs task_id)
+Requires: action + launch_id`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"create", "update", "delete"}},
+					"launch_id":   {Type: "string", Description: "Launch ID (required for all actions)"},
+					"task_id":     {Type: "string", Description: "Task ID (required for update/delete)"},
+					"section_id":  {Type: "string", Description: "Section ID (required for create)"},
+					"name":        {Type: "string", Description: "Task name/title"},
+					"description": {Type: "string", Description: "Task description"},
+					"due_date":    {Type: "string", Description: "Due date in YYYY-MM-DD format"},
+					"assignee_id": {Type: "string", Description: "User ID to assign the task to"},
+					"completed":   {Type: "boolean", Description: "Whether the task is completed"},
+				},
+				Required: []string{"action", "launch_id"},
+			},
+		},
 	}
 }
 
@@ -680,6 +825,30 @@ Optional: deep=true for full API connectivity check (slower)`,
 				Properties: map[string]mcp.Property{
 					"deep": {Type: "boolean", Description: "If true, also verifies ProductPlan API connectivity (adds ~500ms)"},
 				},
+			},
+		},
+		{
+			Name: "list_users",
+			Description: `List all users in your ProductPlan account.
+
+Use when: "Who has access?", "Show team members", "List all users"
+Returns: Array of users with IDs, names, emails, and roles
+No parameters needed.`,
+			InputSchema: mcp.InputSchema{
+				Type:       "object",
+				Properties: map[string]mcp.Property{},
+			},
+		},
+		{
+			Name: "list_teams",
+			Description: `List all teams in your ProductPlan account.
+
+Use when: "What teams exist?", "Show team structure", "List teams"
+Returns: Array of teams with IDs, names, and member counts
+No parameters needed.`,
+			InputSchema: mcp.InputSchema{
+				Type:       "object",
+				Properties: map[string]mcp.Property{},
 			},
 		},
 	}

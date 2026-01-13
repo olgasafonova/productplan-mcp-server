@@ -28,6 +28,7 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"get_roadmap_lanes",
 		"get_roadmap_milestones",
 		"get_roadmap_legends",
+		"get_roadmap_comments",
 		"get_roadmap_complete",
 		"manage_lane",
 		"manage_milestone",
@@ -45,6 +46,7 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"list_objectives",
 		"get_objective",
 		"list_key_results",
+		"get_key_result",
 		"manage_objective",
 		"manage_key_result",
 		// Ideas
@@ -56,6 +58,8 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"get_opportunity",
 		"list_idea_forms",
 		"get_idea_form",
+		"list_all_customers",
+		"list_all_tags",
 		"manage_idea",
 		"manage_idea_customer",
 		"manage_idea_tag",
@@ -63,9 +67,16 @@ func TestBuildAllToolsNames(t *testing.T) {
 		// Launches
 		"list_launches",
 		"get_launch",
+		"manage_launch",
+		"get_launch_sections",
+		"manage_launch_section",
+		"get_launch_tasks",
+		"manage_launch_task",
 		// Utility
 		"check_status",
 		"health_check",
+		"list_users",
+		"list_teams",
 	}
 
 	names := make(map[string]bool)
@@ -103,8 +114,8 @@ func TestBuildAllToolsHaveInputSchemas(t *testing.T) {
 func TestRoadmapTools(t *testing.T) {
 	tools := roadmapTools()
 
-	if len(tools) != 9 {
-		t.Errorf("expected 9 roadmap tools, got %d", len(tools))
+	if len(tools) != 10 {
+		t.Errorf("expected 10 roadmap tools, got %d", len(tools))
 	}
 
 	// Check list_roadmaps has no required params
@@ -133,32 +144,32 @@ func TestBarTools(t *testing.T) {
 func TestObjectiveTools(t *testing.T) {
 	tools := objectiveTools()
 
-	if len(tools) != 5 {
-		t.Errorf("expected 5 objective tools, got %d", len(tools))
+	if len(tools) != 6 {
+		t.Errorf("expected 6 objective tools, got %d", len(tools))
 	}
 }
 
 func TestIdeaTools(t *testing.T) {
 	tools := ideaTools()
 
-	if len(tools) != 12 {
-		t.Errorf("expected 12 idea tools, got %d", len(tools))
+	if len(tools) != 14 {
+		t.Errorf("expected 14 idea tools, got %d", len(tools))
 	}
 }
 
 func TestLaunchTools(t *testing.T) {
 	tools := launchTools()
 
-	if len(tools) != 2 {
-		t.Errorf("expected 2 launch tools, got %d", len(tools))
+	if len(tools) != 7 {
+		t.Errorf("expected 7 launch tools, got %d", len(tools))
 	}
 }
 
 func TestUtilityTools(t *testing.T) {
 	tools := utilityTools()
 
-	if len(tools) != 2 {
-		t.Errorf("expected 2 utility tools, got %d", len(tools))
+	if len(tools) != 4 {
+		t.Errorf("expected 4 utility tools, got %d", len(tools))
 	}
 }
 

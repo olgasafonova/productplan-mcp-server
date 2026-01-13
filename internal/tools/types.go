@@ -290,6 +290,23 @@ func (a ManageKeyResultArgs) Validate() error {
 	return nil
 }
 
+// GetKeyResultArgs holds arguments for key result get operations.
+type GetKeyResultArgs struct {
+	ObjectiveID string `json:"objective_id"`
+	KeyResultID string `json:"key_result_id"`
+}
+
+// Validate checks required fields.
+func (a GetKeyResultArgs) Validate() error {
+	if a.ObjectiveID == "" {
+		return fmt.Errorf("required parameter missing: objective_id")
+	}
+	if a.KeyResultID == "" {
+		return fmt.Errorf("required parameter missing: key_result_id")
+	}
+	return nil
+}
+
 // --- Idea Args ---
 
 // GetIdeaArgs holds arguments for idea get operations.
@@ -447,6 +464,95 @@ type GetLaunchArgs struct {
 func (a GetLaunchArgs) Validate() error {
 	if a.LaunchID == "" {
 		return fmt.Errorf("required parameter missing: launch_id")
+	}
+	return nil
+}
+
+// ManageLaunchArgs holds arguments for launch management operations.
+type ManageLaunchArgs struct {
+	Action      string `json:"action"`
+	LaunchID    string `json:"launch_id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Date        string `json:"date,omitempty"`
+	Description string `json:"description,omitempty"`
+}
+
+// Validate checks required fields based on action.
+func (a ManageLaunchArgs) Validate() error {
+	if a.Action == "" {
+		return fmt.Errorf("required parameter missing: action")
+	}
+	switch a.Action {
+	case "create":
+		if a.Name == "" {
+			return fmt.Errorf("required parameter missing: name (required for create)")
+		}
+	case "update", "delete":
+		if a.LaunchID == "" {
+			return fmt.Errorf("required parameter missing: launch_id (required for %s)", a.Action)
+		}
+	}
+	return nil
+}
+
+// ManageLaunchSectionArgs holds arguments for launch section management operations.
+type ManageLaunchSectionArgs struct {
+	Action    string `json:"action"`
+	LaunchID  string `json:"launch_id"`
+	SectionID string `json:"section_id,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
+// Validate checks required fields based on action.
+func (a ManageLaunchSectionArgs) Validate() error {
+	if a.Action == "" {
+		return fmt.Errorf("required parameter missing: action")
+	}
+	if a.LaunchID == "" {
+		return fmt.Errorf("required parameter missing: launch_id")
+	}
+	switch a.Action {
+	case "update", "delete":
+		if a.SectionID == "" {
+			return fmt.Errorf("required parameter missing: section_id (required for %s)", a.Action)
+		}
+	}
+	return nil
+}
+
+// ManageLaunchTaskArgs holds arguments for launch task management operations.
+type ManageLaunchTaskArgs struct {
+	Action      string `json:"action"`
+	LaunchID    string `json:"launch_id"`
+	TaskID      string `json:"task_id,omitempty"`
+	SectionID   string `json:"section_id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	DueDate     string `json:"due_date,omitempty"`
+	AssigneeID  string `json:"assignee_id,omitempty"`
+	Completed   *bool  `json:"completed,omitempty"`
+}
+
+// Validate checks required fields based on action.
+func (a ManageLaunchTaskArgs) Validate() error {
+	if a.Action == "" {
+		return fmt.Errorf("required parameter missing: action")
+	}
+	if a.LaunchID == "" {
+		return fmt.Errorf("required parameter missing: launch_id")
+	}
+	switch a.Action {
+	case "create":
+		if a.SectionID == "" {
+			return fmt.Errorf("required parameter missing: section_id (required for create)")
+		}
+		if a.Name == "" {
+			return fmt.Errorf("required parameter missing: name (required for create)")
+		}
+	case "update", "delete":
+		if a.TaskID == "" {
+			return fmt.Errorf("required parameter missing: task_id (required for %s)", a.Action)
+		}
 	}
 	return nil
 }
