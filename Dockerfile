@@ -14,7 +14,7 @@ RUN go mod download
 COPY . .
 
 # Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o productplan-mcp-server .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o productplan-mcp-server ./cmd/productplan
 
 # Runtime stage
 FROM alpine:3.20
