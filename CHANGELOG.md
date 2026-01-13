@@ -5,6 +5,23 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.9.0] - 2025-01-13
+
+### Added
+- `get_roadmap_legends` tool to list available bar colors for a roadmap
+- `legend_id` parameter on `manage_bar` to change bar colors
+- Additional bar fields on `manage_bar`:
+  - `percent_done`: Progress percentage (0-100)
+  - `container`: Whether bar is a container for child bars
+  - `parked`: Whether bar is parked (not actively scheduled)
+  - `parent_id`: Parent bar ID for nesting under containers
+  - `strategic_value`: Strategic importance text
+  - `notes`: Additional notes
+  - `effort`: Effort estimate
+
+### Changed
+- Tool count increased from 38 to 39 (27 READ + 12 WRITE)
+
 ## [4.8.1] - 2025-12-31
 
 ### Improved
