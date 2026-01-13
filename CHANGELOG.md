@@ -5,6 +5,23 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.11.0] - 2025-01-13
+
+### Added
+- `get_launch_section` tool to get details of a single launch section
+- `get_launch_task` tool to get details of a single launch task
+
+### Improved
+- Optimized tool descriptions for token efficiency (shorter, clearer for AI agents)
+- Added helper functions (`setIfNotEmpty`, `setIfNotNil`, `setIfNotEmptySlice`) to reduce code duplication
+- Extracted `addBarOptionalFields` helper for cleaner bar payload building
+
+### Fixed
+- Switch statement default cases now return proper errors instead of silent nil
+
+### Changed
+- Tool count increased from 50 to 52 (37 READ + 15 WRITE)
+
 ## [4.10.0] - 2025-01-13
 
 ### Added
