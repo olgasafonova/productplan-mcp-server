@@ -112,7 +112,7 @@ type ServerInfo struct {
 
 // Capabilities describes what the server supports.
 type Capabilities struct {
-	Tools map[string]any `json:"tools,omitempty"`
+	Tools map[string]any `json:"tools"`
 }
 
 // ToolsListResult represents the result of a tools/list request.
