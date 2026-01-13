@@ -99,6 +99,30 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 			if a.Description != "" {
 				payload["description"] = a.Description
 			}
+			if a.LegendID != "" {
+				payload["legend_id"] = a.LegendID
+			}
+			if a.PercentDone != nil {
+				payload["percent_done"] = *a.PercentDone
+			}
+			if a.Container != nil {
+				payload["container"] = *a.Container
+			}
+			if a.Parked != nil {
+				payload["parked"] = *a.Parked
+			}
+			if a.ParentID != "" {
+				payload["parent_id"] = a.ParentID
+			}
+			if a.StrategicValue != "" {
+				payload["strategic_value"] = a.StrategicValue
+			}
+			if a.Notes != "" {
+				payload["notes"] = a.Notes
+			}
+			if a.Effort != nil {
+				payload["effort"] = *a.Effort
+			}
 			return client.CreateBar(ctx, payload)
 		case "update":
 			payload := make(map[string]any)
@@ -113,6 +137,33 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 			}
 			if a.Description != "" {
 				payload["description"] = a.Description
+			}
+			if a.LaneID != "" {
+				payload["lane_id"] = a.LaneID
+			}
+			if a.LegendID != "" {
+				payload["legend_id"] = a.LegendID
+			}
+			if a.PercentDone != nil {
+				payload["percent_done"] = *a.PercentDone
+			}
+			if a.Container != nil {
+				payload["container"] = *a.Container
+			}
+			if a.Parked != nil {
+				payload["parked"] = *a.Parked
+			}
+			if a.ParentID != "" {
+				payload["parent_id"] = a.ParentID
+			}
+			if a.StrategicValue != "" {
+				payload["strategic_value"] = a.StrategicValue
+			}
+			if a.Notes != "" {
+				payload["notes"] = a.Notes
+			}
+			if a.Effort != nil {
+				payload["effort"] = *a.Effort
 			}
 			return client.UpdateBar(ctx, a.BarID, payload)
 		case "delete":

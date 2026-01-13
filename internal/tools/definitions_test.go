@@ -27,6 +27,7 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"get_roadmap_bars",
 		"get_roadmap_lanes",
 		"get_roadmap_milestones",
+		"get_roadmap_legends",
 		"get_roadmap_complete",
 		"manage_lane",
 		"manage_milestone",
@@ -102,8 +103,8 @@ func TestBuildAllToolsHaveInputSchemas(t *testing.T) {
 func TestRoadmapTools(t *testing.T) {
 	tools := roadmapTools()
 
-	if len(tools) != 8 {
-		t.Errorf("expected 8 roadmap tools, got %d", len(tools))
+	if len(tools) != 9 {
+		t.Errorf("expected 9 roadmap tools, got %d", len(tools))
 	}
 
 	// Check list_roadmaps has no required params

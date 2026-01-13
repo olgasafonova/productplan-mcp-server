@@ -105,6 +105,22 @@ Requires: roadmap_id`,
 			},
 		},
 		{
+			Name: "get_roadmap_legends",
+			Description: `Get all legend entries (color codes) for a roadmap. Legends define the colors used for bars.
+
+Use when: "What colors are available?", "Show me the legend", "What legend IDs can I use?"
+Returns: Array of legends with IDs, colors, and labels (e.g., "In Progress", "Completed")
+Requires: roadmap_id
+Note: Use the legend ID when creating or updating bars to set their color`,
+			InputSchema: mcp.InputSchema{
+				Type: "object",
+				Properties: map[string]mcp.Property{
+					"roadmap_id": {Type: "string", Description: "The roadmap ID"},
+				},
+				Required: []string{"roadmap_id"},
+			},
+		},
+		{
 			Name: "get_roadmap_complete",
 			Description: `Get complete roadmap data: details, bars, lanes, and milestones in a single fast call.
 
@@ -243,20 +259,28 @@ Requires: bar_id`,
 			Name: "manage_bar",
 			Description: `Create, update, or delete a bar (feature/item) on a roadmap.
 
-Use when: "Add a new feature", "Update the dates", "Delete this item", "Move to different lane"
+Use when: "Add a new feature", "Update the dates", "Delete this item", "Move to different lane", "Change bar color"
 Actions: create (needs roadmap_id + lane_id + name), update (needs bar_id + fields), delete (needs bar_id)
 Requires: action`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
-					"action":      {Type: "string", Description: "Action to perform", Enum: []string{"create", "update", "delete"}},
-					"bar_id":      {Type: "string", Description: "Bar ID (required for update/delete)"},
-					"roadmap_id":  {Type: "string", Description: "Roadmap ID (required for create)"},
-					"lane_id":     {Type: "string", Description: "Lane ID (required for create, optional for update to move bar)"},
-					"name":        {Type: "string", Description: "Bar name/title"},
-					"start_date":  {Type: "string", Description: "Start date in YYYY-MM-DD format (e.g., 2025-01-01)"},
-					"end_date":    {Type: "string", Description: "End date in YYYY-MM-DD format (e.g., 2025-03-31)"},
-					"description": {Type: "string", Description: "Description text (supports markdown)"},
+					"action":          {Type: "string", Description: "Action to perform", Enum: []string{"create", "update", "delete"}},
+					"bar_id":          {Type: "string", Description: "Bar ID (required for update/delete)"},
+					"roadmap_id":      {Type: "string", Description: "Roadmap ID (required for create)"},
+					"lane_id":         {Type: "string", Description: "Lane ID (required for create, optional for update to move bar)"},
+					"name":            {Type: "string", Description: "Bar name/title"},
+					"start_date":      {Type: "string", Description: "Start date in YYYY-MM-DD format (e.g., 2025-01-01)"},
+					"end_date":        {Type: "string", Description: "End date in YYYY-MM-DD format (e.g., 2025-03-31)"},
+					"description":     {Type: "string", Description: "Description text (supports markdown)"},
+					"legend_id":       {Type: "string", Description: "Legend ID for bar color (get from get_roadmap_legends)"},
+					"percent_done":    {Type: "integer", Description: "Progress percentage 0-100 (null for full saturation)"},
+					"container":       {Type: "boolean", Description: "Whether this bar is a container for child bars"},
+					"parked":          {Type: "boolean", Description: "Whether this bar is parked (not actively scheduled)"},
+					"parent_id":       {Type: "string", Description: "Parent bar ID to nest this bar under a container"},
+					"strategic_value": {Type: "string", Description: "Strategic importance or reasoning for this bar"},
+					"notes":           {Type: "string", Description: "Additional notes to share"},
+					"effort":          {Type: "integer", Description: "Effort estimate (numeric value)"},
 				},
 				Required: []string{"action"},
 			},

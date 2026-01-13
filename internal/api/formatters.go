@@ -119,6 +119,30 @@ func FormatMilestones(data json.RawMessage) json.RawMessage {
 	return output
 }
 
+// FormatLegends formats legend list (bar colors).
+func FormatLegends(data json.RawMessage) json.RawMessage {
+	var legends []map[string]any
+	if err := json.Unmarshal(data, &legends); err != nil {
+		return data
+	}
+
+	results := make([]map[string]any, 0, len(legends))
+	for _, legend := range legends {
+		results = append(results, map[string]any{
+			"id":    legend["id"],
+			"label": legend["label"],
+			"color": legend["color"],
+		})
+	}
+
+	output, _ := json.Marshal(map[string]any{
+		"count":   len(results),
+		"legends": results,
+		"hint":    "Use legend_id when creating or updating bars to set their color",
+	})
+	return output
+}
+
 // FormatObjectives formats objective list with hints.
 func FormatObjectives(data json.RawMessage) json.RawMessage {
 	var objectives []map[string]any

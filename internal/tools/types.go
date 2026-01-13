@@ -103,14 +103,22 @@ func (a GetBarArgs) Validate() error {
 
 // ManageBarArgs holds arguments for bar management operations.
 type ManageBarArgs struct {
-	Action      string `json:"action"`
-	BarID       string `json:"bar_id,omitempty"`
-	RoadmapID   string `json:"roadmap_id,omitempty"`
-	LaneID      string `json:"lane_id,omitempty"`
-	Name        string `json:"name,omitempty"`
-	StartDate   string `json:"start_date,omitempty"`
-	EndDate     string `json:"end_date,omitempty"`
-	Description string `json:"description,omitempty"`
+	Action         string `json:"action"`
+	BarID          string `json:"bar_id,omitempty"`
+	RoadmapID      string `json:"roadmap_id,omitempty"`
+	LaneID         string `json:"lane_id,omitempty"`
+	Name           string `json:"name,omitempty"`
+	StartDate      string `json:"start_date,omitempty"`
+	EndDate        string `json:"end_date,omitempty"`
+	Description    string `json:"description,omitempty"`
+	LegendID       string `json:"legend_id,omitempty"`
+	PercentDone    *int   `json:"percent_done,omitempty"`
+	Container      *bool  `json:"container,omitempty"`
+	Parked         *bool  `json:"parked,omitempty"`
+	ParentID       string `json:"parent_id,omitempty"`
+	StrategicValue string `json:"strategic_value,omitempty"`
+	Notes          string `json:"notes,omitempty"`
+	Effort         *int   `json:"effort,omitempty"`
 }
 
 // Validate checks required fields based on action.

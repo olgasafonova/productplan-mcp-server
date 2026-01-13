@@ -43,6 +43,8 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return getRoadmapLanesHandler(cfg.Client)
 	case "get_roadmap_milestones":
 		return getRoadmapMilestonesHandler(cfg.Client)
+	case "get_roadmap_legends":
+		return getRoadmapLegendsHandler(cfg.Client)
 	case "get_roadmap_complete":
 		return getRoadmapCompleteHandler(cfg.Client)
 	case "manage_lane":

@@ -52,6 +52,15 @@ func (c *Client) GetRoadmapMilestones(ctx context.Context, id string) (json.RawM
 	return FormatMilestones(data), nil
 }
 
+// GetRoadmapLegends returns all legend entries (color codes) for a roadmap.
+func (c *Client) GetRoadmapLegends(ctx context.Context, id string) (json.RawMessage, error) {
+	data, err := c.Get(ctx, "/roadmaps/"+id+"/legends")
+	if err != nil {
+		return nil, err
+	}
+	return FormatLegends(data), nil
+}
+
 // ============================================================================
 // Bars
 // ============================================================================

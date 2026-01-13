@@ -61,6 +61,11 @@ func TestRoadmapHandlers(t *testing.T) {
 			func(c *api.Client) Handler { return getRoadmapMilestonesHandler(c) },
 			map[string]any{"roadmap_id": "123"},
 		},
+		{
+			"getRoadmapLegendsHandler",
+			func(c *api.Client) Handler { return getRoadmapLegendsHandler(c) },
+			map[string]any{"roadmap_id": "123"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -89,6 +94,7 @@ func TestRoadmapHandlersMissingRequired(t *testing.T) {
 		{"getRoadmapBarsHandler", func(c *api.Client) Handler { return getRoadmapBarsHandler(c) }},
 		{"getRoadmapLanesHandler", func(c *api.Client) Handler { return getRoadmapLanesHandler(c) }},
 		{"getRoadmapMilestonesHandler", func(c *api.Client) Handler { return getRoadmapMilestonesHandler(c) }},
+		{"getRoadmapLegendsHandler", func(c *api.Client) Handler { return getRoadmapLegendsHandler(c) }},
 	}
 
 	for _, tt := range tests {
@@ -225,6 +231,11 @@ func TestManageBarHandler(t *testing.T) {
 
 	handler := manageBarHandler(client)
 
+	percentDone := 50
+	container := true
+	parked := false
+	effort := 5
+
 	tests := []struct {
 		name string
 		args map[string]any
@@ -238,8 +249,33 @@ func TestManageBarHandler(t *testing.T) {
 			},
 		},
 		{
+			"create_with_legend",
+			map[string]any{
+				"action": "create", "roadmap_id": "123", "lane_id": "456",
+				"name": "Bar with Color", "legend_id": "legend-1",
+			},
+		},
+		{
+			"create_with_all_fields",
+			map[string]any{
+				"action": "create", "roadmap_id": "123", "lane_id": "456",
+				"name": "Full Bar", "legend_id": "legend-1",
+				"percent_done": percentDone, "container": container, "parked": parked,
+				"parent_id": "parent-123", "strategic_value": "High priority",
+				"notes": "Important notes", "effort": effort,
+			},
+		},
+		{
 			"update",
 			map[string]any{"action": "update", "bar_id": "789", "name": "Updated Bar"},
+		},
+		{
+			"update_legend",
+			map[string]any{"action": "update", "bar_id": "789", "legend_id": "legend-2"},
+		},
+		{
+			"update_percent_done",
+			map[string]any{"action": "update", "bar_id": "789", "percent_done": percentDone},
 		},
 		{
 			"delete",

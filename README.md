@@ -355,6 +355,7 @@ Open your AI assistant and try:
 | **Bar Connections** | Yes | Yes | - | Yes |
 | **Bar Links** | Yes | Yes | Yes | Yes |
 | **Lanes** (categories) | Yes | Yes | Yes | Yes |
+| **Legends** (bar colors) | Yes | - | - | - |
 | **Milestones** | Yes | Yes | Yes | Yes |
 | **Ideas** (Discovery) | Yes | Yes | Yes | - |
 | **Idea Customers** | Yes | Yes | - | Yes |
@@ -582,10 +583,10 @@ Run evaluation suite:
 <details>
 <summary>MCP tool reference</summary>
 
-38 tools available: 26 READ tools and 12 WRITE tools (action-based):
+39 tools available: 27 READ tools and 12 WRITE tools (action-based):
 
 **Read tools:**
-- Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_complete`
+- Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_legends`, `get_roadmap_complete`
 - Bars: `get_bar`, `get_bar_children`, `get_bar_comments`, `get_bar_connections`, `get_bar_links`
 - OKRs: `list_objectives`, `get_objective`, `list_key_results`
 - Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
