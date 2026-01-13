@@ -50,7 +50,7 @@ jobs:
           CGO_ENABLED: 0
         run: |
           go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.VERSION }}" \
-            -o productplan-${{ matrix.suffix }} .
+            -o productplan-${{ matrix.suffix }} ./cmd/productplan
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
