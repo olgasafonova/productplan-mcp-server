@@ -36,8 +36,7 @@ func roadmapTools() []mcp.Tool {
 			Name: "list_roadmaps",
 			Description: `List all roadmaps. START HERE to get roadmap IDs.
 
-Use when: "Show my roadmaps", "What roadmaps do I have?"
-Returns: Array with IDs, names, metadata`,
+Use when: "Show my roadmaps", "What roadmaps do I have?"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -47,9 +46,7 @@ Returns: Array with IDs, names, metadata`,
 			Name: "get_roadmap",
 			Description: `Get roadmap settings and metadata.
 
-Use when: "Tell me about roadmap X", "Roadmap settings"
-Returns: View settings, permissions, configuration
-Requires: roadmap_id`,
+Use when: "Tell me about roadmap X", "Roadmap settings"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -62,9 +59,7 @@ Requires: roadmap_id`,
 			Name: "get_roadmap_bars",
 			Description: `Get all bars (features/items) on a roadmap.
 
-Use when: "What's on the roadmap?", "Show planned features", "What's in Q2?"
-Returns: Bars with names, dates, lanes, status
-Requires: roadmap_id`,
+Use when: "What's on the roadmap?", "Show planned features", "What's in Q2?"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -77,9 +72,7 @@ Requires: roadmap_id`,
 			Name: "get_roadmap_lanes",
 			Description: `Get lanes (categories) on a roadmap. Lanes organize bars into rows.
 
-Use when: "What lanes are on the roadmap?", "Show categories"
-Returns: Lanes with IDs, names, colors
-Requires: roadmap_id`,
+Use when: "What lanes are on the roadmap?", "Show categories"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -92,9 +85,7 @@ Requires: roadmap_id`,
 			Name: "get_roadmap_milestones",
 			Description: `Get milestones (key dates) on a roadmap.
 
-Use when: "What are the key dates?", "Show milestones"
-Returns: Milestones with names and dates
-Requires: roadmap_id`,
+Use when: "What are the key dates?", "Show milestones"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -108,7 +99,6 @@ Requires: roadmap_id`,
 			Description: `Get legend entries (bar colors) for a roadmap.
 
 Use when: "What colors are available?", "Show the legend"
-Returns: Legends with IDs, colors, labels
 Note: Use legend_id when creating/updating bars`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -120,11 +110,9 @@ Note: Use legend_id when creating/updating bars`,
 		},
 		{
 			Name: "get_roadmap_complete",
-			Description: `Get complete roadmap: details, bars, lanes, milestones in one call.
+			Description: `Get complete roadmap in one call (~3x faster than sequential). Details, bars, lanes, milestones combined.
 
-Use when: "Full roadmap overview", "Summarize roadmap X"
-Returns: Combined details, bars, lanes, milestones
-Performance: ~3x faster than sequential calls`,
+Use when: "Full roadmap overview", "Summarize roadmap X"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -137,9 +125,7 @@ Performance: ~3x faster than sequential calls`,
 			Name: "get_roadmap_comments",
 			Description: `Get roadmap-level comments (not bar comments).
 
-Use when: "Show roadmap comments", "Roadmap discussion"
-Returns: Comments with authors, dates, content
-Requires: roadmap_id`,
+Use when: "Show roadmap comments", "Roadmap discussion"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -194,9 +180,7 @@ func barTools() []mcp.Tool {
 			Name: "get_bar",
 			Description: `Get bar details including description, links, custom fields.
 
-Use when: "Tell me about this feature", "Bar details"
-Returns: Description, dates, lane, links, custom fields
-Requires: bar_id`,
+Use when: "Tell me about this feature", "Bar details"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -209,9 +193,7 @@ Requires: bar_id`,
 			Name: "get_bar_children",
 			Description: `Get child bars nested under a parent bar.
 
-Use when: "Show sub-tasks", "Child items", "Break down this feature"
-Returns: Child bars with details
-Requires: bar_id`,
+Use when: "Show sub-tasks", "Child items", "Break down this feature"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -224,9 +206,7 @@ Requires: bar_id`,
 			Name: "get_bar_comments",
 			Description: `Get comments on a bar.
 
-Use when: "Show comments", "What's the feedback?"
-Returns: Comments with author, date, text
-Requires: bar_id`,
+Use when: "Show comments", "What's the feedback?"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -239,9 +219,7 @@ Requires: bar_id`,
 			Name: "get_bar_connections",
 			Description: `Get bar dependencies (what blocks what).
 
-Use when: "What depends on this?", "Show dependencies"
-Returns: Connected bars with relationship types
-Requires: bar_id`,
+Use when: "What depends on this?", "Show dependencies"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -254,9 +232,7 @@ Requires: bar_id`,
 			Name: "get_bar_links",
 			Description: `Get external links on a bar (Jira, docs, designs).
 
-Use when: "What's linked?", "Show Jira tickets"
-Returns: Links with URLs and names
-Requires: bar_id`,
+Use when: "What's linked?", "Show Jira tickets"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -356,8 +332,7 @@ func objectiveTools() []mcp.Tool {
 			Name: "list_objectives",
 			Description: `List all OKR objectives. START HERE for OKRs.
 
-Use when: "Show OKRs", "What are our objectives?"
-Returns: Objectives with IDs, names, time frames, progress`,
+Use when: "Show OKRs", "What are our objectives?"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -367,9 +342,7 @@ Returns: Objectives with IDs, names, time frames, progress`,
 			Name: "get_objective",
 			Description: `Get objective details with key results.
 
-Use when: "Tell me about objective X", "OKR progress"
-Returns: Objective with key results, scores, status
-Requires: objective_id`,
+Use when: "Tell me about objective X", "OKR progress"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -382,9 +355,7 @@ Requires: objective_id`,
 			Name: "list_key_results",
 			Description: `List key results for an objective.
 
-Use when: "What are the KRs?", "Show metrics"
-Returns: Key results with targets, current values, progress
-Requires: objective_id`,
+Use when: "What are the KRs?", "Show metrics"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -397,9 +368,7 @@ Requires: objective_id`,
 			Name: "get_key_result",
 			Description: `Get key result details.
 
-Use when: "Tell me about this KR", "KR progress"
-Returns: Target, current value, progress
-Requires: objective_id + key_result_id`,
+Use when: "Tell me about this KR", "KR progress"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -456,8 +425,7 @@ func ideaTools() []mcp.Tool {
 			Name: "list_ideas",
 			Description: `List all ideas in discovery pipeline. START HERE for ideas.
 
-Use when: "Show customer feedback", "What ideas do we have?"
-Returns: Ideas with IDs, titles, votes, status`,
+Use when: "Show customer feedback", "What ideas do we have?"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -467,9 +435,7 @@ Returns: Ideas with IDs, titles, votes, status`,
 			Name: "get_idea",
 			Description: `Get idea details including description and metadata.
 
-Use when: "Tell me about this idea", "Full request details"
-Returns: Description, votes, customers, tags, status
-Requires: idea_id`,
+Use when: "Tell me about this idea", "Full request details"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -482,9 +448,7 @@ Requires: idea_id`,
 			Name: "get_idea_customers",
 			Description: `Get customers who requested an idea.
 
-Use when: "Who requested this?", "Which customers want this?"
-Returns: Customers with names, emails, vote counts
-Requires: idea_id`,
+Use when: "Who requested this?", "Which customers want this?"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -497,9 +461,7 @@ Requires: idea_id`,
 			Name: "get_idea_tags",
 			Description: `Get tags on an idea.
 
-Use when: "What tags does this have?", "How is this categorized?"
-Returns: Tags with IDs and names
-Requires: idea_id`,
+Use when: "What tags does this have?", "How is this categorized?"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -512,8 +474,7 @@ Requires: idea_id`,
 			Name: "list_opportunities",
 			Description: `List all opportunities. START HERE for discovery.
 
-Use when: "Show opportunities", "Discovery pipeline"
-Returns: Opportunities with problem statements, status`,
+Use when: "Show opportunities", "Discovery pipeline"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -523,9 +484,7 @@ Returns: Opportunities with problem statements, status`,
 			Name: "get_opportunity",
 			Description: `Get opportunity details with linked ideas.
 
-Use when: "Tell me about this opportunity"
-Returns: Description, linked ideas, workflow status
-Requires: opportunity_id`,
+Use when: "Tell me about this opportunity"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -538,8 +497,7 @@ Requires: opportunity_id`,
 			Name: "list_idea_forms",
 			Description: `List idea submission forms.
 
-Use when: "Show feedback forms", "What forms exist?"
-Returns: Forms with IDs, names, configuration`,
+Use when: "Show feedback forms", "What forms exist?"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -549,9 +507,7 @@ Returns: Forms with IDs, names, configuration`,
 			Name: "get_idea_form",
 			Description: `Get idea form details with fields.
 
-Use when: "Show form fields", "What does this form collect?"
-Returns: Fields, types, validation rules
-Requires: form_id`,
+Use when: "Show form fields", "What does this form collect?"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -564,8 +520,7 @@ Requires: form_id`,
 			Name: "list_all_customers",
 			Description: `List all customers across ideas.
 
-Use when: "Who are our customers?", "All feedback sources"
-Returns: Customers with IDs, names, emails, idea counts`,
+Use when: "Who are our customers?", "All feedback sources"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -575,8 +530,7 @@ Returns: Customers with IDs, names, emails, idea counts`,
 			Name: "list_all_tags",
 			Description: `List all tags used across ideas.
 
-Use when: "What tags exist?", "Show categories"
-Returns: Tags with IDs and names`,
+Use when: "What tags exist?", "Show categories"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -663,8 +617,7 @@ func launchTools() []mcp.Tool {
 			Name: "list_launches",
 			Description: `List all launches. START HERE for launches.
 
-Use when: "Show launches", "Release schedule"
-Returns: Launches with IDs, names, dates, status`,
+Use when: "Show launches", "Release schedule"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -674,9 +627,7 @@ Returns: Launches with IDs, names, dates, status`,
 			Name: "get_launch",
 			Description: `Get launch details with checklist.
 
-Use when: "Tell me about this launch", "Launch readiness"
-Returns: Dates, description, checklist, progress
-Requires: launch_id`,
+Use when: "Tell me about this launch", "Launch readiness"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -707,9 +658,7 @@ Actions: create (name+date), update (launch_id), delete (launch_id)`,
 			Name: "get_launch_sections",
 			Description: `Get checklist sections for a launch.
 
-Use when: "Show sections", "Checklist categories"
-Returns: Sections with IDs, names, task counts
-Requires: launch_id`,
+Use when: "Show sections", "Checklist categories"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -722,9 +671,7 @@ Requires: launch_id`,
 			Name: "get_launch_section",
 			Description: `Get a specific checklist section.
 
-Use when: "Section details"
-Returns: Section ID, name, metadata
-Requires: launch_id + section_id`,
+Use when: "Section details"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -755,9 +702,7 @@ Actions: create (name), update (section_id), delete (section_id)`,
 			Name: "get_launch_tasks",
 			Description: `Get all tasks for a launch.
 
-Use when: "Show tasks", "What needs to be done?"
-Returns: Tasks with IDs, names, assignees, due dates
-Requires: launch_id`,
+Use when: "Show tasks", "What needs to be done?"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -770,9 +715,7 @@ Requires: launch_id`,
 			Name: "get_launch_task",
 			Description: `Get a specific launch task.
 
-Use when: "Task details", "Task status"
-Returns: Name, description, assignee, due date, completed
-Requires: launch_id + task_id`,
+Use when: "Task details", "Task status"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -814,8 +757,7 @@ func utilityTools() []mcp.Tool {
 			Name: "check_status",
 			Description: `Check ProductPlan API status and authentication.
 
-Use when: "Is ProductPlan connected?", "Check API"
-Returns: API status, auth state, account info`,
+Use when: "Is ProductPlan connected?", "Check API"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -825,8 +767,7 @@ Returns: API status, auth state, account info`,
 			Name: "health_check",
 			Description: `Check MCP server health and cache stats.
 
-Use when: "Server status", "Rate limits", "Diagnose issues"
-Returns: Uptime, rate limits, cache stats, API health (if deep)`,
+Use when: "Server status", "Rate limits", "Diagnose issues"`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -838,8 +779,7 @@ Returns: Uptime, rate limits, cache stats, API health (if deep)`,
 			Name: "list_users",
 			Description: `List all users in account.
 
-Use when: "Who has access?", "Team members"
-Returns: Users with IDs, names, emails, roles`,
+Use when: "Who has access?", "Team members"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -849,8 +789,7 @@ Returns: Users with IDs, names, emails, roles`,
 			Name: "list_teams",
 			Description: `List all teams in account.
 
-Use when: "What teams exist?", "Team structure"
-Returns: Teams with IDs, names, member counts`,
+Use when: "What teams exist?", "Team structure"`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
