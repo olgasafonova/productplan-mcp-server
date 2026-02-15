@@ -129,7 +129,7 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 	)
 
 	// Execute request
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) // #nosec G704 -- URL is the configured ProductPlan API endpoint, not user-controlled
 	if err != nil {
 		c.logger.Error("API request failed",
 			logging.Endpoint(endpoint),

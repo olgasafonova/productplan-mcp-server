@@ -28,6 +28,7 @@ func NewRequestID() RequestID {
 
 	// Combine timestamp, counter, and random
 	ts := time.Now().UnixMilli() & 0xFFFFFFFF // Lower 32 bits
+	// #nosec G115 -- intentional truncation to extract individual bytes from timestamp/counter
 	return RequestID(hex.EncodeToString([]byte{
 		byte(ts >> 24), byte(ts >> 16), byte(ts >> 8), byte(ts),
 		byte(count >> 8), byte(count),
