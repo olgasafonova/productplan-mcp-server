@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
+	"runtime/debug"
 	"sync"
 )
 
@@ -65,11 +67,23 @@ func (r *Registry) Handler(name string) (Handler, bool) {
 }
 
 // Call executes a tool by name with the given arguments.
-func (r *Registry) Call(ctx context.Context, name string, args map[string]any) (json.RawMessage, error) {
+func (r *Registry) Call(ctx context.Context, name string, args map[string]any) (result json.RawMessage, err error) {
 	handler, ok := r.Handler(name)
 	if !ok {
 		return nil, fmt.Errorf("unknown tool: %s", name)
 	}
+
+	defer func() {
+		if rec := recover(); rec != nil {
+			slog.Error("Panic recovered in tool handler",
+				"tool", name,
+				"panic", rec,
+				"stack", string(debug.Stack()))
+			result = nil
+			err = fmt.Errorf("internal error in %s", name)
+		}
+	}()
+
 	return handler.Handle(ctx, args)
 }
 

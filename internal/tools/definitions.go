@@ -1,6 +1,8 @@
 package tools
 
 import (
+	"strings"
+
 	"github.com/olgasafonova/productplan-mcp-server/internal/mcp"
 )
 
@@ -26,6 +28,20 @@ func BuildAllTools() []mcp.Tool {
 	// Utility
 	tools = append(tools, utilityTools()...)
 
+	// Auto-annotate: read-only tools get ReadOnlyHint
+	for i := range tools {
+		if tools[i].Annotations != nil {
+			continue
+		}
+		isReadOnly := strings.HasPrefix(tools[i].Name, "get_") ||
+			strings.HasPrefix(tools[i].Name, "list_") ||
+			strings.HasPrefix(tools[i].Name, "check_") ||
+			tools[i].Name == "health_check"
+		if isReadOnly {
+			tools[i].Annotations = &mcp.ToolAnnotations{ReadOnlyHint: true}
+		}
+	}
+
 	return tools
 }
 
@@ -46,7 +62,8 @@ Use when: "Show my roadmaps", "What roadmaps do I have?"`,
 			Name: "get_roadmap",
 			Description: `Get roadmap settings and metadata.
 
-Use when: "Tell me about roadmap X", "Roadmap settings"`,
+Use when: "Tell me about roadmap X", "Roadmap settings"
+For all data in one call (bars, lanes, milestones), use get_roadmap_complete.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -112,7 +129,8 @@ Note: Use legend_id when creating/updating bars`,
 			Name: "get_roadmap_complete",
 			Description: `Get complete roadmap in one call (~3x faster than sequential). Details, bars, lanes, milestones combined.
 
-Use when: "Full roadmap overview", "Summarize roadmap X"`,
+Use when: "Full roadmap overview", "Summarize roadmap X"
+For settings/metadata only, use get_roadmap.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -658,7 +676,8 @@ Actions: create (name+date), update (launch_id), delete (launch_id)`,
 			Name: "get_launch_sections",
 			Description: `Get checklist sections for a launch.
 
-Use when: "Show sections", "Checklist categories"`,
+Use when: "Show sections", "Checklist categories"
+For one specific section, use get_launch_section.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -669,9 +688,10 @@ Use when: "Show sections", "Checklist categories"`,
 		},
 		{
 			Name: "get_launch_section",
-			Description: `Get a specific checklist section.
+			Description: `Get a specific checklist section by ID.
 
-Use when: "Section details"`,
+Use when: "Section details"
+For all sections, use get_launch_sections.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -702,7 +722,8 @@ Actions: create (name), update (section_id), delete (section_id)`,
 			Name: "get_launch_tasks",
 			Description: `Get all tasks for a launch.
 
-Use when: "Show tasks", "What needs to be done?"`,
+Use when: "Show tasks", "What needs to be done?"
+For one specific task, use get_launch_task.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -713,9 +734,10 @@ Use when: "Show tasks", "What needs to be done?"`,
 		},
 		{
 			Name: "get_launch_task",
-			Description: `Get a specific launch task.
+			Description: `Get a specific launch task by ID.
 
-Use when: "Task details", "Task status"`,
+Use when: "Task details", "Task status"
+For all tasks, use get_launch_tasks.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{

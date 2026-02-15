@@ -42,11 +42,21 @@ func NewError(code int, message string) *RPCError {
 	return &RPCError{Code: code, Message: message}
 }
 
+// ToolAnnotations provides optional hints about a tool's behavior.
+type ToolAnnotations struct {
+	Title           string `json:"title,omitempty"`
+	ReadOnlyHint    bool   `json:"readOnlyHint,omitempty"`
+	IdempotentHint  bool   `json:"idempotentHint,omitempty"`
+	DestructiveHint *bool  `json:"destructiveHint,omitempty"`
+	OpenWorldHint   *bool  `json:"openWorldHint,omitempty"`
+}
+
 // Tool represents an MCP tool definition.
 type Tool struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	InputSchema InputSchema `json:"inputSchema"`
+	Name        string           `json:"name"`
+	Description string           `json:"description"`
+	InputSchema InputSchema      `json:"inputSchema"`
+	Annotations *ToolAnnotations `json:"annotations,omitempty"`
 }
 
 // InputSchema defines the JSON Schema for tool inputs.
