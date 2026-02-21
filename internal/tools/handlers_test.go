@@ -173,11 +173,11 @@ func TestManageMilestoneHandler(t *testing.T) {
 	}{
 		{
 			"create",
-			map[string]any{"action": "create", "roadmap_id": "123", "name": "Launch", "date": "2024-06-01"},
+			map[string]any{"action": "create", "roadmap_id": "123", "title": "Launch", "date": "2024-06-01"},
 		},
 		{
 			"update",
-			map[string]any{"action": "update", "roadmap_id": "123", "milestone_id": "456", "name": "Updated"},
+			map[string]any{"action": "update", "roadmap_id": "123", "milestone_id": "456", "title": "Updated"},
 		},
 		{
 			"delete",
@@ -244,7 +244,7 @@ func TestManageBarHandler(t *testing.T) {
 			"create",
 			map[string]any{
 				"action": "create", "roadmap_id": "123", "lane_id": "456",
-				"name": "New Bar", "start_date": "2024-01-01", "end_date": "2024-03-01",
+				"name": "New Bar", "starts_on": "2024-01-01", "ends_on": "2024-03-01",
 				"description": "Test bar",
 			},
 		},
@@ -293,32 +293,6 @@ func TestManageBarHandler(t *testing.T) {
 	}
 }
 
-func TestManageBarCommentHandler(t *testing.T) {
-	server, client := setupTestServer(t, map[string]any{"id": "comment-1"})
-	defer server.Close()
-
-	handler := manageBarCommentHandler(client)
-
-	_, err := handler.Handle(context.Background(), map[string]any{
-		"bar_id": "123",
-		"body":   "This is a test comment",
-	})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	// Missing required params
-	_, err = handler.Handle(context.Background(), map[string]any{"bar_id": "123"})
-	if err == nil {
-		t.Error("expected error for missing body")
-	}
-
-	_, err = handler.Handle(context.Background(), map[string]any{"body": "test"})
-	if err == nil {
-		t.Error("expected error for missing bar_id")
-	}
-}
-
 func TestManageBarConnectionHandler(t *testing.T) {
 	server, client := setupTestServer(t, map[string]any{"id": "conn-1"})
 	defer server.Close()
@@ -354,7 +328,6 @@ func TestManageBarLinkHandler(t *testing.T) {
 		args map[string]any
 	}{
 		{"create", map[string]any{"action": "create", "bar_id": "123", "url": "https://example.com", "name": "Example"}},
-		{"update", map[string]any{"action": "update", "bar_id": "123", "link_id": "456", "url": "https://updated.com"}},
 		{"delete", map[string]any{"action": "delete", "bar_id": "123", "link_id": "456"}},
 	}
 
@@ -457,8 +430,6 @@ func TestIdeaHandlers(t *testing.T) {
 	}{
 		{"listIdeasHandler", func(c *api.Client) Handler { return listIdeasHandler(c) }, nil},
 		{"getIdeaHandler", func(c *api.Client) Handler { return getIdeaHandler(c) }, map[string]any{"idea_id": "123"}},
-		{"getIdeaCustomersHandler", func(c *api.Client) Handler { return getIdeaCustomersHandler(c) }, map[string]any{"idea_id": "123"}},
-		{"getIdeaTagsHandler", func(c *api.Client) Handler { return getIdeaTagsHandler(c) }, map[string]any{"idea_id": "123"}},
 		{"listOpportunitiesHandler", func(c *api.Client) Handler { return listOpportunitiesHandler(c) }, nil},
 		{"getOpportunityHandler", func(c *api.Client) Handler { return getOpportunityHandler(c) }, map[string]any{"opportunity_id": "123"}},
 		{"listIdeaFormsHandler", func(c *api.Client) Handler { return listIdeaFormsHandler(c) }, nil},
@@ -503,54 +474,6 @@ func TestManageIdeaHandler(t *testing.T) {
 	}
 }
 
-func TestManageIdeaCustomerHandler(t *testing.T) {
-	server, client := setupTestServer(t, map[string]any{"id": "customer-1"})
-	defer server.Close()
-
-	handler := manageIdeaCustomerHandler(client)
-
-	tests := []struct {
-		name string
-		args map[string]any
-	}{
-		{"add", map[string]any{"action": "add", "idea_id": "123", "customer_id": "456"}},
-		{"remove", map[string]any{"action": "remove", "idea_id": "123", "customer_id": "456"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := handler.Handle(context.Background(), tt.args)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}
-
-func TestManageIdeaTagHandler(t *testing.T) {
-	server, client := setupTestServer(t, map[string]any{"id": "tag-1"})
-	defer server.Close()
-
-	handler := manageIdeaTagHandler(client)
-
-	tests := []struct {
-		name string
-		args map[string]any
-	}{
-		{"add", map[string]any{"action": "add", "idea_id": "123", "tag_id": "456"}},
-		{"remove", map[string]any{"action": "remove", "idea_id": "123", "tag_id": "456"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := handler.Handle(context.Background(), tt.args)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-			}
-		})
-	}
-}
-
 func TestManageOpportunityHandler(t *testing.T) {
 	server, client := setupTestServer(t, map[string]any{"id": "opp-1"})
 	defer server.Close()
@@ -563,7 +486,6 @@ func TestManageOpportunityHandler(t *testing.T) {
 	}{
 		{"create", map[string]any{"action": "create", "problem_statement": "Test Problem", "description": "Desc", "workflow_status": "draft"}},
 		{"update", map[string]any{"action": "update", "opportunity_id": "123", "problem_statement": "Updated"}},
-		{"delete", map[string]any{"action": "delete", "opportunity_id": "123"}},
 	}
 
 	for _, tt := range tests {

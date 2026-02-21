@@ -67,8 +67,6 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return getBarLinksHandler(cfg.Client)
 	case "manage_bar":
 		return manageBarHandler(cfg.Client)
-	case "manage_bar_comment":
-		return manageBarCommentHandler(cfg.Client)
 	case "manage_bar_connection":
 		return manageBarConnectionHandler(cfg.Client)
 	case "manage_bar_link":
@@ -93,10 +91,6 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return listIdeasHandler(cfg.Client)
 	case "get_idea":
 		return getIdeaHandler(cfg.Client)
-	case "get_idea_customers":
-		return getIdeaCustomersHandler(cfg.Client)
-	case "get_idea_tags":
-		return getIdeaTagsHandler(cfg.Client)
 	case "list_opportunities":
 		return listOpportunitiesHandler(cfg.Client)
 	case "get_opportunity":
@@ -111,10 +105,6 @@ func createHandler(name string, cfg Config) mcp.Handler {
 		return listAllTagsHandler(cfg.Client)
 	case "manage_idea":
 		return manageIdeaHandler(cfg.Client)
-	case "manage_idea_customer":
-		return manageIdeaCustomerHandler(cfg.Client)
-	case "manage_idea_tag":
-		return manageIdeaTagHandler(cfg.Client)
 	case "manage_opportunity":
 		return manageOpportunityHandler(cfg.Client)
 

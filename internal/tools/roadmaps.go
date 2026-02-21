@@ -153,14 +153,14 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 		switch a.Action {
 		case "create":
 			payload := map[string]any{
-				"name": a.Name,
-				"date": a.Date,
+				"title": a.Title,
+				"date":  a.Date,
 			}
 			return client.CreateMilestone(ctx, a.RoadmapID, payload)
 		case "update":
 			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
+			if a.Title != "" {
+				payload["title"] = a.Title
 			}
 			if a.Date != "" {
 				payload["date"] = a.Date

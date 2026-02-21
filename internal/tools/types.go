@@ -65,7 +65,7 @@ type ManageMilestoneArgs struct {
 	Action      string `json:"action"`
 	RoadmapID   string `json:"roadmap_id"`
 	MilestoneID string `json:"milestone_id,omitempty"`
-	Name        string `json:"name,omitempty"`
+	Title       string `json:"title,omitempty"`
 	Date        string `json:"date,omitempty"`
 }
 
@@ -114,8 +114,8 @@ type ManageBarArgs struct {
 	RoadmapID            string             `json:"roadmap_id,omitempty"`
 	LaneID               string             `json:"lane_id,omitempty"`
 	Name                 string             `json:"name,omitempty"`
-	StartDate            string             `json:"start_date,omitempty"`
-	EndDate              string             `json:"end_date,omitempty"`
+	StartsOn             string             `json:"starts_on,omitempty"`
+	EndsOn               string             `json:"ends_on,omitempty"`
 	Description          string             `json:"description,omitempty"`
 	LegendID             string             `json:"legend_id,omitempty"`
 	PercentDone          *int               `json:"percent_done,omitempty"`
@@ -150,23 +150,6 @@ func (a ManageBarArgs) Validate() error {
 		if a.BarID == "" {
 			return fmt.Errorf("required parameter missing: bar_id (required for %s)", a.Action)
 		}
-	}
-	return nil
-}
-
-// ManageBarCommentArgs holds arguments for bar comment operations.
-type ManageBarCommentArgs struct {
-	BarID string `json:"bar_id"`
-	Body  string `json:"body"`
-}
-
-// Validate checks required fields.
-func (a ManageBarCommentArgs) Validate() error {
-	if a.BarID == "" {
-		return fmt.Errorf("required parameter missing: bar_id")
-	}
-	if a.Body == "" {
-		return fmt.Errorf("required parameter missing: body")
 	}
 	return nil
 }
@@ -222,9 +205,9 @@ func (a ManageBarLinkArgs) Validate() error {
 		if a.URL == "" {
 			return fmt.Errorf("required parameter missing: url (required for create)")
 		}
-	case "update", "delete":
+	case "delete":
 		if a.LinkID == "" {
-			return fmt.Errorf("required parameter missing: link_id (required for %s)", a.Action)
+			return fmt.Errorf("required parameter missing: link_id (required for delete)")
 		}
 	}
 	return nil
@@ -384,57 +367,6 @@ func (a ManageIdeaArgs) Validate() error {
 	return nil
 }
 
-// ManageIdeaCustomerArgs holds arguments for idea customer operations.
-type ManageIdeaCustomerArgs struct {
-	Action     string `json:"action"`
-	IdeaID     string `json:"idea_id"`
-	CustomerID string `json:"customer_id,omitempty"`
-	Name       string `json:"name,omitempty"`
-	Email      string `json:"email,omitempty"`
-}
-
-// Validate checks required fields based on action.
-func (a ManageIdeaCustomerArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
-	}
-	if a.IdeaID == "" {
-		return fmt.Errorf("required parameter missing: idea_id")
-	}
-	switch a.Action {
-	case "remove":
-		if a.CustomerID == "" {
-			return fmt.Errorf("required parameter missing: customer_id (required for remove)")
-		}
-	}
-	return nil
-}
-
-// ManageIdeaTagArgs holds arguments for idea tag operations.
-type ManageIdeaTagArgs struct {
-	Action string `json:"action"`
-	IdeaID string `json:"idea_id"`
-	TagID  string `json:"tag_id,omitempty"`
-	Name   string `json:"name,omitempty"`
-}
-
-// Validate checks required fields based on action.
-func (a ManageIdeaTagArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
-	}
-	if a.IdeaID == "" {
-		return fmt.Errorf("required parameter missing: idea_id")
-	}
-	switch a.Action {
-	case "remove":
-		if a.TagID == "" {
-			return fmt.Errorf("required parameter missing: tag_id (required for remove)")
-		}
-	}
-	return nil
-}
-
 // ManageOpportunityArgs holds arguments for opportunity management operations.
 type ManageOpportunityArgs struct {
 	Action           string `json:"action"`
@@ -454,9 +386,9 @@ func (a ManageOpportunityArgs) Validate() error {
 		if a.ProblemStatement == "" {
 			return fmt.Errorf("required parameter missing: problem_statement (required for create)")
 		}
-	case "update", "delete":
+	case "update":
 		if a.OpportunityID == "" {
-			return fmt.Errorf("required parameter missing: opportunity_id (required for %s)", a.Action)
+			return fmt.Errorf("required parameter missing: opportunity_id (required for update)")
 		}
 	}
 	return nil
@@ -565,15 +497,15 @@ func (a ManageLaunchSectionArgs) Validate() error {
 
 // ManageLaunchTaskArgs holds arguments for launch task management operations.
 type ManageLaunchTaskArgs struct {
-	Action      string `json:"action"`
-	LaunchID    string `json:"launch_id"`
-	TaskID      string `json:"task_id,omitempty"`
-	SectionID   string `json:"section_id,omitempty"`
-	Name        string `json:"name,omitempty"`
-	Description string `json:"description,omitempty"`
-	DueDate     string `json:"due_date,omitempty"`
-	AssigneeID  string `json:"assignee_id,omitempty"`
-	Completed   *bool  `json:"completed,omitempty"`
+	Action         string `json:"action"`
+	LaunchID       string `json:"launch_id"`
+	TaskID         string `json:"task_id,omitempty"`
+	SectionID      string `json:"section_id,omitempty"`
+	Name           string `json:"name,omitempty"`
+	Description    string `json:"description,omitempty"`
+	DueDate        string `json:"due_date,omitempty"`
+	AssignedUserID string `json:"assigned_user_id,omitempty"`
+	Status         string `json:"status,omitempty"`
 }
 
 // Validate checks required fields based on action.

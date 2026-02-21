@@ -130,8 +130,8 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 
 // addBarOptionalFields adds optional bar fields to the payload.
 func addBarOptionalFields(payload map[string]any, a ManageBarArgs) {
-	setIfNotEmpty(payload, "start_date", a.StartDate)
-	setIfNotEmpty(payload, "end_date", a.EndDate)
+	setIfNotEmpty(payload, "starts_on", a.StartsOn)
+	setIfNotEmpty(payload, "ends_on", a.EndsOn)
 	setIfNotEmpty(payload, "description", a.Description)
 	setIfNotEmpty(payload, "legend_id", a.LegendID)
 	setIfNotEmpty(payload, "parent_id", a.ParentID)
@@ -144,20 +144,6 @@ func addBarOptionalFields(payload map[string]any, a ManageBarArgs) {
 	setIfNotEmptySlice(payload, "tags", a.Tags)
 	setIfNotEmptySlice(payload, "custom_text_fields", a.CustomTextFields)
 	setIfNotEmptySlice(payload, "custom_dropdown_fields", a.CustomDropdownFields)
-}
-
-func manageBarCommentHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageBarCommentArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err := a.Validate(); err != nil {
-			return nil, err
-		}
-		payload := map[string]any{"body": a.Body}
-		return client.CreateBarComment(ctx, a.BarID, payload)
-	})
 }
 
 func manageBarConnectionHandler(client *api.Client) mcp.Handler {
@@ -199,11 +185,6 @@ func manageBarLinkHandler(client *api.Client) mcp.Handler {
 				"name": a.Name,
 			}
 			return client.CreateBarLink(ctx, a.BarID, payload)
-		case "update":
-			payload := make(map[string]any)
-			setIfNotEmpty(payload, "url", a.URL)
-			setIfNotEmpty(payload, "name", a.Name)
-			return client.UpdateBarLink(ctx, a.BarID, a.LinkID, payload)
 		case "delete":
 			return client.DeleteBarLink(ctx, a.BarID, a.LinkID)
 		default:

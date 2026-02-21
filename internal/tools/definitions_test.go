@@ -39,7 +39,6 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"get_bar_connections",
 		"get_bar_links",
 		"manage_bar",
-		"manage_bar_comment",
 		"manage_bar_connection",
 		"manage_bar_link",
 		// Objectives
@@ -52,8 +51,6 @@ func TestBuildAllToolsNames(t *testing.T) {
 		// Ideas
 		"list_ideas",
 		"get_idea",
-		"get_idea_customers",
-		"get_idea_tags",
 		"list_opportunities",
 		"get_opportunity",
 		"list_idea_forms",
@@ -61,8 +58,6 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"list_all_customers",
 		"list_all_tags",
 		"manage_idea",
-		"manage_idea_customer",
-		"manage_idea_tag",
 		"manage_opportunity",
 		// Launches
 		"list_launches",
@@ -136,8 +131,8 @@ func TestRoadmapTools(t *testing.T) {
 func TestBarTools(t *testing.T) {
 	tools := barTools()
 
-	if len(tools) != 9 {
-		t.Errorf("expected 9 bar tools, got %d", len(tools))
+	if len(tools) != 8 {
+		t.Errorf("expected 8 bar tools, got %d", len(tools))
 	}
 }
 
@@ -152,8 +147,8 @@ func TestObjectiveTools(t *testing.T) {
 func TestIdeaTools(t *testing.T) {
 	tools := ideaTools()
 
-	if len(tools) != 14 {
-		t.Errorf("expected 14 idea tools, got %d", len(tools))
+	if len(tools) != 10 {
+		t.Errorf("expected 10 idea tools, got %d", len(tools))
 	}
 }
 

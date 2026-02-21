@@ -152,33 +152,18 @@ func manageLaunchTaskHandler(client *api.Client) mcp.Handler {
 				"name":       a.Name,
 				"section_id": a.SectionID,
 			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.DueDate != "" {
-				payload["due_date"] = a.DueDate
-			}
-			if a.AssigneeID != "" {
-				payload["assignee_id"] = a.AssigneeID
-			}
+			setIfNotEmpty(payload, "description", a.Description)
+			setIfNotEmpty(payload, "due_date", a.DueDate)
+			setIfNotEmpty(payload, "assigned_user_id", a.AssignedUserID)
+			setIfNotEmpty(payload, "status", a.Status)
 			return client.CreateLaunchTask(ctx, a.LaunchID, payload)
 		case "update":
 			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.DueDate != "" {
-				payload["due_date"] = a.DueDate
-			}
-			if a.AssigneeID != "" {
-				payload["assignee_id"] = a.AssigneeID
-			}
-			if a.Completed != nil {
-				payload["completed"] = *a.Completed
-			}
+			setIfNotEmpty(payload, "name", a.Name)
+			setIfNotEmpty(payload, "description", a.Description)
+			setIfNotEmpty(payload, "due_date", a.DueDate)
+			setIfNotEmpty(payload, "assigned_user_id", a.AssignedUserID)
+			setIfNotEmpty(payload, "status", a.Status)
 			return client.UpdateLaunchTask(ctx, a.LaunchID, a.TaskID, payload)
 		case "delete":
 			return client.DeleteLaunchTask(ctx, a.LaunchID, a.TaskID)

@@ -1,4 +1,4 @@
-.PHONY: build build-all clean test lint vet
+.PHONY: build build-all clean test lint vet check-api
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BINARY := productplan-mcp-server
@@ -46,6 +46,10 @@ install: build
 	cp $(BINARY) /usr/local/bin/
 
 # Create release archives
+# Run integration tests against live ProductPlan API (requires PRODUCTPLAN_API_TOKEN)
+check-api:
+	go test -tags integration -run TestAPIEndpoints -v ./internal/api/
+
 release: build-all
 	cd $(BUILD_DIR) && \
 	tar -czf $(BINARY)-$(VERSION)-darwin-amd64.tar.gz $(BINARY)-darwin-amd64 && \

@@ -53,12 +53,21 @@ func (c *Client) GetRoadmapMilestones(ctx context.Context, id string) (json.RawM
 }
 
 // GetRoadmapLegends returns all legend entries (color codes) for a roadmap.
+// Legends are embedded in the roadmap response; there is no separate /legends endpoint.
 func (c *Client) GetRoadmapLegends(ctx context.Context, id string) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/roadmaps/"+id+"/legends")
+	data, err := c.Get(ctx, "/roadmaps/"+id)
 	if err != nil {
 		return nil, err
 	}
-	return FormatLegends(data), nil
+	var roadmap map[string]json.RawMessage
+	if err := json.Unmarshal(data, &roadmap); err != nil {
+		return nil, fmt.Errorf("failed to parse roadmap response: %w", err)
+	}
+	legends, ok := roadmap["legends"]
+	if !ok {
+		return FormatLegends(json.RawMessage("[]")), nil
+	}
+	return FormatLegends(legends), nil
 }
 
 // GetRoadmapComments returns all comments on a roadmap.
@@ -104,11 +113,6 @@ func (c *Client) GetBarComments(ctx context.Context, barID string) (json.RawMess
 	return c.Get(ctx, "/bars/"+barID+"/comments")
 }
 
-// CreateBarComment creates a comment on a bar.
-func (c *Client) CreateBarComment(ctx context.Context, barID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/bars/"+barID+"/comments", data)
-}
-
 // ============================================================================
 // Bar Connections (dependencies)
 // ============================================================================
@@ -140,11 +144,6 @@ func (c *Client) GetBarLinks(ctx context.Context, barID string) (json.RawMessage
 // CreateBarLink creates a link on a bar.
 func (c *Client) CreateBarLink(ctx context.Context, barID string, data map[string]any) (json.RawMessage, error) {
 	return c.Post(ctx, "/bars/"+barID+"/links", data)
-}
-
-// UpdateBarLink updates a link.
-func (c *Client) UpdateBarLink(ctx context.Context, barID, linkID string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, fmt.Sprintf("/bars/%s/links/%s", barID, linkID), data)
 }
 
 // DeleteBarLink deletes a link.
@@ -289,21 +288,6 @@ func (c *Client) ListAllCustomers(ctx context.Context) (json.RawMessage, error) 
 	return c.Get(ctx, "/discovery/ideas/customers")
 }
 
-// GetIdeaCustomers returns customers for an idea.
-func (c *Client) GetIdeaCustomers(ctx context.Context, ideaID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/ideas/"+ideaID+"/customers")
-}
-
-// AddIdeaCustomer adds a customer to an idea.
-func (c *Client) AddIdeaCustomer(ctx context.Context, ideaID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/discovery/ideas/"+ideaID+"/customers", data)
-}
-
-// RemoveIdeaCustomer removes a customer from an idea.
-func (c *Client) RemoveIdeaCustomer(ctx context.Context, ideaID, customerID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/discovery/ideas/%s/customers/%s", ideaID, customerID))
-}
-
 // ============================================================================
 // Idea Tags
 // ============================================================================
@@ -311,21 +295,6 @@ func (c *Client) RemoveIdeaCustomer(ctx context.Context, ideaID, customerID stri
 // ListAllTags returns all tags across all ideas.
 func (c *Client) ListAllTags(ctx context.Context) (json.RawMessage, error) {
 	return c.Get(ctx, "/discovery/ideas/tags")
-}
-
-// GetIdeaTags returns tags for an idea.
-func (c *Client) GetIdeaTags(ctx context.Context, ideaID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/ideas/"+ideaID+"/tags")
-}
-
-// AddIdeaTag adds a tag to an idea.
-func (c *Client) AddIdeaTag(ctx context.Context, ideaID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/discovery/ideas/"+ideaID+"/tags", data)
-}
-
-// RemoveIdeaTag removes a tag from an idea.
-func (c *Client) RemoveIdeaTag(ctx context.Context, ideaID, tagID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/discovery/ideas/%s/tags/%s", ideaID, tagID))
 }
 
 // ============================================================================
@@ -354,11 +323,6 @@ func (c *Client) CreateOpportunity(ctx context.Context, data map[string]any) (js
 // UpdateOpportunity updates an existing opportunity.
 func (c *Client) UpdateOpportunity(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
 	return c.Patch(ctx, "/discovery/opportunities/"+id, data)
-}
-
-// DeleteOpportunity deletes an opportunity.
-func (c *Client) DeleteOpportunity(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Delete(ctx, "/discovery/opportunities/"+id)
 }
 
 // ============================================================================

@@ -352,16 +352,16 @@ Open your AI assistant and try:
 | **Roadmaps** | Yes | - | - | - |
 | **Roadmap Comments** | Yes | - | - | - |
 | **Bars** (roadmap items) | Yes | Yes | Yes | Yes |
-| **Bar Comments** | Yes | Yes | - | - |
+| **Bar Comments** | Yes | - | - | - |
 | **Bar Connections** | Yes | Yes | - | Yes |
-| **Bar Links** | Yes | Yes | Yes | Yes |
+| **Bar Links** | Yes | Yes | - | Yes |
 | **Lanes** (categories) | Yes | Yes | Yes | Yes |
 | **Legends** (bar colors) | Yes | - | - | - |
 | **Milestones** | Yes | Yes | Yes | Yes |
 | **Ideas** (Discovery) | Yes | Yes | Yes | - |
-| **Idea Customers** | Yes | Yes | - | Yes |
-| **Idea Tags** | Yes | Yes | - | Yes |
-| **Opportunities** | Yes | Yes | Yes | Yes |
+| **Idea Customers** | Yes | - | - | - |
+| **Idea Tags** | Yes | - | - | - |
+| **Opportunities** | Yes | Yes | Yes | - |
 | **Idea Forms** | Yes | - | - | - |
 | **Objectives** (OKRs) | Yes | Yes | Yes | Yes |
 | **Key Results** | Yes | Yes | Yes | Yes |
@@ -588,21 +588,21 @@ Run evaluation suite:
 <details>
 <summary>MCP tool reference</summary>
 
-52 tools available: 37 READ tools and 15 WRITE tools (action-based):
+47 tools available: 35 READ tools and 12 WRITE tools (action-based):
 
 **Read tools:**
 - Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_legends`, `get_roadmap_comments`, `get_roadmap_complete`
 - Bars: `get_bar`, `get_bar_children`, `get_bar_comments`, `get_bar_connections`, `get_bar_links`
 - OKRs: `list_objectives`, `get_objective`, `list_key_results`, `get_key_result`
-- Discovery: `list_ideas`, `get_idea`, `get_idea_customers`, `get_idea_tags`, `list_all_customers`, `list_all_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
+- Discovery: `list_ideas`, `get_idea`, `list_all_customers`, `list_all_tags`, `list_opportunities`, `get_opportunity`, `list_idea_forms`, `get_idea_form`
 - Launches: `list_launches`, `get_launch`, `get_launch_sections`, `get_launch_section`, `get_launch_tasks`, `get_launch_task`
 - Admin: `check_status`, `health_check`, `list_users`, `list_teams`
 
 **Write tools:**
 - Roadmaps: `manage_bar`, `manage_lane`, `manage_milestone`
-- Bar relationships: `manage_bar_comment`, `manage_bar_connection`, `manage_bar_link`
+- Bar relationships: `manage_bar_connection`, `manage_bar_link`
 - OKRs: `manage_objective`, `manage_key_result`
-- Discovery: `manage_idea`, `manage_idea_customer`, `manage_idea_tag`, `manage_opportunity`
+- Discovery: `manage_idea`, `manage_opportunity`
 - Launches: `manage_launch`, `manage_launch_section`, `manage_launch_task`
 
 Example:

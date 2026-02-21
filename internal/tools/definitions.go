@@ -52,7 +52,8 @@ func roadmapTools() []mcp.Tool {
 			Name: "list_roadmaps",
 			Description: `List all roadmaps. START HERE to get roadmap IDs.
 
-Use when: "Show my roadmaps", "What roadmaps do I have?"`,
+USE WHEN: "Show my roadmaps", "What roadmaps do I have?"
+FAILS WHEN: API token invalid or expired (check PRODUCTPLAN_API_TOKEN env var).`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -62,8 +63,9 @@ Use when: "Show my roadmaps", "What roadmaps do I have?"`,
 			Name: "get_roadmap",
 			Description: `Get roadmap settings and metadata.
 
-Use when: "Tell me about roadmap X", "Roadmap settings"
-For all data in one call (bars, lanes, milestones), use get_roadmap_complete.`,
+USE WHEN: "Tell me about roadmap X", "Roadmap settings"
+For all data in one call (bars, lanes, milestones), use get_roadmap_complete.
+FAILS WHEN: roadmap_id not found (get valid IDs from list_roadmaps first).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -76,7 +78,8 @@ For all data in one call (bars, lanes, milestones), use get_roadmap_complete.`,
 			Name: "get_roadmap_bars",
 			Description: `Get all bars (features/items) on a roadmap.
 
-Use when: "What's on the roadmap?", "Show planned features", "What's in Q2?"`,
+USE WHEN: "What's on the roadmap?", "Show planned features", "What's in Q2?"
+FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if roadmap has no bars.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -89,7 +92,8 @@ Use when: "What's on the roadmap?", "Show planned features", "What's in Q2?"`,
 			Name: "get_roadmap_lanes",
 			Description: `Get lanes (categories) on a roadmap. Lanes organize bars into rows.
 
-Use when: "What lanes are on the roadmap?", "Show categories"`,
+USE WHEN: "What lanes are on the roadmap?", "Show categories"
+FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -102,7 +106,8 @@ Use when: "What lanes are on the roadmap?", "Show categories"`,
 			Name: "get_roadmap_milestones",
 			Description: `Get milestones (key dates) on a roadmap.
 
-Use when: "What are the key dates?", "Show milestones"`,
+USE WHEN: "What are the key dates?", "Show milestones"
+FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -115,8 +120,9 @@ Use when: "What are the key dates?", "Show milestones"`,
 			Name: "get_roadmap_legends",
 			Description: `Get legend entries (bar colors) for a roadmap.
 
-Use when: "What colors are available?", "Show the legend"
-Note: Use legend_id when creating/updating bars`,
+USE WHEN: "What colors are available?", "Show the legend"
+Note: Use legend_id when creating/updating bars.
+FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -129,8 +135,10 @@ Note: Use legend_id when creating/updating bars`,
 			Name: "get_roadmap_complete",
 			Description: `Get complete roadmap in one call (~3x faster than sequential). Details, bars, lanes, milestones combined.
 
-Use when: "Full roadmap overview", "Summarize roadmap X"
-For settings/metadata only, use get_roadmap.`,
+USE WHEN: "Full roadmap overview", "Summarize roadmap X"
+For settings/metadata only, use get_roadmap.
+WHY: Makes 3 parallel API calls internally (~3x faster than calling get_roadmap + get_roadmap_bars + get_roadmap_lanes sequentially).
+FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -143,7 +151,9 @@ For settings/metadata only, use get_roadmap.`,
 			Name: "get_roadmap_comments",
 			Description: `Get roadmap-level comments (not bar comments).
 
-Use when: "Show roadmap comments", "Roadmap discussion"`,
+USE WHEN: "Show roadmap comments", "Roadmap discussion"
+For bar-level comments, use get_bar_comments instead.
+FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -156,8 +166,9 @@ Use when: "Show roadmap comments", "Roadmap discussion"`,
 			Name: "manage_lane",
 			Description: `Create, update, or delete a lane on a roadmap.
 
-Use when: "Add Backend lane", "Rename Mobile lane", "Delete lane"
-Actions: create (name), update (lane_id), delete (lane_id)`,
+USE WHEN: "Add Backend lane", "Rename Mobile lane", "Delete lane"
+Actions: create (name), update (lane_id), delete (lane_id)
+FAILS WHEN: create without name, update/delete without lane_id (get IDs from get_roadmap_lanes). WARNING: delete removes the lane and unassigns all bars in it.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -174,15 +185,16 @@ Actions: create (name), update (lane_id), delete (lane_id)`,
 			Name: "manage_milestone",
 			Description: `Create, update, or delete a milestone on a roadmap.
 
-Use when: "Add launch milestone", "Move demo date", "Delete milestone"
-Actions: create (name+date), update (milestone_id), delete (milestone_id)`,
+USE WHEN: "Add launch milestone", "Move demo date", "Delete milestone"
+Actions: create (title+date), update (milestone_id), delete (milestone_id)
+FAILS WHEN: create without title or date, update/delete without milestone_id (get IDs from get_roadmap_milestones), date not in YYYY-MM-DD format.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
 					"action":       {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
 					"roadmap_id":   {Type: "string", Description: "Roadmap ID"},
 					"milestone_id": {Type: "string", Description: "Milestone ID (for update/delete)"},
-					"name":         {Type: "string", Description: "Milestone name"},
+					"title":        {Type: "string", Description: "Milestone title"},
 					"date":         {Type: "string", Description: "YYYY-MM-DD format"},
 				},
 				Required: []string{"action", "roadmap_id"},
@@ -198,7 +210,8 @@ func barTools() []mcp.Tool {
 			Name: "get_bar",
 			Description: `Get bar details including description, links, custom fields.
 
-Use when: "Tell me about this feature", "Bar details"`,
+USE WHEN: "Tell me about this feature", "Bar details"
+FAILS WHEN: bar_id not found (get valid IDs from get_roadmap_bars).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -211,7 +224,8 @@ Use when: "Tell me about this feature", "Bar details"`,
 			Name: "get_bar_children",
 			Description: `Get child bars nested under a parent bar.
 
-Use when: "Show sub-tasks", "Child items", "Break down this feature"`,
+USE WHEN: "Show sub-tasks", "Child items", "Break down this feature"
+FAILS WHEN: bar_id not found. Returns empty list if bar has no children (not all bars are containers).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -224,7 +238,9 @@ Use when: "Show sub-tasks", "Child items", "Break down this feature"`,
 			Name: "get_bar_comments",
 			Description: `Get comments on a bar.
 
-Use when: "Show comments", "What's the feedback?"`,
+USE WHEN: "Show comments", "What's the feedback on this bar?"
+For roadmap-level comments, use get_roadmap_comments instead.
+FAILS WHEN: bar_id not found.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -237,7 +253,8 @@ Use when: "Show comments", "What's the feedback?"`,
 			Name: "get_bar_connections",
 			Description: `Get bar dependencies (what blocks what).
 
-Use when: "What depends on this?", "Show dependencies"`,
+USE WHEN: "What depends on this?", "Show dependencies"
+FAILS WHEN: bar_id not found. Returns empty list if bar has no connections.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -250,7 +267,8 @@ Use when: "What depends on this?", "Show dependencies"`,
 			Name: "get_bar_links",
 			Description: `Get external links on a bar (Jira, docs, designs).
 
-Use when: "What's linked?", "Show Jira tickets"`,
+USE WHEN: "What's linked?", "Show Jira tickets"
+FAILS WHEN: bar_id not found. Returns empty list if bar has no external links.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -263,8 +281,9 @@ Use when: "What's linked?", "Show Jira tickets"`,
 			Name: "manage_bar",
 			Description: `Create, update, or delete a bar on a roadmap.
 
-Use when: "Add feature", "Update dates", "Delete item", "Change color"
-Actions: create (roadmap_id+lane_id+name), update (bar_id), delete (bar_id)`,
+USE WHEN: "Add feature", "Update dates", "Delete item", "Change color"
+Actions: create (roadmap_id+lane_id+name), update (bar_id), delete (bar_id)
+FAILS WHEN: create without roadmap_id, lane_id, or name (all three required). Update/delete without bar_id. Use get_roadmap_legends for valid legend_id values. WARNING: delete is permanent and cannot be undone.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -273,8 +292,8 @@ Actions: create (roadmap_id+lane_id+name), update (bar_id), delete (bar_id)`,
 					"roadmap_id":             {Type: "string", Description: "Roadmap ID (for create)"},
 					"lane_id":                {Type: "string", Description: "Lane ID (for create; update to move)"},
 					"name":                   {Type: "string", Description: "Bar name"},
-					"start_date":             {Type: "string", Description: "YYYY-MM-DD"},
-					"end_date":               {Type: "string", Description: "YYYY-MM-DD"},
+					"starts_on":              {Type: "string", Description: "Start date YYYY-MM-DD"},
+					"ends_on":                {Type: "string", Description: "End date YYYY-MM-DD"},
 					"description":            {Type: "string", Description: "Description (markdown)"},
 					"legend_id":              {Type: "string", Description: "Color from get_roadmap_legends"},
 					"percent_done":           {Type: "integer", Description: "Progress 0-100"},
@@ -292,25 +311,12 @@ Actions: create (roadmap_id+lane_id+name), update (bar_id), delete (bar_id)`,
 			},
 		},
 		{
-			Name: "manage_bar_comment",
-			Description: `Add a comment to a bar.
-
-Use when: "Add comment", "Leave feedback"`,
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"bar_id": {Type: "string", Description: "Bar ID"},
-					"body":   {Type: "string", Description: "Comment text"},
-				},
-				Required: []string{"bar_id", "body"},
-			},
-		},
-		{
 			Name: "manage_bar_connection",
 			Description: `Create or delete dependency between bars.
 
-Use when: "Link features", "Add dependency", "Remove dependency"
-Actions: create (target_bar_id), delete (connection_id)`,
+USE WHEN: "Link features", "Add dependency", "Remove dependency"
+Actions: create (target_bar_id), delete (connection_id)
+FAILS WHEN: create without target_bar_id, delete without connection_id (get IDs from get_bar_connections).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -324,16 +330,17 @@ Actions: create (target_bar_id), delete (connection_id)`,
 		},
 		{
 			Name: "manage_bar_link",
-			Description: `Create, update, or delete external link on a bar.
+			Description: `Create or delete external link on a bar.
 
-Use when: "Link Jira ticket", "Add design doc", "Update URL"
-Actions: create (url), update (link_id), delete (link_id)`,
+USE WHEN: "Link Jira ticket", "Add design doc", "Remove link"
+Actions: create (url), delete (link_id)
+FAILS WHEN: create without url, delete without link_id (get IDs from get_bar_links). Note: update not available via API; delete and re-create instead.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
-					"action":  {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
+					"action":  {Type: "string", Description: "create or delete", Enum: []string{"create", "delete"}},
 					"bar_id":  {Type: "string", Description: "Bar ID"},
-					"link_id": {Type: "string", Description: "Link ID (for update/delete)"},
+					"link_id": {Type: "string", Description: "Link ID (for delete)"},
 					"url":     {Type: "string", Description: "URL to link"},
 					"name":    {Type: "string", Description: "Display name"},
 				},
@@ -350,7 +357,8 @@ func objectiveTools() []mcp.Tool {
 			Name: "list_objectives",
 			Description: `List all OKR objectives. START HERE for OKRs.
 
-Use when: "Show OKRs", "What are our objectives?"`,
+USE WHEN: "Show OKRs", "What are our objectives?"
+FAILS WHEN: API token invalid. Returns empty list if no objectives exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -360,7 +368,8 @@ Use when: "Show OKRs", "What are our objectives?"`,
 			Name: "get_objective",
 			Description: `Get objective details with key results.
 
-Use when: "Tell me about objective X", "OKR progress"`,
+USE WHEN: "Tell me about objective X", "OKR progress"
+FAILS WHEN: objective_id not found (get valid IDs from list_objectives).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -373,7 +382,8 @@ Use when: "Tell me about objective X", "OKR progress"`,
 			Name: "list_key_results",
 			Description: `List key results for an objective.
 
-Use when: "What are the KRs?", "Show metrics"`,
+USE WHEN: "What are the KRs?", "Show metrics"
+FAILS WHEN: objective_id not found (use list_objectives).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -386,7 +396,8 @@ Use when: "What are the KRs?", "Show metrics"`,
 			Name: "get_key_result",
 			Description: `Get key result details.
 
-Use when: "Tell me about this KR", "KR progress"`,
+USE WHEN: "Tell me about this KR", "KR progress"
+FAILS WHEN: objective_id or key_result_id not found (use list_key_results to get valid KR IDs).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -400,8 +411,9 @@ Use when: "Tell me about this KR", "KR progress"`,
 			Name: "manage_objective",
 			Description: `Create, update, or delete an objective.
 
-Use when: "Add Q1 objective", "Update objective", "Delete OKR"
-Actions: create (name), update (objective_id), delete (objective_id)`,
+USE WHEN: "Add Q1 objective", "Update objective", "Delete OKR"
+Actions: create (name), update (objective_id), delete (objective_id)
+FAILS WHEN: create without name, update/delete without objective_id. WARNING: delete also removes all key results under this objective.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -418,8 +430,9 @@ Actions: create (name), update (objective_id), delete (objective_id)`,
 			Name: "manage_key_result",
 			Description: `Create, update, or delete a key result.
 
-Use when: "Add KR", "Update progress", "Delete KR"
-Actions: create (name+target), update (key_result_id), delete (key_result_id)`,
+USE WHEN: "Add KR", "Update progress", "Delete KR"
+Actions: create (name+target), update (key_result_id), delete (key_result_id)
+FAILS WHEN: create without name or target_value, update/delete without key_result_id (use list_key_results).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -443,7 +456,8 @@ func ideaTools() []mcp.Tool {
 			Name: "list_ideas",
 			Description: `List all ideas in discovery pipeline. START HERE for ideas.
 
-Use when: "Show customer feedback", "What ideas do we have?"`,
+USE WHEN: "Show customer feedback", "What ideas do we have?"
+FAILS WHEN: API token invalid. Returns empty list if no ideas exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -453,7 +467,8 @@ Use when: "Show customer feedback", "What ideas do we have?"`,
 			Name: "get_idea",
 			Description: `Get idea details including description and metadata.
 
-Use when: "Tell me about this idea", "Full request details"`,
+USE WHEN: "Tell me about this idea", "Full request details"
+FAILS WHEN: idea_id not found (get valid IDs from list_ideas).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -463,36 +478,11 @@ Use when: "Tell me about this idea", "Full request details"`,
 			},
 		},
 		{
-			Name: "get_idea_customers",
-			Description: `Get customers who requested an idea.
-
-Use when: "Who requested this?", "Which customers want this?"`,
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"idea_id": {Type: "string", Description: "Idea ID"},
-				},
-				Required: []string{"idea_id"},
-			},
-		},
-		{
-			Name: "get_idea_tags",
-			Description: `Get tags on an idea.
-
-Use when: "What tags does this have?", "How is this categorized?"`,
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"idea_id": {Type: "string", Description: "Idea ID"},
-				},
-				Required: []string{"idea_id"},
-			},
-		},
-		{
 			Name: "list_opportunities",
 			Description: `List all opportunities. START HERE for discovery.
 
-Use when: "Show opportunities", "Discovery pipeline"`,
+USE WHEN: "Show opportunities", "Discovery pipeline"
+FAILS WHEN: API token invalid. Returns empty list if no opportunities exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -502,7 +492,8 @@ Use when: "Show opportunities", "Discovery pipeline"`,
 			Name: "get_opportunity",
 			Description: `Get opportunity details with linked ideas.
 
-Use when: "Tell me about this opportunity"`,
+USE WHEN: "Tell me about this opportunity"
+FAILS WHEN: opportunity_id not found (get valid IDs from list_opportunities).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -515,7 +506,8 @@ Use when: "Tell me about this opportunity"`,
 			Name: "list_idea_forms",
 			Description: `List idea submission forms.
 
-Use when: "Show feedback forms", "What forms exist?"`,
+USE WHEN: "Show feedback forms", "What forms exist?"
+FAILS WHEN: API token invalid.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -525,7 +517,8 @@ Use when: "Show feedback forms", "What forms exist?"`,
 			Name: "get_idea_form",
 			Description: `Get idea form details with fields.
 
-Use when: "Show form fields", "What does this form collect?"`,
+USE WHEN: "Show form fields", "What does this form collect?"
+FAILS WHEN: form_id not found (get valid IDs from list_idea_forms).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -538,7 +531,8 @@ Use when: "Show form fields", "What does this form collect?"`,
 			Name: "list_all_customers",
 			Description: `List all customers across ideas.
 
-Use when: "Who are our customers?", "All feedback sources"`,
+USE WHEN: "Who are our customers?", "All feedback sources"
+For customers linked to a specific idea, use get_idea_customers instead.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -548,7 +542,8 @@ Use when: "Who are our customers?", "All feedback sources"`,
 			Name: "list_all_tags",
 			Description: `List all tags used across ideas.
 
-Use when: "What tags exist?", "Show categories"`,
+USE WHEN: "What tags exist?", "Show categories"
+For tags on a specific idea, use get_idea_tags instead.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -558,8 +553,9 @@ Use when: "What tags exist?", "Show categories"`,
 			Name: "manage_idea",
 			Description: `Create or update an idea. Note: delete not available via API.
 
-Use when: "Add idea", "Update idea status"
-Actions: create (title), update (idea_id)`,
+USE WHEN: "Add idea", "Update idea status"
+Actions: create (title), update (idea_id)
+FAILS WHEN: create without title, update without idea_id. Note: delete is not available via the ProductPlan API; archive ideas by updating status instead.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -573,54 +569,20 @@ Actions: create (title), update (idea_id)`,
 			},
 		},
 		{
-			Name: "manage_idea_customer",
-			Description: `Add or remove customer from an idea.
-
-Use when: "Add customer to idea", "Remove customer"
-Actions: add (name), remove (customer_id)`,
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"action":      {Type: "string", Description: "add or remove", Enum: []string{"add", "remove"}},
-					"idea_id":     {Type: "string", Description: "Idea ID"},
-					"customer_id": {Type: "string", Description: "Customer ID (for remove)"},
-					"name":        {Type: "string", Description: "Customer name (for add)"},
-					"email":       {Type: "string", Description: "Customer email (for add)"},
-				},
-				Required: []string{"action", "idea_id"},
-			},
-		},
-		{
-			Name: "manage_idea_tag",
-			Description: `Add or remove tag from an idea.
-
-Use when: "Tag as mobile", "Remove enterprise tag"
-Actions: add (name), remove (tag_id)`,
-			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"action":  {Type: "string", Description: "add or remove", Enum: []string{"add", "remove"}},
-					"idea_id": {Type: "string", Description: "Idea ID"},
-					"tag_id":  {Type: "string", Description: "Tag ID (for remove)"},
-					"name":    {Type: "string", Description: "Tag name (for add)"},
-				},
-				Required: []string{"action", "idea_id"},
-			},
-		},
-		{
 			Name: "manage_opportunity",
-			Description: `Create, update, or delete an opportunity.
+			Description: `Create or update an opportunity. Note: delete not available via API.
 
-Use when: "Create opportunity", "Update problem", "Delete"
-Actions: create (problem_statement), update (opportunity_id), delete (opportunity_id)`,
+USE WHEN: "Create opportunity", "Update problem"
+Actions: create (problem_statement), update (opportunity_id)
+FAILS WHEN: create without problem_statement, update without opportunity_id (get IDs from list_opportunities). Note: delete is not available via the ProductPlan API; archive opportunities by updating workflow_status instead.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
-					"action":            {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
-					"opportunity_id":    {Type: "string", Description: "Opportunity ID (for update/delete)"},
+					"action":            {Type: "string", Description: "create or update", Enum: []string{"create", "update"}},
+					"opportunity_id":    {Type: "string", Description: "Opportunity ID (for update)"},
 					"problem_statement": {Type: "string", Description: "Problem statement (title)"},
 					"description":       {Type: "string", Description: "Description"},
-					"workflow_status":   {Type: "string", Description: "draft, in_discovery, validated"},
+					"workflow_status":   {Type: "string", Description: "draft, in_discovery, validated, invalidated, completed"},
 				},
 				Required: []string{"action"},
 			},
@@ -635,7 +597,8 @@ func launchTools() []mcp.Tool {
 			Name: "list_launches",
 			Description: `List all launches. START HERE for launches.
 
-Use when: "Show launches", "Release schedule"`,
+USE WHEN: "Show launches", "Release schedule"
+FAILS WHEN: API token invalid. Returns empty list if no launches exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -645,7 +608,8 @@ Use when: "Show launches", "Release schedule"`,
 			Name: "get_launch",
 			Description: `Get launch details with checklist.
 
-Use when: "Tell me about this launch", "Launch readiness"`,
+USE WHEN: "Tell me about this launch", "Launch readiness"
+FAILS WHEN: launch_id not found (get valid IDs from list_launches).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -658,8 +622,9 @@ Use when: "Tell me about this launch", "Launch readiness"`,
 			Name: "manage_launch",
 			Description: `Create, update, or delete a launch.
 
-Use when: "Create launch", "Update date", "Delete launch"
-Actions: create (name+date), update (launch_id), delete (launch_id)`,
+USE WHEN: "Create launch", "Update date", "Delete launch"
+Actions: create (name+date), update (launch_id), delete (launch_id)
+FAILS WHEN: create without name or date, update/delete without launch_id, date not in YYYY-MM-DD format. WARNING: delete removes the launch and all its sections and tasks.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -676,8 +641,9 @@ Actions: create (name+date), update (launch_id), delete (launch_id)`,
 			Name: "get_launch_sections",
 			Description: `Get checklist sections for a launch.
 
-Use when: "Show sections", "Checklist categories"
-For one specific section, use get_launch_section.`,
+USE WHEN: "Show sections", "Checklist categories"
+For one specific section, use get_launch_section.
+FAILS WHEN: launch_id not found.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -690,8 +656,9 @@ For one specific section, use get_launch_section.`,
 			Name: "get_launch_section",
 			Description: `Get a specific checklist section by ID.
 
-Use when: "Section details"
-For all sections, use get_launch_sections.`,
+USE WHEN: "Section details"
+For all sections, use get_launch_sections.
+FAILS WHEN: launch_id or section_id not found.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -705,8 +672,9 @@ For all sections, use get_launch_sections.`,
 			Name: "manage_launch_section",
 			Description: `Create, update, or delete a checklist section.
 
-Use when: "Add Marketing section", "Rename section", "Delete section"
-Actions: create (name), update (section_id), delete (section_id)`,
+USE WHEN: "Add Marketing section", "Rename section", "Delete section"
+Actions: create (name), update (section_id), delete (section_id)
+FAILS WHEN: create without name, update/delete without section_id (get IDs from get_launch_sections). WARNING: delete removes the section and all tasks in it.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -722,8 +690,9 @@ Actions: create (name), update (section_id), delete (section_id)`,
 			Name: "get_launch_tasks",
 			Description: `Get all tasks for a launch.
 
-Use when: "Show tasks", "What needs to be done?"
-For one specific task, use get_launch_task.`,
+USE WHEN: "Show tasks", "What needs to be done?"
+For one specific task, use get_launch_task.
+FAILS WHEN: launch_id not found.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -736,8 +705,9 @@ For one specific task, use get_launch_task.`,
 			Name: "get_launch_task",
 			Description: `Get a specific launch task by ID.
 
-Use when: "Task details", "Task status"
-For all tasks, use get_launch_tasks.`,
+USE WHEN: "Task details", "Task status"
+For all tasks, use get_launch_tasks.
+FAILS WHEN: launch_id or task_id not found.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -751,20 +721,21 @@ For all tasks, use get_launch_tasks.`,
 			Name: "manage_launch_task",
 			Description: `Create, update, or delete a launch task.
 
-Use when: "Add task", "Mark complete", "Assign task", "Delete task"
-Actions: create (name+section_id), update (task_id), delete (task_id)`,
+USE WHEN: "Add task", "Mark complete", "Assign task", "Delete task"
+Actions: create (name+section_id), update (task_id), delete (task_id)
+FAILS WHEN: create without name or section_id, update/delete without task_id (get IDs from get_launch_tasks). Use list_users to get valid assigned_user_id values.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
-					"action":      {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
-					"launch_id":   {Type: "string", Description: "Launch ID"},
-					"task_id":     {Type: "string", Description: "Task ID (for update/delete)"},
-					"section_id":  {Type: "string", Description: "Section ID (for create)"},
-					"name":        {Type: "string", Description: "Task name"},
-					"description": {Type: "string", Description: "Task description"},
-					"due_date":    {Type: "string", Description: "YYYY-MM-DD"},
-					"assignee_id": {Type: "string", Description: "User ID to assign"},
-					"completed":   {Type: "boolean", Description: "Is completed"},
+					"action":           {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
+					"launch_id":        {Type: "string", Description: "Launch ID"},
+					"task_id":          {Type: "string", Description: "Task ID (for update/delete)"},
+					"section_id":       {Type: "string", Description: "Section ID (for create)"},
+					"name":             {Type: "string", Description: "Task name"},
+					"description":      {Type: "string", Description: "Task description"},
+					"due_date":         {Type: "string", Description: "YYYY-MM-DD"},
+					"assigned_user_id": {Type: "string", Description: "User ID to assign (get from list_users)"},
+					"status":           {Type: "string", Description: "Task status", Enum: []string{"to_do", "in_progress", "completed", "blocked"}},
 				},
 				Required: []string{"action", "launch_id"},
 			},
@@ -779,7 +750,8 @@ func utilityTools() []mcp.Tool {
 			Name: "check_status",
 			Description: `Check ProductPlan API status and authentication.
 
-Use when: "Is ProductPlan connected?", "Check API"`,
+USE WHEN: "Is ProductPlan connected?", "Check API"
+For MCP server internals (cache stats, rate limits), use health_check instead.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -789,7 +761,9 @@ Use when: "Is ProductPlan connected?", "Check API"`,
 			Name: "health_check",
 			Description: `Check MCP server health and cache stats.
 
-Use when: "Server status", "Rate limits", "Diagnose issues"`,
+USE WHEN: "Server status", "Rate limits", "Diagnose issues"
+For API connectivity only, use check_status instead.
+FAILS WHEN: deep=true and API is unreachable. Basic health (deep=false) always succeeds if server is running.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
@@ -801,7 +775,8 @@ Use when: "Server status", "Rate limits", "Diagnose issues"`,
 			Name: "list_users",
 			Description: `List all users in account.
 
-Use when: "Who has access?", "Team members"`,
+USE WHEN: "Who has access?", "Team members"
+Use user IDs from this tool when assigning launch tasks via manage_launch_task.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -811,7 +786,8 @@ Use when: "Who has access?", "Team members"`,
 			Name: "list_teams",
 			Description: `List all teams in account.
 
-Use when: "What teams exist?", "Team structure"`,
+USE WHEN: "What teams exist?", "Team structure"
+For individual user details, use list_users instead.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},

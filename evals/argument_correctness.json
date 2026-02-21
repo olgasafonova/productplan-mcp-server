@@ -1,7 +1,7 @@
 {
   "name": "ProductPlan MCP Argument Correctness",
   "description": "Tests for correct argument extraction in ProductPlan tool calls",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tests": [
     {
       "id": "roadmap-id-1",
@@ -42,8 +42,8 @@
         "roadmap_id": "123",
         "lane_id": "456",
         "name": "API Integration",
-        "start_date": "2024-01-15",
-        "end_date": "2024-03-15"
+        "starts_on": "2024-01-15",
+        "ends_on": "2024-03-15"
       },
       "required_args": ["action"],
       "category": "create"
@@ -55,7 +55,7 @@
       "expected_args": {
         "action": "update",
         "bar_id": "789",
-        "end_date": "2024-06-30"
+        "ends_on": "2024-06-30"
       },
       "required_args": ["action"],
       "category": "update"
@@ -70,17 +70,6 @@
       },
       "required_args": ["action"],
       "category": "delete"
-    },
-    {
-      "id": "bar-comment-1",
-      "tool": "manage_bar_comment",
-      "prompt": "Add comment 'Needs review' to bar 123",
-      "expected_args": {
-        "bar_id": "123",
-        "body": "Needs review"
-      },
-      "required_args": ["bar_id", "body"],
-      "category": "create"
     },
     {
       "id": "bar-connection-create-1",
@@ -164,7 +153,7 @@
       "expected_args": {
         "action": "create",
         "roadmap_id": "123",
-        "name": "Q2 Release",
+        "title": "Q2 Release",
         "date": "2024-06-30"
       },
       "required_args": ["action", "roadmap_id"],
@@ -246,43 +235,6 @@
       "category": "create"
     },
     {
-      "id": "idea-customer-add-1",
-      "tool": "manage_idea_customer",
-      "prompt": "Add customer Acme Corp with email contact@acme.com to idea 456",
-      "expected_args": {
-        "action": "add",
-        "idea_id": "456",
-        "name": "Acme Corp",
-        "email": "contact@acme.com"
-      },
-      "required_args": ["action", "idea_id"],
-      "category": "create"
-    },
-    {
-      "id": "idea-customer-remove-1",
-      "tool": "manage_idea_customer",
-      "prompt": "Remove customer 789 from idea 456",
-      "expected_args": {
-        "action": "remove",
-        "idea_id": "456",
-        "customer_id": "789"
-      },
-      "required_args": ["action", "idea_id"],
-      "category": "delete"
-    },
-    {
-      "id": "idea-tag-add-1",
-      "tool": "manage_idea_tag",
-      "prompt": "Add tag 'high-priority' to idea 123",
-      "expected_args": {
-        "action": "add",
-        "idea_id": "123",
-        "name": "high-priority"
-      },
-      "required_args": ["action", "idea_id"],
-      "category": "create"
-    },
-    {
       "id": "opportunity-create-1",
       "tool": "manage_opportunity",
       "prompt": "Create opportunity with problem 'Enterprise customers need SSO' in draft status",
@@ -339,22 +291,11 @@
         "action": "update",
         "bar_id": "123",
         "name": "New Name",
-        "start_date": "2024-01-01",
-        "end_date": "2024-12-31"
+        "starts_on": "2024-01-01",
+        "ends_on": "2024-12-31"
       },
       "required_args": ["action"],
       "category": "update"
-    },
-    {
-      "id": "bar-comment-multiline",
-      "tool": "manage_bar_comment",
-      "prompt": "Add comment 'First line. Second line. Third with details: needs review by PM.' to bar 456",
-      "expected_args": {
-        "bar_id": "456",
-        "body": "First line. Second line. Third with details: needs review by PM."
-      },
-      "required_args": ["bar_id", "body"],
-      "category": "create"
     },
     {
       "id": "bar-link-full-url",
@@ -422,26 +363,13 @@
       "category": "create"
     },
     {
-      "id": "idea-customer-full",
-      "tool": "manage_idea_customer",
-      "prompt": "Add customer 'Acme Corporation Inc.' with email cto@acme.corp.com to idea 123",
-      "expected_args": {
-        "action": "add",
-        "idea_id": "123",
-        "name": "Acme Corporation Inc.",
-        "email": "cto@acme.corp.com"
-      },
-      "required_args": ["action", "idea_id"],
-      "category": "create"
-    },
-    {
       "id": "milestone-date-format",
       "tool": "manage_milestone",
       "prompt": "Create milestone 'Public Launch' on 2025-06-15 for roadmap 456",
       "expected_args": {
         "action": "create",
         "roadmap_id": "456",
-        "name": "Public Launch",
+        "title": "Public Launch",
         "date": "2025-06-15"
       },
       "required_args": ["action", "roadmap_id"],
@@ -469,19 +397,6 @@
       },
       "required_args": [],
       "category": "status"
-    },
-    {
-      "id": "bar-link-update",
-      "tool": "manage_bar_link",
-      "prompt": "Update link 999 on bar 456 to change URL to https://github.com/org/repo/issues/100",
-      "expected_args": {
-        "action": "update",
-        "bar_id": "456",
-        "link_id": "999",
-        "url": "https://github.com/org/repo/issues/100"
-      },
-      "required_args": ["action", "bar_id"],
-      "category": "update"
     },
     {
       "id": "opportunity-full-create",

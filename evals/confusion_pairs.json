@@ -1,7 +1,7 @@
 {
   "name": "ProductPlan MCP Confusion Pairs",
   "description": "Tests for distinguishing commonly confused ProductPlan tools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "pairs": [
     {
       "tools": ["list_roadmaps", "get_roadmap"],
@@ -82,32 +82,6 @@
       ]
     },
     {
-      "tools": ["get_bar_comments", "manage_bar_comment"],
-      "distinction": "get_bar_comments reads existing comments. manage_bar_comment adds a new comment.",
-      "tests": [
-        {
-          "prompt": "Show me the comments on bar 123",
-          "expected_tool": "get_bar_comments",
-          "rationale": "Reading existing comments"
-        },
-        {
-          "prompt": "What feedback has been left on this item?",
-          "expected_tool": "get_bar_comments",
-          "rationale": "Viewing discussion"
-        },
-        {
-          "prompt": "Add a comment to bar 456",
-          "expected_tool": "manage_bar_comment",
-          "rationale": "Creating a new comment"
-        },
-        {
-          "prompt": "Leave feedback on this roadmap item",
-          "expected_tool": "manage_bar_comment",
-          "rationale": "Writing a comment"
-        }
-      ]
-    },
-    {
       "tools": ["get_bar_connections", "manage_bar_connection"],
       "distinction": "get_bar_connections reads existing dependencies. manage_bar_connection creates or deletes dependencies.",
       "tests": [
@@ -135,7 +109,7 @@
     },
     {
       "tools": ["get_bar_links", "manage_bar_link"],
-      "distinction": "get_bar_links reads external URLs attached to a bar. manage_bar_link adds, updates, or removes links.",
+      "distinction": "get_bar_links reads external URLs attached to a bar. manage_bar_link adds or removes links.",
       "tests": [
         {
           "prompt": "What links are attached to bar 789?",
@@ -239,7 +213,7 @@
     },
     {
       "tools": ["manage_idea", "manage_opportunity"],
-      "distinction": "manage_idea creates/updates raw ideas. manage_opportunity manages validated opportunities.",
+      "distinction": "manage_idea creates/updates raw ideas. manage_opportunity creates or updates validated opportunities (delete not available via API).",
       "tests": [
         {
           "prompt": "Create a new idea from customer feedback",
@@ -257,9 +231,9 @@
           "rationale": "Creating validated opportunity"
         },
         {
-          "prompt": "Delete opportunity 789",
+          "prompt": "Update opportunity 789 workflow status",
           "expected_tool": "manage_opportunity",
-          "rationale": "Removing an opportunity"
+          "rationale": "Updating an opportunity"
         }
       ]
     },
@@ -364,32 +338,6 @@
           "prompt": "Update the current value to 85%",
           "expected_tool": "manage_key_result",
           "rationale": "Updating a key result"
-        }
-      ]
-    },
-    {
-      "tools": ["get_idea_tags", "manage_idea_tag"],
-      "distinction": "get_idea_tags reads tags on an idea. manage_idea_tag adds or removes tags.",
-      "tests": [
-        {
-          "prompt": "What labels are on idea 456?",
-          "expected_tool": "get_idea_tags",
-          "rationale": "Reading existing tags"
-        },
-        {
-          "prompt": "Show me the categories for this idea",
-          "expected_tool": "get_idea_tags",
-          "rationale": "Viewing tags as categories"
-        },
-        {
-          "prompt": "Tag idea 123 as high-priority",
-          "expected_tool": "manage_idea_tag",
-          "rationale": "Adding a tag"
-        },
-        {
-          "prompt": "Remove the deprecated tag from this idea",
-          "expected_tool": "manage_idea_tag",
-          "rationale": "Removing a tag"
         }
       ]
     }

@@ -286,20 +286,6 @@ func TestGetBarComments(t *testing.T) {
 	}
 }
 
-func TestCreateBarComment(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(201)
-		w.Write([]byte(`{"id": 1, "text": "New comment"}`))
-	}))
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.CreateBarComment(context.Background(), "1", map[string]any{"text": "New comment"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
 // ============================================================================
 // Bar Connections Tests
 // ============================================================================
@@ -373,20 +359,6 @@ func TestCreateBarLink(t *testing.T) {
 
 	client := testClient(t, server)
 	_, err := client.CreateBarLink(context.Background(), "1", map[string]any{"url": "https://example.com"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestUpdateBarLink(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(200)
-		w.Write([]byte(`{"id": 1}`))
-	}))
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.UpdateBarLink(context.Background(), "1", "10", map[string]any{"url": "https://updated.com"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -695,94 +667,6 @@ func TestUpdateIdea(t *testing.T) {
 }
 
 // ============================================================================
-// Idea Customers Tests
-// ============================================================================
-
-func TestGetIdeaCustomers(t *testing.T) {
-	server := testServer(t, map[string]string{
-		"/discovery/ideas/1/customers": `[{"id": 1}]`,
-	})
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.GetIdeaCustomers(context.Background(), "1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestAddIdeaCustomer(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(201)
-		w.Write([]byte(`{"id": 1}`))
-	}))
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.AddIdeaCustomer(context.Background(), "1", map[string]any{"customer_id": 100})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRemoveIdeaCustomer(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(204)
-	}))
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.RemoveIdeaCustomer(context.Background(), "1", "100")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// ============================================================================
-// Idea Tags Tests
-// ============================================================================
-
-func TestGetIdeaTags(t *testing.T) {
-	server := testServer(t, map[string]string{
-		"/discovery/ideas/1/tags": `[{"id": 1}]`,
-	})
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.GetIdeaTags(context.Background(), "1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestAddIdeaTag(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(201)
-		w.Write([]byte(`{"id": 1}`))
-	}))
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.AddIdeaTag(context.Background(), "1", map[string]any{"tag_id": 10})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestRemoveIdeaTag(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(204)
-	}))
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.RemoveIdeaTag(context.Background(), "1", "10")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// ============================================================================
 // Opportunities Tests
 // ============================================================================
 
@@ -841,19 +725,6 @@ func TestUpdateOpportunity(t *testing.T) {
 
 	client := testClient(t, server)
 	_, err := client.UpdateOpportunity(context.Background(), "1", map[string]any{"status": "validated"})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-func TestDeleteOpportunity(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(204)
-	}))
-	defer server.Close()
-
-	client := testClient(t, server)
-	_, err := client.DeleteOpportunity(context.Background(), "1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -27,32 +27,6 @@ func getIdeaHandler(client *api.Client) mcp.Handler {
 	})
 }
 
-func getIdeaCustomersHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetIdeaArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err := a.Validate(); err != nil {
-			return nil, err
-		}
-		return client.GetIdeaCustomers(ctx, a.IdeaID)
-	})
-}
-
-func getIdeaTagsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetIdeaArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err := a.Validate(); err != nil {
-			return nil, err
-		}
-		return client.GetIdeaTags(ctx, a.IdeaID)
-	})
-}
-
 func listOpportunitiesHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
 		return client.ListOpportunities(ctx)
@@ -140,48 +114,6 @@ func manageIdeaHandler(client *api.Client) mcp.Handler {
 	})
 }
 
-func manageIdeaCustomerHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageIdeaCustomerArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err := a.Validate(); err != nil {
-			return nil, err
-		}
-
-		switch a.Action {
-		case "add":
-			payload := map[string]any{"customer_id": a.CustomerID}
-			return client.AddIdeaCustomer(ctx, a.IdeaID, payload)
-		case "remove":
-			return client.RemoveIdeaCustomer(ctx, a.IdeaID, a.CustomerID)
-		}
-		return nil, nil
-	})
-}
-
-func manageIdeaTagHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageIdeaTagArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err := a.Validate(); err != nil {
-			return nil, err
-		}
-
-		switch a.Action {
-		case "add":
-			payload := map[string]any{"tag_id": a.TagID}
-			return client.AddIdeaTag(ctx, a.IdeaID, payload)
-		case "remove":
-			return client.RemoveIdeaTag(ctx, a.IdeaID, a.TagID)
-		}
-		return nil, nil
-	})
-}
-
 func manageOpportunityHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
 		a, err := ParseArgs[ManageOpportunityArgs](args)
@@ -214,8 +146,6 @@ func manageOpportunityHandler(client *api.Client) mcp.Handler {
 				payload["workflow_status"] = a.WorkflowStatus
 			}
 			return client.UpdateOpportunity(ctx, a.OpportunityID, payload)
-		case "delete":
-			return client.DeleteOpportunity(ctx, a.OpportunityID)
 		}
 		return nil, nil
 	})

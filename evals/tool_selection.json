@@ -1,7 +1,7 @@
 {
   "name": "ProductPlan MCP Tool Selection",
   "description": "Tests for correct tool selection across ProductPlan operations",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "tests": [
     {
       "id": "roadmap-list-1",
@@ -221,23 +221,16 @@
       "difficulty": "easy"
     },
     {
-      "id": "idea-customers-1",
-      "prompt": "Who requested idea 789?",
-      "expected_tool": "get_idea_customers",
+      "id": "all-customers-1",
+      "prompt": "Show me all customers in discovery",
+      "expected_tool": "list_all_customers",
       "category": "ideas",
-      "difficulty": "medium"
+      "difficulty": "easy"
     },
     {
-      "id": "idea-customers-2",
-      "prompt": "Show customers associated with this idea",
-      "expected_tool": "get_idea_customers",
-      "category": "ideas",
-      "difficulty": "medium"
-    },
-    {
-      "id": "idea-tags-1",
-      "prompt": "What tags are on idea 123?",
-      "expected_tool": "get_idea_tags",
+      "id": "all-tags-1",
+      "prompt": "What tags are available for ideas?",
+      "expected_tool": "list_all_tags",
       "category": "ideas",
       "difficulty": "easy"
     },
@@ -330,13 +323,6 @@
       "prompt": "Delete bar 789",
       "expected_tool": "manage_bar",
       "category": "delete",
-      "difficulty": "easy"
-    },
-    {
-      "id": "bar-comment-1",
-      "prompt": "Add a comment to bar 123",
-      "expected_tool": "manage_bar_comment",
-      "category": "create",
       "difficulty": "easy"
     },
     {
@@ -438,34 +424,6 @@
       "difficulty": "easy"
     },
     {
-      "id": "idea-customer-1",
-      "prompt": "Add customer Acme Corp to idea 456",
-      "expected_tool": "manage_idea_customer",
-      "category": "create",
-      "difficulty": "medium"
-    },
-    {
-      "id": "idea-customer-2",
-      "prompt": "Remove customer from idea 789",
-      "expected_tool": "manage_idea_customer",
-      "category": "delete",
-      "difficulty": "medium"
-    },
-    {
-      "id": "idea-tag-1",
-      "prompt": "Add tag 'urgent' to idea 123",
-      "expected_tool": "manage_idea_tag",
-      "category": "create",
-      "difficulty": "easy"
-    },
-    {
-      "id": "idea-tag-2",
-      "prompt": "Remove tag from idea 456",
-      "expected_tool": "manage_idea_tag",
-      "category": "delete",
-      "difficulty": "easy"
-    },
-    {
       "id": "opportunity-create-1",
       "prompt": "Create a new opportunity for enterprise customers",
       "expected_tool": "manage_opportunity",
@@ -477,13 +435,6 @@
       "prompt": "Update opportunity 789 workflow status",
       "expected_tool": "manage_opportunity",
       "category": "update",
-      "difficulty": "easy"
-    },
-    {
-      "id": "opportunity-delete-1",
-      "prompt": "Delete opportunity 456",
-      "expected_tool": "manage_opportunity",
-      "category": "delete",
       "difficulty": "easy"
     },
     {
@@ -614,8 +565,8 @@
     },
     {
       "id": "hard-implicit-2",
-      "prompt": "Who asked for the dark mode feature?",
-      "expected_tool": "get_idea_customers",
+      "prompt": "Who are the customers interested in the dark mode feature?",
+      "expected_tool": "list_all_customers",
       "category": "ideas",
       "difficulty": "hard"
     },
