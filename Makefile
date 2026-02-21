@@ -1,4 +1,4 @@
-.PHONY: build build-all clean test lint vet check-api
+.PHONY: build build-all clean test lint vet check check-api
 
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 BINARY := productplan-mcp-server
@@ -25,6 +25,9 @@ lint:
 # Run go vet
 vet:
 	go vet ./...
+
+# Lint + tests
+check: lint test
 
 # Build for all platforms
 build-all: clean
