@@ -5,6 +5,38 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-02-21
+
+### Breaking Changes
+- **5 tools removed** that called non-existent API endpoints:
+  - `manage_bar_comment` — bar comments are read-only in the API
+  - `get_idea_customers` — per-idea customer endpoint doesn't exist (use `list_all_customers`)
+  - `manage_idea_customer` — per-idea customer mutations don't exist
+  - `get_idea_tags` — per-idea tag endpoint doesn't exist (use `list_all_tags`)
+  - `manage_idea_tag` — per-idea tag mutations don't exist
+- **Field names changed** to match ProductPlan API v2 spec:
+  - `manage_bar`: `start_date` → `starts_on`, `end_date` → `ends_on`
+  - `manage_milestone`: `name` → `title`
+  - `manage_launch_task`: `assignee_id` → `assigned_user_id`, `completed` (bool) → `status` (enum: to_do, in_progress, completed, blocked)
+- **Actions removed** from existing tools:
+  - `manage_bar_link`: removed `update` action (only `create` and `delete`)
+  - `manage_opportunity`: removed `delete` action (only `create` and `update`)
+- Tool count: 52 → 47 (35 read, 12 write)
+
+### Fixed
+- `get_roadmap_legends` now extracts legends from the roadmap response instead of calling non-existent `/roadmaps/{id}/legends` endpoint
+
+### Added
+- Weekly API drift monitoring via GitHub Action (`.github/workflows/api-check.yml`)
+- Integration smoke test for all API endpoints (`go test -tags integration`)
+- `make check` target (lint + tests) and `make check-api` target
+- API endpoint snapshot (`testdata/api-endpoints.json`) for drift detection
+- Panic recovery and ToolAnnotations support
+- Gosec security linter in golangci-lint config
+
+### Changed
+- CI consolidated: `test` and `lint` jobs replaced with single `make check` job
+
 ## [4.11.1] - 2025-01-13
 
 ### Fixed
