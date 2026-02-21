@@ -31,34 +31,6 @@ No coding required. You'll copy a file and paste some settings.
 
 ---
 
-## How it works
-
-```
-┌─────────────────┐      spawns       ┌─────────────────┐      API calls     ┌─────────────────┐
-│   AI Assistant  │ ───────────────── │   MCP Server    │ ─────────────────▶ │   ProductPlan   │
-│ (Claude, Cursor)│ ◀───────────────▶ │   (this binary) │ ◀───────────────── │      API        │
-└─────────────────┘   stdin/stdout    └─────────────────┘     JSON data      └─────────────────┘
-      your computer                        your computer                         cloud
-```
-
-**Why does this need to run on your computer?**
-
-MCP (Model Context Protocol) works through a subprocess model. Your AI assistant doesn't connect to a remote server; it spawns the binary as a local process and communicates via stdin/stdout. This architecture means:
-
-1. **The binary must exist locally** because your AI assistant runs it as a child process
-2. **Your API token stays on your machine**, never passing through third-party servers
-3. **Real-time, synchronous communication** without network latency between AI and the MCP server
-4. **Works offline** for cached data (though ProductPlan API calls still need internet)
-
-When you ask "What's on our Q1 roadmap?", here's what happens:
-
-1. Your AI assistant recognizes it needs ProductPlan data
-2. It sends a structured request to the MCP server process
-3. The binary translates this into ProductPlan API calls
-4. ProductPlan returns JSON data
-5. The binary formats and returns results to your AI
-6. Your AI presents the answer in natural language
-
 ## Quick start (5 minutes)
 
 ### Step 1: Get your ProductPlan API token
@@ -370,6 +342,36 @@ Open your AI assistant and try:
 | **Launch Tasks** | Yes | Yes | Yes | Yes |
 | **Users** | Yes | - | - | - |
 | **Teams** | Yes | - | - | - |
+
+---
+
+## How it works
+
+```
+┌─────────────────┐      spawns       ┌─────────────────┐      API calls     ┌─────────────────┐
+│   AI Assistant  │ ───────────────── │   MCP Server    │ ─────────────────▶ │   ProductPlan   │
+│ (Claude, Cursor)│ ◀───────────────▶ │   (this binary) │ ◀───────────────── │      API        │
+└─────────────────┘   stdin/stdout    └─────────────────┘     JSON data      └─────────────────┘
+      your computer                        your computer                         cloud
+```
+
+**Why does this need to run on your computer?**
+
+MCP (Model Context Protocol) works through a subprocess model. Your AI assistant doesn't connect to a remote server; it spawns the binary as a local process and communicates via stdin/stdout. This architecture means:
+
+1. **The binary must exist locally** because your AI assistant runs it as a child process
+2. **Your API token stays on your machine**, never passing through third-party servers
+3. **Real-time, synchronous communication** without network latency between AI and the MCP server
+4. **Works offline** for cached data (though ProductPlan API calls still need internet)
+
+When you ask "What's on our Q1 roadmap?", here's what happens:
+
+1. Your AI assistant recognizes it needs ProductPlan data
+2. It sends a structured request to the MCP server process
+3. The binary translates this into ProductPlan API calls
+4. ProductPlan returns JSON data
+5. The binary formats and returns results to your AI
+6. Your AI presents the answer in natural language
 
 ---
 
