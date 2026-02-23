@@ -19,7 +19,7 @@ import (
 func TestAPIEndpoints(t *testing.T) {
 	token := os.Getenv("PRODUCTPLAN_API_TOKEN")
 	if token == "" {
-		t.Fatal("PRODUCTPLAN_API_TOKEN environment variable is required")
+		t.Skip("PRODUCTPLAN_API_TOKEN not set, skipping integration tests")
 	}
 
 	client, err := New(Config{
