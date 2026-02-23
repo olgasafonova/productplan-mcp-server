@@ -5,6 +5,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"testing"
@@ -95,4 +96,87 @@ func TestAPIEndpoints(t *testing.T) {
 			t.Errorf("expected 200, got %d", resp.StatusCode)
 		}
 	})
+}
+
+// TestAPIEndpointDiscovery probes candidate endpoints to detect new API additions.
+// Candidates are common REST patterns that ProductPlan might add. Any that return
+// 200 are reported so we can add them to the MCP server.
+func TestAPIEndpointDiscovery(t *testing.T) {
+	token := os.Getenv("PRODUCTPLAN_API_TOKEN")
+	if token == "" {
+		t.Skip("PRODUCTPLAN_API_TOKEN not set, skipping discovery tests")
+	}
+
+	// Load candidates
+	candidateData, err := os.ReadFile("../../testdata/api-candidates.json")
+	if err != nil {
+		t.Fatalf("failed to read api-candidates.json: %v", err)
+	}
+
+	var candidates struct {
+		Candidates []string `json:"candidates"`
+	}
+	if err := json.Unmarshal(candidateData, &candidates); err != nil {
+		t.Fatalf("failed to parse api-candidates.json: %v", err)
+	}
+
+	// Load known endpoints to skip
+	snapshotData, err := os.ReadFile("../../testdata/api-endpoints.json")
+	if err != nil {
+		t.Fatalf("failed to read api-endpoints.json: %v", err)
+	}
+
+	var snapshot struct {
+		Endpoints []struct {
+			Path string `json:"path"`
+		} `json:"endpoints"`
+	}
+	if err := json.Unmarshal(snapshotData, &snapshot); err != nil {
+		t.Fatalf("failed to parse api-endpoints.json: %v", err)
+	}
+
+	known := make(map[string]bool)
+	for _, ep := range snapshot.Endpoints {
+		known[ep.Path] = true
+	}
+
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	baseURL := DefaultBaseURL
+
+	var discovered []string
+
+	for _, path := range candidates.Candidates {
+		if known[path] {
+			continue
+		}
+
+		req, err := http.NewRequest("GET", baseURL+path, nil)
+		if err != nil {
+			t.Logf("skip %s: %v", path, err)
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := httpClient.Do(req)
+		if err != nil {
+			t.Logf("skip %s: %v", path, err)
+			continue
+		}
+		resp.Body.Close()
+
+		if resp.StatusCode == 200 {
+			discovered = append(discovered, path)
+			t.Logf("DISCOVERED: GET %s returned 200", path)
+		}
+	}
+
+	if len(discovered) > 0 {
+		msg := fmt.Sprintf("Found %d new endpoint(s) not in api-endpoints.json:\n", len(discovered))
+		for _, ep := range discovered {
+			msg += fmt.Sprintf("  GET %s\n", ep)
+		}
+		msg += "Add these to testdata/api-endpoints.json and implement in the MCP server."
+		t.Error(msg)
+	}
 }

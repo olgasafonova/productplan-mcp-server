@@ -22,7 +22,7 @@ jobs:
       - name: Run API integration tests
         env:
           PRODUCTPLAN_API_TOKEN: ${{ secrets.PRODUCTPLAN_API_TOKEN }}
-        run: go test -tags integration -run TestAPIEndpoints -v ./internal/api/
+        run: go test -tags integration -run 'TestAPIEndpoints|TestAPIEndpointDiscovery' -v ./internal/api/
 
       - name: Create issue on failure
         if: failure()
