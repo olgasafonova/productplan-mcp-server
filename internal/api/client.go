@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
+	"strings"
 	"time"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/logging"
@@ -43,7 +43,7 @@ func DefaultConfig(token string) Config {
 
 // Client is the ProductPlan API client.
 type Client struct {
-	baseURL     *url.URL
+	baseURL     string
 	token       string
 	httpClient  *http.Client
 	rateLimiter *productplan.AdaptiveRateLimiter
@@ -57,14 +57,9 @@ func New(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("API token is required")
 	}
 
-	baseURL := cfg.BaseURL
+	baseURL := strings.TrimRight(cfg.BaseURL, "/")
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
-	}
-
-	parsed, err := url.Parse(baseURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid base URL: %w", err)
 	}
 
 	timeout := cfg.Timeout
@@ -78,7 +73,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	return &Client{
-		baseURL:     parsed,
+		baseURL:     baseURL,
 		token:       cfg.Token,
 		httpClient:  &http.Client{Timeout: timeout},
 		rateLimiter: productplan.NewAdaptiveRateLimiter(productplan.DefaultRateLimiterConfig()),
@@ -101,8 +96,10 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 		c.rateLimiter.Wait()
 	}
 
-	// Build URL
-	reqURL := c.baseURL.ResolveReference(&url.URL{Path: endpoint})
+	// Build URL by concatenating base URL with endpoint path.
+	// ResolveReference strips the base path when endpoint starts with "/",
+	// so we use simple string concatenation instead.
+	reqURL := c.baseURL + endpoint
 
 	// Prepare request body
 	var reqBody io.Reader
@@ -115,7 +112,7 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 	}
 
 	// Create request
-	req, err := http.NewRequestWithContext(ctx, method, reqURL.String(), reqBody)
+	req, err := http.NewRequestWithContext(ctx, method, reqURL, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

@@ -39,15 +39,6 @@ func TestNewClient(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "invalid base URL",
-			cfg: Config{
-				Token:   "test-token",
-				BaseURL: "://invalid",
-			},
-			wantErr: true,
-			errMsg:  "invalid base URL",
-		},
-		{
 			name: "with custom timeout",
 			cfg: Config{
 				Token:   "test-token",
