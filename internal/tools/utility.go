@@ -10,7 +10,11 @@ import (
 
 func checkStatusHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		return client.CheckStatus(ctx)
+		data, err := client.CheckStatus(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return FormatItem(data, "status", "api")
 	})
 }
 
@@ -22,18 +26,30 @@ func healthCheckHandler(checker HealthChecker) mcp.Handler {
 		}
 		// No validation needed for optional boolean
 		report := checker.Check(ctx, a.Deep)
-		return json.Marshal(report)
+		data, err := json.Marshal(report)
+		if err != nil {
+			return nil, err
+		}
+		return FormatItem(data, "health check", "server")
 	})
 }
 
 func listUsersHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		return client.ListUsers(ctx)
+		data, err := client.ListUsers(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "user")
 	})
 }
 
 func listTeamsHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		return client.ListTeams(ctx)
+		data, err := client.ListTeams(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "team")
 	})
 }

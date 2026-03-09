@@ -39,7 +39,11 @@ func getBarHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetBar(ctx, a.BarID)
+		data, err := client.GetBar(ctx, a.BarID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatItem(data, "bar", a.BarID)
 	})
 }
 
@@ -52,7 +56,11 @@ func getBarChildrenHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetBarChildren(ctx, a.BarID)
+		data, err := client.GetBarChildren(ctx, a.BarID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "child bar")
 	})
 }
 
@@ -65,7 +73,11 @@ func getBarCommentsHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetBarComments(ctx, a.BarID)
+		data, err := client.GetBarComments(ctx, a.BarID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "comment")
 	})
 }
 
@@ -78,7 +90,11 @@ func getBarConnectionsHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetBarConnections(ctx, a.BarID)
+		data, err := client.GetBarConnections(ctx, a.BarID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "connection")
 	})
 }
 
@@ -91,7 +107,11 @@ func getBarLinksHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetBarLinks(ctx, a.BarID)
+		data, err := client.GetBarLinks(ctx, a.BarID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "link")
 	})
 }
 
@@ -105,6 +125,8 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 
+		var data json.RawMessage
+
 		switch a.Action {
 		case "create":
 			payload := map[string]any{
@@ -113,18 +135,23 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 				"name":       a.Name,
 			}
 			addBarOptionalFields(payload, a)
-			return client.CreateBar(ctx, payload)
+			data, err = client.CreateBar(ctx, payload)
 		case "update":
 			payload := make(map[string]any)
 			setIfNotEmpty(payload, "name", a.Name)
 			setIfNotEmpty(payload, "lane_id", a.LaneID)
 			addBarOptionalFields(payload, a)
-			return client.UpdateBar(ctx, a.BarID, payload)
+			data, err = client.UpdateBar(ctx, a.BarID, payload)
 		case "delete":
-			return client.DeleteBar(ctx, a.BarID)
+			data, err = client.DeleteBar(ctx, a.BarID)
 		default:
 			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
+
+		if err != nil {
+			return nil, err
+		}
+		return FormatAction(data, a.Action, "bar", a.BarID)
 	})
 }
 
@@ -156,15 +183,22 @@ func manageBarConnectionHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 
+		var data json.RawMessage
+
 		switch a.Action {
 		case "create":
 			payload := map[string]any{"target_bar_id": a.TargetBarID}
-			return client.CreateBarConnection(ctx, a.BarID, payload)
+			data, err = client.CreateBarConnection(ctx, a.BarID, payload)
 		case "delete":
-			return client.DeleteBarConnection(ctx, a.BarID, a.ConnectionID)
+			data, err = client.DeleteBarConnection(ctx, a.BarID, a.ConnectionID)
 		default:
 			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
+
+		if err != nil {
+			return nil, err
+		}
+		return FormatAction(data, a.Action, "connection", a.ConnectionID)
 	})
 }
 
@@ -178,17 +212,24 @@ func manageBarLinkHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 
+		var data json.RawMessage
+
 		switch a.Action {
 		case "create":
 			payload := map[string]any{
 				"url":  a.URL,
 				"name": a.Name,
 			}
-			return client.CreateBarLink(ctx, a.BarID, payload)
+			data, err = client.CreateBarLink(ctx, a.BarID, payload)
 		case "delete":
-			return client.DeleteBarLink(ctx, a.BarID, a.LinkID)
+			data, err = client.DeleteBarLink(ctx, a.BarID, a.LinkID)
 		default:
 			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
+
+		if err != nil {
+			return nil, err
+		}
+		return FormatAction(data, a.Action, "link", a.LinkID)
 	})
 }

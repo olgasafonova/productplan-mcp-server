@@ -10,7 +10,11 @@ import (
 
 func listObjectivesHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		return client.ListObjectives(ctx)
+		data, err := client.ListObjectives(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "objective")
 	})
 }
 
@@ -23,7 +27,11 @@ func getObjectiveHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetObjective(ctx, a.ObjectiveID)
+		data, err := client.GetObjective(ctx, a.ObjectiveID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatItem(data, "objective", a.ObjectiveID)
 	})
 }
 
@@ -36,7 +44,11 @@ func listKeyResultsHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.ListKeyResults(ctx, a.ObjectiveID)
+		data, err := client.ListKeyResults(ctx, a.ObjectiveID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "key result")
 	})
 }
 
@@ -49,7 +61,11 @@ func getKeyResultHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
+		data, err := client.GetKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatItem(data, "key result", a.KeyResultID)
 	})
 }
 
@@ -63,6 +79,8 @@ func manageObjectiveHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 
+		var data json.RawMessage
+
 		switch a.Action {
 		case "create":
 			payload := map[string]any{"name": a.Name}
@@ -72,7 +90,7 @@ func manageObjectiveHandler(client *api.Client) mcp.Handler {
 			if a.TimeFrame != "" {
 				payload["time_frame"] = a.TimeFrame
 			}
-			return client.CreateObjective(ctx, payload)
+			data, err = client.CreateObjective(ctx, payload)
 		case "update":
 			payload := make(map[string]any)
 			if a.Name != "" {
@@ -81,11 +99,15 @@ func manageObjectiveHandler(client *api.Client) mcp.Handler {
 			if a.Description != "" {
 				payload["description"] = a.Description
 			}
-			return client.UpdateObjective(ctx, a.ObjectiveID, payload)
+			data, err = client.UpdateObjective(ctx, a.ObjectiveID, payload)
 		case "delete":
-			return client.DeleteObjective(ctx, a.ObjectiveID)
+			data, err = client.DeleteObjective(ctx, a.ObjectiveID)
 		}
-		return nil, nil
+
+		if err != nil {
+			return nil, err
+		}
+		return FormatAction(data, a.Action, "objective", a.ObjectiveID)
 	})
 }
 
@@ -99,6 +121,8 @@ func manageKeyResultHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 
+		var data json.RawMessage
+
 		switch a.Action {
 		case "create":
 			payload := map[string]any{"name": a.Name}
@@ -108,7 +132,7 @@ func manageKeyResultHandler(client *api.Client) mcp.Handler {
 			if a.CurrentValue != "" {
 				payload["current_value"] = a.CurrentValue
 			}
-			return client.CreateKeyResult(ctx, a.ObjectiveID, payload)
+			data, err = client.CreateKeyResult(ctx, a.ObjectiveID, payload)
 		case "update":
 			payload := make(map[string]any)
 			if a.Name != "" {
@@ -117,10 +141,14 @@ func manageKeyResultHandler(client *api.Client) mcp.Handler {
 			if a.CurrentValue != "" {
 				payload["current_value"] = a.CurrentValue
 			}
-			return client.UpdateKeyResult(ctx, a.ObjectiveID, a.KeyResultID, payload)
+			data, err = client.UpdateKeyResult(ctx, a.ObjectiveID, a.KeyResultID, payload)
 		case "delete":
-			return client.DeleteKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
+			data, err = client.DeleteKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
 		}
-		return nil, nil
+
+		if err != nil {
+			return nil, err
+		}
+		return FormatAction(data, a.Action, "key result", a.KeyResultID)
 	})
 }

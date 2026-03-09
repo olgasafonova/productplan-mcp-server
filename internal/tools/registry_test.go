@@ -148,9 +148,18 @@ func TestHealthCheckHandler(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Result is now wrapped in {summary, data} via FormatItem
+	var wrapper struct {
+		Summary string          `json:"summary"`
+		Data    json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(result, &wrapper); err != nil {
+		t.Fatalf("failed to unmarshal wrapper: %v", err)
+	}
+
 	var report map[string]any
-	if err := json.Unmarshal(result, &report); err != nil {
-		t.Fatalf("failed to unmarshal result: %v", err)
+	if err := json.Unmarshal(wrapper.Data, &report); err != nil {
+		t.Fatalf("failed to unmarshal data: %v", err)
 	}
 
 	if report["status"] != "healthy" {

@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/api"
@@ -45,7 +46,11 @@ func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapBars(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapBars(ctx, a.RoadmapID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "bar")
 	})
 }
 
@@ -58,7 +63,11 @@ func getRoadmapLanesHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapLanes(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapLanes(ctx, a.RoadmapID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "lane")
 	})
 }
 
@@ -71,7 +80,11 @@ func getRoadmapMilestonesHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapMilestones(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapMilestones(ctx, a.RoadmapID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "milestone")
 	})
 }
 
@@ -84,7 +97,11 @@ func getRoadmapLegendsHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapLegends(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapLegends(ctx, a.RoadmapID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "legend")
 	})
 }
 
@@ -97,7 +114,11 @@ func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
 		if err := a.Validate(); err != nil {
 			return nil, err
 		}
-		return client.GetRoadmapComments(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapComments(ctx, a.RoadmapID)
+		if err != nil {
+			return nil, err
+		}
+		return FormatList(data, "comment")
 	})
 }
 
@@ -150,13 +171,15 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 			return nil, err
 		}
 
+		var data json.RawMessage
+
 		switch a.Action {
 		case "create":
 			payload := map[string]any{
 				"title": a.Title,
 				"date":  a.Date,
 			}
-			return client.CreateMilestone(ctx, a.RoadmapID, payload)
+			data, err = client.CreateMilestone(ctx, a.RoadmapID, payload)
 		case "update":
 			payload := make(map[string]any)
 			if a.Title != "" {
@@ -165,15 +188,20 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 			if a.Date != "" {
 				payload["date"] = a.Date
 			}
-			return client.UpdateMilestone(ctx, a.RoadmapID, a.MilestoneID, payload)
+			data, err = client.UpdateMilestone(ctx, a.RoadmapID, a.MilestoneID, payload)
 		case "delete":
-			return client.DeleteMilestone(ctx, a.RoadmapID, a.MilestoneID)
+			data, err = client.DeleteMilestone(ctx, a.RoadmapID, a.MilestoneID)
 		}
-		return nil, nil
+
+		if err != nil {
+			return nil, err
+		}
+		return FormatAction(data, a.Action, "milestone", a.MilestoneID)
 	})
 }
 
 // getRoadmapCompleteHandler fetches roadmap details, bars, lanes, and milestones in parallel.
+// Returns partial results with per-section error reporting instead of failing on first error.
 func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
 	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
 		a, err := ParseArgs[GetRoadmapArgs](args)
@@ -214,28 +242,55 @@ func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
 
 		wg.Wait()
 
-		// Return first error encountered
+		// If roadmap itself fails, the whole request is invalid
 		if roadmapErr != nil {
 			return nil, roadmapErr
 		}
+
+		// Collect per-section errors instead of failing on first error
+		var sectionErrors []map[string]string
 		if barsErr != nil {
-			return nil, barsErr
+			sectionErrors = append(sectionErrors, map[string]string{"section": "bars", "error": barsErr.Error()})
 		}
 		if lanesErr != nil {
-			return nil, lanesErr
+			sectionErrors = append(sectionErrors, map[string]string{"section": "lanes", "error": lanesErr.Error()})
 		}
 		if milestonesErr != nil {
-			return nil, milestonesErr
+			sectionErrors = append(sectionErrors, map[string]string{"section": "milestones", "error": milestonesErr.Error()})
 		}
 
-		// Combine results into a single response
-		result := map[string]json.RawMessage{
-			"roadmap":    roadmap,
-			"bars":       bars,
-			"lanes":      lanes,
-			"milestones": milestones,
+		// Build result with partial data
+		result := map[string]any{
+			"roadmap": json.RawMessage(roadmap),
 		}
 
-		return json.Marshal(result)
+		// Include sections that succeeded
+		if barsErr == nil {
+			result["bars"] = json.RawMessage(bars)
+		}
+		if lanesErr == nil {
+			result["lanes"] = json.RawMessage(lanes)
+		}
+		if milestonesErr == nil {
+			result["milestones"] = json.RawMessage(milestones)
+		}
+
+		// Always include errors array (empty if all succeeded)
+		result["errors"] = sectionErrors
+
+		data, err := json.Marshal(result)
+		if err != nil {
+			return nil, err
+		}
+
+		summary := fmt.Sprintf("Roadmap %s retrieved", roadmapID)
+		if len(sectionErrors) > 0 {
+			summary = fmt.Sprintf("Roadmap %s retrieved with %d section error(s)", roadmapID, len(sectionErrors))
+		}
+
+		return json.Marshal(FormattedResponse{
+			Summary: summary,
+			Data:    data,
+		})
 	})
 }

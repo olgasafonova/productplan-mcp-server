@@ -6,6 +6,9 @@ import (
 	"github.com/olgasafonova/productplan-mcp-server/internal/mcp"
 )
 
+// floatPtr returns a pointer to a float64 value.
+func floatPtr(v float64) *float64 { return &v }
+
 // BuildAllTools returns all ProductPlan tool definitions for MCP.
 func BuildAllTools() []mcp.Tool {
 	var tools []mcp.Tool
@@ -39,6 +42,20 @@ func BuildAllTools() []mcp.Tool {
 			tools[i].Name == "health_check"
 		if isReadOnly {
 			tools[i].Annotations = &mcp.ToolAnnotations{ReadOnlyHint: true}
+		}
+	}
+
+	// Auto-annotate: idempotent tools
+	// All read-only tools are idempotent. manage_* tools that do updates (PATCH) are also idempotent.
+	for i := range tools {
+		if tools[i].Annotations != nil && tools[i].Annotations.ReadOnlyHint {
+			tools[i].Annotations.IdempotentHint = true
+		}
+		if strings.HasPrefix(tools[i].Name, "manage_") {
+			if tools[i].Annotations == nil {
+				tools[i].Annotations = &mcp.ToolAnnotations{}
+			}
+			tools[i].Annotations.IdempotentHint = true
 		}
 	}
 
@@ -176,7 +193,7 @@ FAILS WHEN: create without name, update/delete without lane_id (get IDs from get
 					"roadmap_id": {Type: "string", Description: "Roadmap ID"},
 					"lane_id":    {Type: "string", Description: "Lane ID (for update/delete)"},
 					"name":       {Type: "string", Description: "Lane name"},
-					"color":      {Type: "string", Description: "Hex color (#FF5733)"},
+					"color":      {Type: "string", Description: "Hex color (#FF5733)", Pattern: `^#[0-9A-Fa-f]{6}$`, Examples: []any{"#FF5733", "#4CAF50"}},
 				},
 				Required: []string{"action", "roadmap_id"},
 			},
@@ -195,7 +212,7 @@ FAILS WHEN: create without title or date, update/delete without milestone_id (ge
 					"roadmap_id":   {Type: "string", Description: "Roadmap ID"},
 					"milestone_id": {Type: "string", Description: "Milestone ID (for update/delete)"},
 					"title":        {Type: "string", Description: "Milestone title"},
-					"date":         {Type: "string", Description: "YYYY-MM-DD format"},
+					"date":         {Type: "string", Description: "YYYY-MM-DD format", Pattern: `^\d{4}-\d{2}-\d{2}$`, Examples: []any{"2025-06-01"}},
 				},
 				Required: []string{"action", "roadmap_id"},
 			},
@@ -292,20 +309,20 @@ FAILS WHEN: create without roadmap_id, lane_id, or name (all three required). Up
 					"roadmap_id":             {Type: "string", Description: "Roadmap ID (for create)"},
 					"lane_id":                {Type: "string", Description: "Lane ID (for create; update to move)"},
 					"name":                   {Type: "string", Description: "Bar name"},
-					"starts_on":              {Type: "string", Description: "Start date YYYY-MM-DD"},
-					"ends_on":                {Type: "string", Description: "End date YYYY-MM-DD"},
+					"starts_on":              {Type: "string", Description: "Start date YYYY-MM-DD", Pattern: `^\d{4}-\d{2}-\d{2}$`, Examples: []any{"2025-03-15"}},
+					"ends_on":                {Type: "string", Description: "End date YYYY-MM-DD", Pattern: `^\d{4}-\d{2}-\d{2}$`, Examples: []any{"2025-06-30"}},
 					"description":            {Type: "string", Description: "Description (markdown)"},
 					"legend_id":              {Type: "string", Description: "Color from get_roadmap_legends"},
-					"percent_done":           {Type: "integer", Description: "Progress 0-100"},
+					"percent_done":           {Type: "integer", Description: "Progress 0-100", Minimum: floatPtr(0), Maximum: floatPtr(100)},
 					"container":              {Type: "boolean", Description: "Is container for children"},
 					"parked":                 {Type: "boolean", Description: "Not actively scheduled"},
 					"parent_id":              {Type: "string", Description: "Parent bar ID for nesting"},
 					"strategic_value":        {Type: "string", Description: "Strategic importance"},
 					"notes":                  {Type: "string", Description: "Additional notes"},
 					"effort":                 {Type: "integer", Description: "Effort estimate"},
-					"tags":                   {Type: "array", Description: "Tag strings [\"mobile\",\"urgent\"]"},
-					"custom_text_fields":     {Type: "array", Description: "[{name,value}] custom text fields"},
-					"custom_dropdown_fields": {Type: "array", Description: "[{name,value}] custom dropdowns"},
+					"tags":                   {Type: "array", Description: "Tag strings [\"mobile\",\"urgent\"]", Items: &mcp.Property{Type: "string", Description: "Tag name"}},
+					"custom_text_fields":     {Type: "array", Description: "[{name,value}] custom text fields", Items: &mcp.Property{Type: "object", Description: "Custom text field with name and value"}},
+					"custom_dropdown_fields": {Type: "array", Description: "[{name,value}] custom dropdowns", Items: &mcp.Property{Type: "object", Description: "Custom dropdown field with name and value"}},
 				},
 				Required: []string{"action"},
 			},
@@ -421,7 +438,7 @@ FAILS WHEN: create without name, update/delete without objective_id. WARNING: de
 					"objective_id": {Type: "string", Description: "Objective ID (for update/delete)"},
 					"name":         {Type: "string", Description: "Objective name"},
 					"description":  {Type: "string", Description: "Description"},
-					"time_frame":   {Type: "string", Description: "Q1 2024, H1 2024, 2024"},
+					"time_frame":   {Type: "string", Description: "Q1 2024, H1 2024, 2024", Examples: []any{"Q1 2025", "H2 2025", "2025"}},
 				},
 				Required: []string{"action"},
 			},
@@ -631,7 +648,7 @@ FAILS WHEN: create without name or date, update/delete without launch_id, date n
 					"action":      {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
 					"launch_id":   {Type: "string", Description: "Launch ID (for update/delete)"},
 					"name":        {Type: "string", Description: "Launch name"},
-					"date":        {Type: "string", Description: "YYYY-MM-DD"},
+					"date":        {Type: "string", Description: "YYYY-MM-DD", Pattern: `^\d{4}-\d{2}-\d{2}$`, Examples: []any{"2025-04-01"}},
 					"description": {Type: "string", Description: "Description"},
 				},
 				Required: []string{"action"},
@@ -733,7 +750,7 @@ FAILS WHEN: create without name or section_id, update/delete without task_id (ge
 					"section_id":       {Type: "string", Description: "Section ID (for create)"},
 					"name":             {Type: "string", Description: "Task name"},
 					"description":      {Type: "string", Description: "Task description"},
-					"due_date":         {Type: "string", Description: "YYYY-MM-DD"},
+					"due_date":         {Type: "string", Description: "YYYY-MM-DD", Pattern: `^\d{4}-\d{2}-\d{2}$`},
 					"assigned_user_id": {Type: "string", Description: "User ID to assign (get from list_users)"},
 					"status":           {Type: "string", Description: "Task status", Enum: []string{"to_do", "in_progress", "completed", "blocked"}},
 				},
