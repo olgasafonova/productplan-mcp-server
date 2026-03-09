@@ -24,7 +24,7 @@ func getIdeaHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetIdea(ctx, a.IdeaID)
@@ -51,7 +51,7 @@ func getOpportunityHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetOpportunity(ctx, a.OpportunityID)
@@ -78,7 +78,7 @@ func getIdeaFormHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetIdeaForm(ctx, a.FormID)
@@ -115,7 +115,7 @@ func manageIdeaHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
@@ -158,7 +158,7 @@ func manageOpportunityHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 

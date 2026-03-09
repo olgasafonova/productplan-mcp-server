@@ -24,7 +24,7 @@ func getObjectiveHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetObjective(ctx, a.ObjectiveID)
@@ -41,7 +41,7 @@ func listKeyResultsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.ListKeyResults(ctx, a.ObjectiveID)
@@ -58,7 +58,7 @@ func getKeyResultHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
@@ -75,7 +75,7 @@ func manageObjectiveHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
@@ -117,7 +117,7 @@ func manageKeyResultHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 

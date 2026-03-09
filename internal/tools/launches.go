@@ -25,7 +25,7 @@ func getLaunchHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetLaunch(ctx, a.LaunchID)
@@ -42,7 +42,7 @@ func manageLaunchHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
@@ -79,7 +79,7 @@ func getLaunchSectionsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetLaunchSections(ctx, a.LaunchID)
@@ -96,7 +96,7 @@ func getLaunchSectionHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetLaunchSection(ctx, a.LaunchID, a.SectionID)
@@ -113,7 +113,7 @@ func manageLaunchSectionHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
@@ -146,7 +146,7 @@ func getLaunchTasksHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetLaunchTasks(ctx, a.LaunchID)
@@ -163,7 +163,7 @@ func getLaunchTaskHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetLaunchTask(ctx, a.LaunchID, a.TaskID)
@@ -180,7 +180,7 @@ func manageLaunchTaskHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 

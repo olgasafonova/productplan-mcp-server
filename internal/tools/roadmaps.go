@@ -43,7 +43,7 @@ func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetRoadmapBars(ctx, a.RoadmapID)
@@ -60,7 +60,7 @@ func getRoadmapLanesHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetRoadmapLanes(ctx, a.RoadmapID)
@@ -77,7 +77,7 @@ func getRoadmapMilestonesHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetRoadmapMilestones(ctx, a.RoadmapID)
@@ -94,7 +94,7 @@ func getRoadmapLegendsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetRoadmapLegends(ctx, a.RoadmapID)
@@ -111,7 +111,7 @@ func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetRoadmapComments(ctx, a.RoadmapID)
@@ -167,7 +167,7 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
@@ -208,7 +208,7 @@ func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		roadmapID := a.RoadmapID

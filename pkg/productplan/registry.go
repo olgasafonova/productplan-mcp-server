@@ -245,15 +245,15 @@ func (r *ToolRegistry) GenerateMarkdownDocs() string {
 	var sb strings.Builder
 
 	sb.WriteString("# Tool Reference\n\n")
-	sb.WriteString(fmt.Sprintf("Total tools: %d\n\n", len(r.tools)))
+	fmt.Fprintf(&sb, "Total tools: %d\n\n", len(r.tools))
 
 	for _, cat := range r.Categories() {
 		tools := r.byCategory[cat]
-		sb.WriteString(fmt.Sprintf("## %s (%d tools)\n\n", capitalizeFirst(string(cat)), len(tools)))
+		fmt.Fprintf(&sb, "## %s (%d tools)\n\n", capitalizeFirst(string(cat)), len(tools))
 
 		for _, def := range tools {
-			sb.WriteString(fmt.Sprintf("### %s\n\n", def.Name))
-			sb.WriteString(fmt.Sprintf("%s\n\n", def.Description))
+			fmt.Fprintf(&sb, "### %s\n\n", def.Name)
+			fmt.Fprintf(&sb, "%s\n\n", def.Description)
 
 			if len(def.Properties) > 0 {
 				sb.WriteString("**Parameters:**\n\n")
@@ -265,9 +265,9 @@ func (r *ToolRegistry) GenerateMarkdownDocs() string {
 							break
 						}
 					}
-					sb.WriteString(fmt.Sprintf("- `%s` (%s)%s: %s", p.Name, p.Type, required, p.Description))
+					fmt.Fprintf(&sb, "- `%s` (%s)%s: %s", p.Name, p.Type, required, p.Description)
 					if len(p.Enum) > 0 {
-						sb.WriteString(fmt.Sprintf(" Values: %s", strings.Join(p.Enum, ", ")))
+						fmt.Fprintf(&sb, " Values: %s", strings.Join(p.Enum, ", "))
 					}
 					sb.WriteString("\n")
 				}

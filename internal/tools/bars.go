@@ -36,7 +36,7 @@ func getBarHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetBar(ctx, a.BarID)
@@ -53,7 +53,7 @@ func getBarChildrenHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetBarChildren(ctx, a.BarID)
@@ -70,7 +70,7 @@ func getBarCommentsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetBarComments(ctx, a.BarID)
@@ -87,7 +87,7 @@ func getBarConnectionsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetBarConnections(ctx, a.BarID)
@@ -104,7 +104,7 @@ func getBarLinksHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 		data, err := client.GetBarLinks(ctx, a.BarID)
@@ -121,7 +121,7 @@ func manageBarHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
@@ -179,7 +179,7 @@ func manageBarConnectionHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
@@ -208,7 +208,7 @@ func manageBarLinkHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		if err := a.Validate(); err != nil {
+		if err = a.Validate(); err != nil {
 			return nil, err
 		}
 
