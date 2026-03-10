@@ -19,12 +19,7 @@ func checkStatusHandler(client *api.Client) mcp.Handler {
 }
 
 func healthCheckHandler(checker HealthChecker) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[HealthCheckArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		// No validation needed for optional boolean
+	return typedHandler[HealthCheckArgs](func(ctx context.Context, a HealthCheckArgs) (json.RawMessage, error) {
 		report := checker.Check(ctx, a.Deep)
 		data, err := json.Marshal(report)
 		if err != nil {

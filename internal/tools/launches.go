@@ -20,14 +20,7 @@ func listLaunchesHandler(client *api.Client) mcp.Handler {
 }
 
 func getLaunchHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetLaunchArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetLaunchArgs](func(ctx context.Context, a GetLaunchArgs) (json.RawMessage, error) {
 		data, err := client.GetLaunch(ctx, a.LaunchID)
 		if err != nil {
 			return nil, err
@@ -37,16 +30,9 @@ func getLaunchHandler(client *api.Client) mcp.Handler {
 }
 
 func manageLaunchHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageLaunchArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageLaunchArgs](func(ctx context.Context, a ManageLaunchArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -74,14 +60,7 @@ func manageLaunchHandler(client *api.Client) mcp.Handler {
 }
 
 func getLaunchSectionsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetLaunchArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetLaunchArgs](func(ctx context.Context, a GetLaunchArgs) (json.RawMessage, error) {
 		data, err := client.GetLaunchSections(ctx, a.LaunchID)
 		if err != nil {
 			return nil, err
@@ -91,14 +70,7 @@ func getLaunchSectionsHandler(client *api.Client) mcp.Handler {
 }
 
 func getLaunchSectionHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetLaunchSectionArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetLaunchSectionArgs](func(ctx context.Context, a GetLaunchSectionArgs) (json.RawMessage, error) {
 		data, err := client.GetLaunchSection(ctx, a.LaunchID, a.SectionID)
 		if err != nil {
 			return nil, err
@@ -108,16 +80,9 @@ func getLaunchSectionHandler(client *api.Client) mcp.Handler {
 }
 
 func manageLaunchSectionHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageLaunchSectionArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageLaunchSectionArgs](func(ctx context.Context, a ManageLaunchSectionArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -141,14 +106,7 @@ func manageLaunchSectionHandler(client *api.Client) mcp.Handler {
 }
 
 func getLaunchTasksHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetLaunchArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetLaunchArgs](func(ctx context.Context, a GetLaunchArgs) (json.RawMessage, error) {
 		data, err := client.GetLaunchTasks(ctx, a.LaunchID)
 		if err != nil {
 			return nil, err
@@ -158,14 +116,7 @@ func getLaunchTasksHandler(client *api.Client) mcp.Handler {
 }
 
 func getLaunchTaskHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetLaunchTaskArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetLaunchTaskArgs](func(ctx context.Context, a GetLaunchTaskArgs) (json.RawMessage, error) {
 		data, err := client.GetLaunchTask(ctx, a.LaunchID, a.TaskID)
 		if err != nil {
 			return nil, err
@@ -175,16 +126,9 @@ func getLaunchTaskHandler(client *api.Client) mcp.Handler {
 }
 
 func manageLaunchTaskHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageLaunchTaskArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageLaunchTaskArgs](func(ctx context.Context, a ManageLaunchTaskArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":

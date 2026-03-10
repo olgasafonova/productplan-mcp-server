@@ -31,14 +31,7 @@ func setIfNotEmptySlice[T any](payload map[string]any, key string, value []T) {
 }
 
 func getBarHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetBarArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetBarArgs](func(ctx context.Context, a GetBarArgs) (json.RawMessage, error) {
 		data, err := client.GetBar(ctx, a.BarID)
 		if err != nil {
 			return nil, err
@@ -48,14 +41,7 @@ func getBarHandler(client *api.Client) mcp.Handler {
 }
 
 func getBarChildrenHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetBarArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetBarArgs](func(ctx context.Context, a GetBarArgs) (json.RawMessage, error) {
 		data, err := client.GetBarChildren(ctx, a.BarID)
 		if err != nil {
 			return nil, err
@@ -65,14 +51,7 @@ func getBarChildrenHandler(client *api.Client) mcp.Handler {
 }
 
 func getBarCommentsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetBarArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetBarArgs](func(ctx context.Context, a GetBarArgs) (json.RawMessage, error) {
 		data, err := client.GetBarComments(ctx, a.BarID)
 		if err != nil {
 			return nil, err
@@ -82,14 +61,7 @@ func getBarCommentsHandler(client *api.Client) mcp.Handler {
 }
 
 func getBarConnectionsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetBarArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetBarArgs](func(ctx context.Context, a GetBarArgs) (json.RawMessage, error) {
 		data, err := client.GetBarConnections(ctx, a.BarID)
 		if err != nil {
 			return nil, err
@@ -99,14 +71,7 @@ func getBarConnectionsHandler(client *api.Client) mcp.Handler {
 }
 
 func getBarLinksHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetBarArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetBarArgs](func(ctx context.Context, a GetBarArgs) (json.RawMessage, error) {
 		data, err := client.GetBarLinks(ctx, a.BarID)
 		if err != nil {
 			return nil, err
@@ -116,16 +81,9 @@ func getBarLinksHandler(client *api.Client) mcp.Handler {
 }
 
 func manageBarHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageBarArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageBarArgs](func(ctx context.Context, a ManageBarArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -174,16 +132,9 @@ func addBarOptionalFields(payload map[string]any, a ManageBarArgs) {
 }
 
 func manageBarConnectionHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageBarConnectionArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageBarConnectionArgs](func(ctx context.Context, a ManageBarConnectionArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -203,16 +154,9 @@ func manageBarConnectionHandler(client *api.Client) mcp.Handler {
 }
 
 func manageBarLinkHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageBarLinkArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageBarLinkArgs](func(ctx context.Context, a ManageBarLinkArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":

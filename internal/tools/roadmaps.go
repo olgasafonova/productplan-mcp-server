@@ -21,14 +21,7 @@ func listRoadmapsHandler(client *api.Client) mcp.Handler {
 }
 
 func getRoadmapHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetRoadmapArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		data, err := client.GetRoadmap(ctx, a.RoadmapID)
 		if err != nil {
 			return nil, err
@@ -38,14 +31,7 @@ func getRoadmapHandler(client *api.Client) mcp.Handler {
 }
 
 func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetRoadmapArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		data, err := client.GetRoadmapBars(ctx, a.RoadmapID)
 		if err != nil {
 			return nil, err
@@ -55,14 +41,7 @@ func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
 }
 
 func getRoadmapLanesHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetRoadmapArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		data, err := client.GetRoadmapLanes(ctx, a.RoadmapID)
 		if err != nil {
 			return nil, err
@@ -72,14 +51,7 @@ func getRoadmapLanesHandler(client *api.Client) mcp.Handler {
 }
 
 func getRoadmapMilestonesHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetRoadmapArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		data, err := client.GetRoadmapMilestones(ctx, a.RoadmapID)
 		if err != nil {
 			return nil, err
@@ -89,14 +61,7 @@ func getRoadmapMilestonesHandler(client *api.Client) mcp.Handler {
 }
 
 func getRoadmapLegendsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetRoadmapArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		data, err := client.GetRoadmapLegends(ctx, a.RoadmapID)
 		if err != nil {
 			return nil, err
@@ -106,14 +71,7 @@ func getRoadmapLegendsHandler(client *api.Client) mcp.Handler {
 }
 
 func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetRoadmapArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		data, err := client.GetRoadmapComments(ctx, a.RoadmapID)
 		if err != nil {
 			return nil, err
@@ -123,16 +81,9 @@ func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
 }
 
 func manageLaneHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageLaneArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageLaneArgs](func(ctx context.Context, a ManageLaneArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -162,16 +113,9 @@ func manageLaneHandler(client *api.Client) mcp.Handler {
 }
 
 func manageMilestoneHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageMilestoneArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageMilestoneArgs](func(ctx context.Context, a ManageMilestoneArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -203,14 +147,7 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 // getRoadmapCompleteHandler fetches roadmap details, bars, lanes, and milestones in parallel.
 // Returns partial results with per-section error reporting instead of failing on first error.
 func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetRoadmapArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		roadmapID := a.RoadmapID
 
 		// Fetch all data in parallel

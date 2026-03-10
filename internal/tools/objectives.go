@@ -19,14 +19,7 @@ func listObjectivesHandler(client *api.Client) mcp.Handler {
 }
 
 func getObjectiveHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetObjectiveArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetObjectiveArgs](func(ctx context.Context, a GetObjectiveArgs) (json.RawMessage, error) {
 		data, err := client.GetObjective(ctx, a.ObjectiveID)
 		if err != nil {
 			return nil, err
@@ -36,14 +29,7 @@ func getObjectiveHandler(client *api.Client) mcp.Handler {
 }
 
 func listKeyResultsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetObjectiveArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetObjectiveArgs](func(ctx context.Context, a GetObjectiveArgs) (json.RawMessage, error) {
 		data, err := client.ListKeyResults(ctx, a.ObjectiveID)
 		if err != nil {
 			return nil, err
@@ -53,14 +39,7 @@ func listKeyResultsHandler(client *api.Client) mcp.Handler {
 }
 
 func getKeyResultHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetKeyResultArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetKeyResultArgs](func(ctx context.Context, a GetKeyResultArgs) (json.RawMessage, error) {
 		data, err := client.GetKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
 		if err != nil {
 			return nil, err
@@ -70,16 +49,9 @@ func getKeyResultHandler(client *api.Client) mcp.Handler {
 }
 
 func manageObjectiveHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageObjectiveArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageObjectiveArgs](func(ctx context.Context, a ManageObjectiveArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -112,16 +84,9 @@ func manageObjectiveHandler(client *api.Client) mcp.Handler {
 }
 
 func manageKeyResultHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageKeyResultArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageKeyResultArgs](func(ctx context.Context, a ManageKeyResultArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":

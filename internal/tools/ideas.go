@@ -19,14 +19,7 @@ func listIdeasHandler(client *api.Client) mcp.Handler {
 }
 
 func getIdeaHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetIdeaArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetIdeaArgs](func(ctx context.Context, a GetIdeaArgs) (json.RawMessage, error) {
 		data, err := client.GetIdea(ctx, a.IdeaID)
 		if err != nil {
 			return nil, err
@@ -46,14 +39,7 @@ func listOpportunitiesHandler(client *api.Client) mcp.Handler {
 }
 
 func getOpportunityHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetOpportunityArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetOpportunityArgs](func(ctx context.Context, a GetOpportunityArgs) (json.RawMessage, error) {
 		data, err := client.GetOpportunity(ctx, a.OpportunityID)
 		if err != nil {
 			return nil, err
@@ -73,14 +59,7 @@ func listIdeaFormsHandler(client *api.Client) mcp.Handler {
 }
 
 func getIdeaFormHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[GetIdeaFormArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typedHandler[GetIdeaFormArgs](func(ctx context.Context, a GetIdeaFormArgs) (json.RawMessage, error) {
 		data, err := client.GetIdeaForm(ctx, a.FormID)
 		if err != nil {
 			return nil, err
@@ -110,16 +89,9 @@ func listAllTagsHandler(client *api.Client) mcp.Handler {
 }
 
 func manageIdeaHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageIdeaArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageIdeaArgs](func(ctx context.Context, a ManageIdeaArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
@@ -153,16 +125,9 @@ func manageIdeaHandler(client *api.Client) mcp.Handler {
 }
 
 func manageOpportunityHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[ManageOpportunityArgs](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
-
+	return typedHandler[ManageOpportunityArgs](func(ctx context.Context, a ManageOpportunityArgs) (json.RawMessage, error) {
 		var data json.RawMessage
+		var err error
 
 		switch a.Action {
 		case "create":
