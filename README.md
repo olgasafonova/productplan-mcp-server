@@ -31,6 +31,10 @@ No coding required. You'll copy a file and paste some settings.
 
 ---
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/olgasafonova-productplan-mcp-server).
+
 ## Quick start (5 minutes)
 
 ### Step 1: Get your ProductPlan API token
