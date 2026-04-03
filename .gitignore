@@ -30,3 +30,8 @@ coverage.out
 
 # MCP Registry tokens
 .mcpregistry_*
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

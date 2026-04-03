@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "productplan_mcp_server",
+  "project_id": "0ad59c05-a43e-436b-891d-bcfdbdec610f"
+}
