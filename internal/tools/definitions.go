@@ -150,11 +150,10 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 		},
 		{
 			Name: "get_roadmap_complete",
-			Description: `Get complete roadmap in one call (~3x faster than sequential). Details, bars, lanes, milestones combined.
+			Description: `Get complete roadmap in one call. Details, bars, lanes, milestones combined.
 
 USE WHEN: "Full roadmap overview", "Summarize roadmap X"
 For settings/metadata only, use get_roadmap.
-WHY: Makes 3 parallel API calls internally (~3x faster than calling get_roadmap + get_roadmap_bars + get_roadmap_lanes sequentially).
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -315,11 +314,11 @@ FAILS WHEN: create without roadmap_id, lane_id, or name (all three required). Up
 					"legend_id":              {Type: "string", Description: "Color from get_roadmap_legends"},
 					"percent_done":           {Type: "integer", Description: "Progress 0-100", Minimum: floatPtr(0), Maximum: floatPtr(100)},
 					"container":              {Type: "boolean", Description: "Is container for children"},
-					"parked":                 {Type: "boolean", Description: "Not actively scheduled"},
+					"parked":                 {Type: "boolean", Description: "True to park bar (removes from timeline, keeps on roadmap)"},
 					"parent_id":              {Type: "string", Description: "Parent bar ID for nesting"},
-					"strategic_value":        {Type: "string", Description: "Strategic importance"},
+					"strategic_value":        {Type: "string", Description: "Free-text strategic importance note"},
 					"notes":                  {Type: "string", Description: "Additional notes"},
-					"effort":                 {Type: "integer", Description: "Effort estimate"},
+					"effort":                 {Type: "integer", Description: "Effort estimate (unitless integer, scale per team)"},
 					"tags":                   {Type: "array", Description: "Tag strings [\"mobile\",\"urgent\"]", Items: &mcp.Property{Type: "string", Description: "Tag name"}},
 					"custom_text_fields":     {Type: "array", Description: "[{name,value}] custom text fields", Items: &mcp.Property{Type: "object", Description: "Custom text field with name and value"}},
 					"custom_dropdown_fields": {Type: "array", Description: "[{name,value}] custom dropdowns", Items: &mcp.Property{Type: "object", Description: "Custom dropdown field with name and value"}},
@@ -546,10 +545,10 @@ FAILS WHEN: form_id not found (get valid IDs from list_idea_forms).`,
 		},
 		{
 			Name: "list_all_customers",
-			Description: `List all customers across ideas.
+			Description: `List all customers across ideas. Returns customer names and linked idea counts.
 
 USE WHEN: "Who are our customers?", "All feedback sources"
-For customers linked to a specific idea, use get_idea_customers instead.`,
+FAILS WHEN: API token invalid.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -557,10 +556,10 @@ For customers linked to a specific idea, use get_idea_customers instead.`,
 		},
 		{
 			Name: "list_all_tags",
-			Description: `List all tags used across ideas.
+			Description: `List all tags used across ideas. Returns tag names and usage counts across ideas.
 
 USE WHEN: "What tags exist?", "Show categories"
-For tags on a specific idea, use get_idea_tags instead.`,
+FAILS WHEN: API token invalid.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
@@ -580,7 +579,7 @@ FAILS WHEN: create without title, update without idea_id. Note: delete is not av
 					"idea_id":     {Type: "string", Description: "Idea ID (for update)"},
 					"title":       {Type: "string", Description: "Idea title"},
 					"description": {Type: "string", Description: "Description (markdown)"},
-					"status":      {Type: "string", Description: "new, under_review, planned"},
+					"status":      {Type: "string", Description: "Idea workflow status", Enum: []string{"new", "under_review", "planned"}},
 				},
 				Required: []string{"action"},
 			},
@@ -599,7 +598,7 @@ FAILS WHEN: create without problem_statement, update without opportunity_id (get
 					"opportunity_id":    {Type: "string", Description: "Opportunity ID (for update)"},
 					"problem_statement": {Type: "string", Description: "Problem statement (title)"},
 					"description":       {Type: "string", Description: "Description"},
-					"workflow_status":   {Type: "string", Description: "draft, in_discovery, validated, invalidated, completed"},
+					"workflow_status":   {Type: "string", Description: "Opportunity workflow status", Enum: []string{"draft", "in_discovery", "validated", "invalidated", "completed"}},
 				},
 				Required: []string{"action"},
 			},
@@ -673,7 +672,7 @@ FAILS WHEN: launch_id not found.`,
 			Name: "get_launch_section",
 			Description: `Get a specific checklist section by ID.
 
-USE WHEN: "Section details"
+USE WHEN: "Show one specific checklist section by ID"
 For all sections, use get_launch_sections.
 FAILS WHEN: launch_id or section_id not found.`,
 			InputSchema: mcp.InputSchema{
@@ -722,7 +721,7 @@ FAILS WHEN: launch_id not found.`,
 			Name: "get_launch_task",
 			Description: `Get a specific launch task by ID.
 
-USE WHEN: "Task details", "Task status"
+USE WHEN: "Show one specific task by ID", "Check task assignment or status"
 For all tasks, use get_launch_tasks.
 FAILS WHEN: launch_id or task_id not found.`,
 			InputSchema: mcp.InputSchema{

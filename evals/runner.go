@@ -386,10 +386,10 @@ func compareValues(expected, actual interface{}) bool {
 func FormatMetrics(metrics *EvalMetrics, suiteName string) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("\n=== %s Results ===\n", suiteName))
-	sb.WriteString(fmt.Sprintf("Total: %d | Passed: %d | Failed: %d\n",
-		metrics.TotalTests, metrics.PassedTests, metrics.FailedTests))
-	sb.WriteString(fmt.Sprintf("Accuracy: %.1f%%\n", metrics.Accuracy*100))
+	fmt.Fprintf(&sb, "\n=== %s Results ===\n", suiteName)
+	fmt.Fprintf(&sb, "Total: %d | Passed: %d | Failed: %d\n",
+		metrics.TotalTests, metrics.PassedTests, metrics.FailedTests)
+	fmt.Fprintf(&sb, "Accuracy: %.1f%%\n", metrics.Accuracy*100)
 
 	if len(metrics.ByCategory) > 0 {
 		sb.WriteString("\nBy Category:\n")
@@ -398,15 +398,15 @@ func FormatMetrics(metrics *EvalMetrics, suiteName string) string {
 			if catMetrics.Total > 0 {
 				accuracy = float64(catMetrics.Passed) / float64(catMetrics.Total) * 100
 			}
-			sb.WriteString(fmt.Sprintf("  %s: %d/%d (%.1f%%)\n",
-				cat, catMetrics.Passed, catMetrics.Total, accuracy))
+			fmt.Fprintf(&sb, "  %s: %d/%d (%.1f%%)\n",
+				cat, catMetrics.Passed, catMetrics.Total, accuracy)
 		}
 	}
 
 	if len(metrics.FailedDetails) > 0 {
 		sb.WriteString("\nFailed Tests:\n")
 		for _, detail := range metrics.FailedDetails {
-			sb.WriteString(fmt.Sprintf("  - %s\n", detail))
+			fmt.Fprintf(&sb, "  - %s\n", detail)
 		}
 	}
 
