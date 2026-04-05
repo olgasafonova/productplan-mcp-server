@@ -4,6 +4,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/api"
 	"github.com/olgasafonova/productplan-mcp-server/internal/mcp"
@@ -140,7 +141,7 @@ func createHandler(name string, cfg Config) mcp.Handler {
 
 	default:
 		return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-			return nil, nil
+			return nil, fmt.Errorf("unknown tool: %s", name)
 		})
 	}
 }

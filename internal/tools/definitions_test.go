@@ -11,9 +11,8 @@ func TestBuildAllTools(t *testing.T) {
 		t.Fatal("expected tools to be registered")
 	}
 
-	// Should have 36 tools total
-	if len(tools) < 30 {
-		t.Errorf("expected at least 30 tools, got %d", len(tools))
+	if len(tools) != 47 {
+		t.Errorf("expected 47 tools, got %d", len(tools))
 	}
 }
 
@@ -64,8 +63,10 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"get_launch",
 		"manage_launch",
 		"get_launch_sections",
+		"get_launch_section",
 		"manage_launch_section",
 		"get_launch_tasks",
+		"get_launch_task",
 		"manage_launch_task",
 		// Utility
 		"check_status",

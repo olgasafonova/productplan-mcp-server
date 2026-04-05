@@ -122,13 +122,13 @@ func TestCreateHandlerUnknownTool(t *testing.T) {
 	cfg := Config{}
 	handler := createHandler("unknown_tool", cfg)
 
-	// Should return a no-op handler
+	// Should return an error for unknown tools
 	result, err := handler.Handle(context.Background(), nil)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+	if err == nil {
+		t.Error("expected error for unknown tool, got nil")
 	}
 	if result != nil {
-		t.Errorf("expected nil result for unknown tool")
+		t.Errorf("expected nil result for unknown tool, got %v", result)
 	}
 }
 

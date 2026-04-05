@@ -70,6 +70,7 @@ func roadmapTools() []mcp.Tool {
 			Description: `List all roadmaps. START HERE to get roadmap IDs.
 
 USE WHEN: "Show my roadmaps", "What roadmaps do I have?"
+Returns array of roadmaps with ID, name, and creation date.
 FAILS WHEN: API token invalid or expired (check PRODUCTPLAN_API_TOKEN env var).`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
@@ -82,6 +83,7 @@ FAILS WHEN: API token invalid or expired (check PRODUCTPLAN_API_TOKEN env var).`
 
 USE WHEN: "Tell me about roadmap X", "Roadmap settings"
 For all data in one call (bars, lanes, milestones), use get_roadmap_complete.
+Returns roadmap name, date range, sharing settings, and metadata.
 FAILS WHEN: roadmap_id not found (get valid IDs from list_roadmaps first).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -96,6 +98,7 @@ FAILS WHEN: roadmap_id not found (get valid IDs from list_roadmaps first).`,
 			Description: `Get all bars (features/items) on a roadmap.
 
 USE WHEN: "What's on the roadmap?", "Show planned features", "What's in Q2?"
+Returns array of bars with ID, name, dates, lane, legend, percent_done, and description.
 FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if roadmap has no bars.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -110,6 +113,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if road
 			Description: `Get lanes (categories) on a roadmap. Lanes organize bars into rows.
 
 USE WHEN: "What lanes are on the roadmap?", "Show categories"
+Returns array of lanes with ID, name, and color.
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -124,6 +128,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			Description: `Get milestones (key dates) on a roadmap.
 
 USE WHEN: "What are the key dates?", "Show milestones"
+Returns array of milestones with ID, title, and date.
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -138,7 +143,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			Description: `Get legend entries (bar colors) for a roadmap.
 
 USE WHEN: "What colors are available?", "Show the legend"
-Note: Use legend_id when creating/updating bars.
+Returns array of legend entries with ID, name, and hex color. Use legend_id when creating/updating bars.
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -154,6 +159,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 
 USE WHEN: "Full roadmap overview", "Summarize roadmap X"
 For settings/metadata only, use get_roadmap.
+Returns combined roadmap details, bars, lanes, and milestones in one response.
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -169,6 +175,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 
 USE WHEN: "Show roadmap comments", "Roadmap discussion"
 For bar-level comments, use get_bar_comments instead.
+Returns array of comments with author, body, and timestamp.
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -184,6 +191,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 
 USE WHEN: "Add Backend lane", "Rename Mobile lane", "Delete lane"
 Actions: create (name), update (lane_id), delete (lane_id)
+Returns the created/updated lane object, or confirmation on delete.
 FAILS WHEN: create without name, update/delete without lane_id (get IDs from get_roadmap_lanes). WARNING: delete removes the lane and unassigns all bars in it.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -203,6 +211,7 @@ FAILS WHEN: create without name, update/delete without lane_id (get IDs from get
 
 USE WHEN: "Add launch milestone", "Move demo date", "Delete milestone"
 Actions: create (title+date), update (milestone_id), delete (milestone_id)
+Returns the created/updated milestone object, or confirmation on delete.
 FAILS WHEN: create without title or date, update/delete without milestone_id (get IDs from get_roadmap_milestones), date not in YYYY-MM-DD format.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -227,6 +236,7 @@ func barTools() []mcp.Tool {
 			Description: `Get bar details including description, links, custom fields.
 
 USE WHEN: "Tell me about this feature", "Bar details"
+Returns bar name, dates, description, links, custom fields, percent_done, and lane info.
 FAILS WHEN: bar_id not found (get valid IDs from get_roadmap_bars).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -299,6 +309,7 @@ FAILS WHEN: bar_id not found. Returns empty list if bar has no external links.`,
 
 USE WHEN: "Add feature", "Update dates", "Delete item", "Change color"
 Actions: create (roadmap_id+lane_id+name), update (bar_id), delete (bar_id)
+Returns the created/updated bar object with all fields, or confirmation on delete.
 FAILS WHEN: create without roadmap_id, lane_id, or name (all three required). Update/delete without bar_id. Use get_roadmap_legends for valid legend_id values. WARNING: delete is permanent and cannot be undone.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -374,6 +385,7 @@ func objectiveTools() []mcp.Tool {
 			Description: `List all OKR objectives. START HERE for OKRs.
 
 USE WHEN: "Show OKRs", "What are our objectives?"
+Returns array of objectives with ID, name, time_frame, and key result count.
 FAILS WHEN: API token invalid. Returns empty list if no objectives exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
@@ -399,6 +411,7 @@ FAILS WHEN: objective_id not found (get valid IDs from list_objectives).`,
 			Description: `List key results for an objective.
 
 USE WHEN: "What are the KRs?", "Show metrics"
+Returns array of key results with ID, name, target_value, and current_value.
 FAILS WHEN: objective_id not found (use list_objectives).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -429,6 +442,7 @@ FAILS WHEN: objective_id or key_result_id not found (use list_key_results to get
 
 USE WHEN: "Add Q1 objective", "Update objective", "Delete OKR"
 Actions: create (name), update (objective_id), delete (objective_id)
+Returns the created/updated objective, or confirmation on delete.
 FAILS WHEN: create without name, update/delete without objective_id. WARNING: delete also removes all key results under this objective.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -448,6 +462,7 @@ FAILS WHEN: create without name, update/delete without objective_id. WARNING: de
 
 USE WHEN: "Add KR", "Update progress", "Delete KR"
 Actions: create (name+target), update (key_result_id), delete (key_result_id)
+Returns the created/updated key result, or confirmation on delete.
 FAILS WHEN: create without name or target_value, update/delete without key_result_id (use list_key_results).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -473,6 +488,7 @@ func ideaTools() []mcp.Tool {
 			Description: `List all ideas in discovery pipeline. START HERE for ideas.
 
 USE WHEN: "Show customer feedback", "What ideas do we have?"
+Returns array of ideas with ID, title, status, and vote count.
 FAILS WHEN: API token invalid. Returns empty list if no ideas exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
@@ -498,6 +514,7 @@ FAILS WHEN: idea_id not found (get valid IDs from list_ideas).`,
 			Description: `List all opportunities. START HERE for discovery.
 
 USE WHEN: "Show opportunities", "Discovery pipeline"
+Returns array of opportunities with ID, problem_statement, workflow_status, and linked idea count.
 FAILS WHEN: API token invalid. Returns empty list if no opportunities exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
@@ -523,6 +540,7 @@ FAILS WHEN: opportunity_id not found (get valid IDs from list_opportunities).`,
 			Description: `List idea submission forms.
 
 USE WHEN: "Show feedback forms", "What forms exist?"
+Returns array of forms with ID and name.
 FAILS WHEN: API token invalid.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
@@ -571,6 +589,7 @@ FAILS WHEN: API token invalid.`,
 
 USE WHEN: "Add idea", "Update idea status"
 Actions: create (title), update (idea_id)
+Returns the created/updated idea object.
 FAILS WHEN: create without title, update without idea_id. Note: delete is not available via the ProductPlan API; archive ideas by updating status instead.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -590,6 +609,7 @@ FAILS WHEN: create without title, update without idea_id. Note: delete is not av
 
 USE WHEN: "Create opportunity", "Update problem"
 Actions: create (problem_statement), update (opportunity_id)
+Returns the created/updated opportunity object.
 FAILS WHEN: create without problem_statement, update without opportunity_id (get IDs from list_opportunities). Note: delete is not available via the ProductPlan API; archive opportunities by updating workflow_status instead.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -614,6 +634,7 @@ func launchTools() []mcp.Tool {
 			Description: `List all launches. START HERE for launches.
 
 USE WHEN: "Show launches", "Release schedule"
+Returns array of launches with ID, name, date, and description.
 FAILS WHEN: API token invalid. Returns empty list if no launches exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
@@ -640,6 +661,7 @@ FAILS WHEN: launch_id not found (get valid IDs from list_launches).`,
 
 USE WHEN: "Create launch", "Update date", "Delete launch"
 Actions: create (name+date), update (launch_id), delete (launch_id)
+Returns the created/updated launch object, or confirmation on delete.
 FAILS WHEN: create without name or date, update/delete without launch_id, date not in YYYY-MM-DD format. WARNING: delete removes the launch and all its sections and tasks.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -690,6 +712,7 @@ FAILS WHEN: launch_id or section_id not found.`,
 
 USE WHEN: "Add Marketing section", "Rename section", "Delete section"
 Actions: create (name), update (section_id), delete (section_id)
+Returns the created/updated section object, or confirmation on delete.
 FAILS WHEN: create without name, update/delete without section_id (get IDs from get_launch_sections). WARNING: delete removes the section and all tasks in it.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -739,6 +762,7 @@ FAILS WHEN: launch_id or task_id not found.`,
 
 USE WHEN: "Add task", "Mark complete", "Assign task", "Delete task"
 Actions: create (name+section_id), update (task_id), delete (task_id)
+Returns the created/updated task object, or confirmation on delete.
 FAILS WHEN: create without name or section_id, update/delete without task_id (get IDs from get_launch_tasks). Use list_users to get valid assigned_user_id values.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -792,7 +816,7 @@ FAILS WHEN: deep=true and API is unreachable. Basic health (deep=false) always s
 			Description: `List all users in account.
 
 USE WHEN: "Who has access?", "Team members"
-Use user IDs from this tool when assigning launch tasks via manage_launch_task.`,
+Returns array of users with ID, name, email, and role. Use user IDs from this tool when assigning launch tasks via manage_launch_task.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
 				Properties: map[string]mcp.Property{},
