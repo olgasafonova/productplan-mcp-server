@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-25T13:34:42Z",
+  "deslop_version": "2.1.0",
+  "scores": {
+    "file_health": 45.0,
+    "test_coverage": 69.0,
+    "secret_detection": 100.0,
+    "todo_debt": 100.0,
+    "dependency_health": 100.0,
+    "structural_quality": 100.0,
+    "overall": 85.7
+  },
+  "findings": [
+    {
+      "detector": "file_health",
+      "severity": "high",
+      "key": "internal/api/endpoints_test.go",
+      "summary": "internal/api/endpoints_test.go (864 LOC)"
+    },
+    {
+      "detector": "file_health",
+      "severity": "high",
+      "key": "internal/tools/definitions.go",
+      "summary": "internal/tools/definitions.go (837 LOC)"
+    },
+    {
+      "detector": "file_health",
+      "severity": "warning",
+      "key": "evals/runner.go",
+      "summary": "evals/runner.go (502 LOC)"
+    },
+    {
+      "detector": "file_health",
+      "severity": "warning",
+      "key": "evals/runner_test.go",
+      "summary": "evals/runner_test.go (579 LOC)"
+    },
+    {
+      "detector": "file_health",
+      "severity": "warning",
+      "key": "internal/api/formatters_test.go",
+      "summary": "internal/api/formatters_test.go (573 LOC)"
+    },
+    {
+      "detector": "file_health",
+      "severity": "warning",
+      "key": "internal/tools/handlers_test.go",
+      "summary": "internal/tools/handlers_test.go (575 LOC)"
+    },
+    {
+      "detector": "file_health",
+      "severity": "warning",
+      "key": "internal/tools/types.go",
+      "summary": "internal/tools/types.go (545 LOC)"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/bars.go",
+      "summary": "internal/tools/bars.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/helpers.go",
+      "summary": "internal/tools/helpers.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/ideas.go",
+      "summary": "internal/tools/ideas.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/launches.go",
+      "summary": "internal/tools/launches.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/objectives.go",
+      "summary": "internal/tools/objectives.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/roadmaps.go",
+      "summary": "internal/tools/roadmaps.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/types.go",
+      "summary": "internal/tools/types.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "internal/tools/utility.go",
+      "summary": "internal/tools/utility.go has no test file"
+    },
+    {
+      "detector": "test_coverage",
+      "severity": "warning",
+      "key": "pkg/productplan/requestid.go",
+      "summary": "pkg/productplan/requestid.go has no test file"
+    }
+  ]
+}
