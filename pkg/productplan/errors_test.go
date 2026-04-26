@@ -2,6 +2,7 @@ package productplan
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -197,6 +198,62 @@ func TestParseAPIError(t *testing.T) {
 			}
 			if got.Message != tt.wantMsg {
 				t.Errorf("Message = %v, want %v", got.Message, tt.wantMsg)
+			}
+		})
+	}
+}
+
+func TestParseAPIError_NonJSONBodyIsSanitized(t *testing.T) {
+	// HG-2: when the API returns a non-JSON body, the raw payload must not
+	// reach the MCP caller verbatim. ParseAPIError must truncate at the first
+	// newline and cap total length so multi-line HTML error pages or stack
+	// traces don't flow through Error().
+	tests := []struct {
+		name           string
+		body           string
+		wantDetails    string
+		wantContains   string // substring check when exact size depends on length
+		mustNotContain string
+	}{
+		{
+			name:        "single short line passes through",
+			body:        "Internal Server Error",
+			wantDetails: "Internal Server Error",
+		},
+		{
+			name:        "multi-line body strips at first newline",
+			body:        "Internal Server Error\n<html><body>...stack trace...</body></html>",
+			wantDetails: "Internal Server Error",
+		},
+		{
+			name:        "carriage-return-newline body strips at first delimiter",
+			body:        "Bad Gateway\r\nUpstream connection refused",
+			wantDetails: "Bad Gateway",
+		},
+		{
+			name:           "long body is capped",
+			body:           strings.Repeat("X", 500),
+			wantContains:   "...",
+			mustNotContain: strings.Repeat("X", 300),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &http.Response{StatusCode: 500, Header: make(http.Header)}
+			got := ParseAPIError(resp, []byte(tt.body))
+
+			if tt.wantDetails != "" && got.Details != tt.wantDetails {
+				t.Errorf("Details = %q, want %q", got.Details, tt.wantDetails)
+			}
+			if tt.wantContains != "" && !strings.Contains(got.Details, tt.wantContains) {
+				t.Errorf("Details = %q, expected to contain %q", got.Details, tt.wantContains)
+			}
+			if tt.mustNotContain != "" && strings.Contains(got.Details, tt.mustNotContain) {
+				t.Errorf("Details = %q, must not contain a 300-char run of input", got.Details)
+			}
+			if len(got.Details) > maxClientFacingDetailLen+3 {
+				t.Errorf("Details length = %d, exceeds cap %d (+3 for ellipsis)", len(got.Details), maxClientFacingDetailLen)
 			}
 		})
 	}

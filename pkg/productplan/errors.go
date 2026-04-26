@@ -88,6 +88,28 @@ func (e *APIError) Suggestion() string {
 	}
 }
 
+// maxClientFacingDetailLen caps the body excerpt that may reach an MCP caller
+// when the API returns a non-JSON error response. The full body is still
+// available to operators via server-side request logging.
+const maxClientFacingDetailLen = 200
+
+// sanitizeBodyForCaller produces a short, single-line excerpt of a non-JSON
+// response body, safe to surface to the MCP caller. It strips at the first
+// newline (HTML error pages and stack traces are common) and caps total
+// length so the agent sees a compact error rather than an unbounded payload.
+// Per HG-2 in code-review-prompts.md: raw response bodies must not reach the
+// MCP caller verbatim.
+func sanitizeBodyForCaller(body []byte) string {
+	excerpt := strings.TrimSpace(string(body))
+	if i := strings.IndexAny(excerpt, "\r\n"); i >= 0 {
+		excerpt = excerpt[:i]
+	}
+	if len(excerpt) > maxClientFacingDetailLen {
+		excerpt = excerpt[:maxClientFacingDetailLen] + "..."
+	}
+	return excerpt
+}
+
 // ParseAPIError creates an APIError from an HTTP response.
 func ParseAPIError(resp *http.Response, body []byte) *APIError {
 	apiErr := &APIError{
@@ -117,8 +139,7 @@ func ParseAPIError(resp *http.Response, body []byte) *APIError {
 			apiErr.Details = errBody.Details
 		}
 	} else if len(body) > 0 {
-		// Use raw body as details if not JSON
-		apiErr.Details = strings.TrimSpace(string(body))
+		apiErr.Details = sanitizeBodyForCaller(body)
 	}
 
 	// Parse Retry-After header for rate limiting
