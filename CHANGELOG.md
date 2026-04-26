@@ -5,6 +5,32 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.1] - 2026-04-26
+
+### Security
+- **Sanitize non-JSON response bodies before reaching MCP caller** (HG-2). `pkg/productplan/errors.go` previously stuffed raw response bodies into `APIError.Details`, which then rendered into `Error()` and surfaced verbatim to the MCP caller via `internal/api/client.go:161`. Multi-line HTML error pages and stack traces could flow through unbounded. New `sanitizeBodyForCaller` truncates at first newline and caps at 200 chars; full body remains available to operators via server-side request logging. Surfaced by the [4-axis portfolio audit](https://github.com/olgasafonova/claude-code-config/tree/main/audits/2026-04-26-portfolio-4axis.md).
+
+### Fixed
+- Handler default error path, stale test count, and return-value descriptions
+- Remove stale tool references, add enum constraints, resolve lint findings
+
+### Changed
+- **Internal refactor**: `typedHandler` generic eliminates parse/validate boilerplate across handlers (no behavior change)
+
+### Infrastructure
+- `make check` regression target wired into CI
+- `go.sum` integrity check + `govulncheck` (advisory) on every CI run
+- CODEOWNERS protects workflow files from drive-by PRs
+- Auto-dispatch `mcp-registry.yml` from release workflow
+- Dependabot groups Go dependency updates (less PR noise)
+- Beads issue tracking initialized; `.gitattributes` declares the beads merge driver
+- Deslop baseline committed for cloud-routine regression detection
+
+### Dependencies
+- `actions/github-script` 8 → 9
+- `softprops/action-gh-release` 2 → 3
+- Multiple Docker actions (login, setup-buildx, metadata, build-push) on latest majors
+
 ## [5.0.0] - 2026-02-21
 
 ### Breaking Changes
