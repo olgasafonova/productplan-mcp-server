@@ -5,6 +5,18 @@ import (
 	"strings"
 )
 
+const (
+	// MaxIDLen is the maximum allowed length for any ID field. ProductPlan
+	// IDs are short alphanumeric tokens; anything longer is suspicious.
+	MaxIDLen = 100
+)
+
+// validIDPattern matches safe ProductPlan IDs. ProductPlan uses short
+// alphanumeric tokens with optional underscore/hyphen. Any character outside
+// this set is rejected because it can pivot the URL via Go's URL parser
+// (e.g. `?` splits into a query, `..` traverses, `#` becomes a fragment).
+var validIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+
 // RequireNonEmpty validates that a string field is not empty.
 func RequireNonEmpty(field, value string) error {
 	if strings.TrimSpace(value) == "" {
@@ -13,10 +25,20 @@ func RequireNonEmpty(field, value string) error {
 	return nil
 }
 
-// RequireID validates that an ID field is non-empty and valid.
+// RequireID validates that an ID field is non-empty, within length bounds,
+// and matches the safe ID pattern. This is the chokepoint that prevents path
+// injection — every API endpoint method must run user-supplied IDs through
+// RequireID (or a wrapper that calls it) before interpolating into a URL.
 func RequireID(field, value string) error {
-	if strings.TrimSpace(value) == "" {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
 		return NewValidationError(field, "is required - get it from the corresponding list_* tool")
+	}
+	if len(trimmed) > MaxIDLen {
+		return NewValidationError(field, "is too long")
+	}
+	if !validIDPattern.MatchString(trimmed) {
+		return NewValidationError(field, "contains invalid characters (only letters, digits, underscore, hyphen are allowed)")
 	}
 	return nil
 }

@@ -6,6 +6,12 @@ import (
 	"fmt"
 )
 
+// Every endpoint method that interpolates a user-supplied ID into a URL path
+// MUST run the ID through safeSeg first. safeSeg validates against the safe
+// ID pattern and url.PathEscape-s the result, so an adversarial caller cannot
+// pivot the request via "../" traversal, "?" query injection, or "/"
+// sub-resource extension. See internal/api/client.go safeSeg.
+
 // ============================================================================
 // Roadmaps
 // ============================================================================
@@ -21,22 +27,34 @@ func (c *Client) ListRoadmaps(ctx context.Context) (json.RawMessage, error) {
 
 // GetRoadmap returns a single roadmap by ID.
 func (c *Client) GetRoadmap(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/roadmaps/"+id)
+	seg, err := safeSeg("roadmap_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/roadmaps/"+seg)
 }
 
 // GetRoadmapBars returns all bars for a roadmap, enriched with lane names.
 func (c *Client) GetRoadmapBars(ctx context.Context, id string) (json.RawMessage, error) {
-	bars, err := c.Get(ctx, "/roadmaps/"+id+"/bars")
+	seg, err := safeSeg("roadmap_id", id)
 	if err != nil {
 		return nil, err
 	}
-	lanes, _ := c.Get(ctx, "/roadmaps/"+id+"/lanes")
+	bars, err := c.Get(ctx, "/roadmaps/"+seg+"/bars")
+	if err != nil {
+		return nil, err
+	}
+	lanes, _ := c.Get(ctx, "/roadmaps/"+seg+"/lanes")
 	return FormatBarsWithContext(bars, lanes), nil
 }
 
 // GetRoadmapLanes returns all lanes for a roadmap.
 func (c *Client) GetRoadmapLanes(ctx context.Context, id string) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/roadmaps/"+id+"/lanes")
+	seg, err := safeSeg("roadmap_id", id)
+	if err != nil {
+		return nil, err
+	}
+	data, err := c.Get(ctx, "/roadmaps/"+seg+"/lanes")
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +63,11 @@ func (c *Client) GetRoadmapLanes(ctx context.Context, id string) (json.RawMessag
 
 // GetRoadmapMilestones returns all milestones for a roadmap.
 func (c *Client) GetRoadmapMilestones(ctx context.Context, id string) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/roadmaps/"+id+"/milestones")
+	seg, err := safeSeg("roadmap_id", id)
+	if err != nil {
+		return nil, err
+	}
+	data, err := c.Get(ctx, "/roadmaps/"+seg+"/milestones")
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +77,11 @@ func (c *Client) GetRoadmapMilestones(ctx context.Context, id string) (json.RawM
 // GetRoadmapLegends returns all legend entries (color codes) for a roadmap.
 // Legends are embedded in the roadmap response; there is no separate /legends endpoint.
 func (c *Client) GetRoadmapLegends(ctx context.Context, id string) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/roadmaps/"+id)
+	seg, err := safeSeg("roadmap_id", id)
+	if err != nil {
+		return nil, err
+	}
+	data, err := c.Get(ctx, "/roadmaps/"+seg)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +98,11 @@ func (c *Client) GetRoadmapLegends(ctx context.Context, id string) (json.RawMess
 
 // GetRoadmapComments returns all comments on a roadmap.
 func (c *Client) GetRoadmapComments(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/roadmaps/"+id+"/comments")
+	seg, err := safeSeg("roadmap_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/roadmaps/"+seg+"/comments")
 }
 
 // ============================================================================
@@ -81,7 +111,11 @@ func (c *Client) GetRoadmapComments(ctx context.Context, id string) (json.RawMes
 
 // GetBar returns a single bar by ID.
 func (c *Client) GetBar(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/bars/"+id)
+	seg, err := safeSeg("bar_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/bars/"+seg)
 }
 
 // CreateBar creates a new bar.
@@ -91,17 +125,29 @@ func (c *Client) CreateBar(ctx context.Context, data map[string]any) (json.RawMe
 
 // UpdateBar updates an existing bar.
 func (c *Client) UpdateBar(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, "/bars/"+id, data)
+	seg, err := safeSeg("bar_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/bars/"+seg, data)
 }
 
 // DeleteBar deletes a bar.
 func (c *Client) DeleteBar(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Delete(ctx, "/bars/"+id)
+	seg, err := safeSeg("bar_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/bars/"+seg)
 }
 
 // GetBarChildren returns child bars for a bar.
 func (c *Client) GetBarChildren(ctx context.Context, barID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/bars/"+barID+"/child_bars")
+	seg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/bars/"+seg+"/child_bars")
 }
 
 // ============================================================================
@@ -110,7 +156,11 @@ func (c *Client) GetBarChildren(ctx context.Context, barID string) (json.RawMess
 
 // GetBarComments returns comments for a bar.
 func (c *Client) GetBarComments(ctx context.Context, barID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/bars/"+barID+"/comments")
+	seg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/bars/"+seg+"/comments")
 }
 
 // ============================================================================
@@ -119,17 +169,33 @@ func (c *Client) GetBarComments(ctx context.Context, barID string) (json.RawMess
 
 // GetBarConnections returns connections for a bar.
 func (c *Client) GetBarConnections(ctx context.Context, barID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/bars/"+barID+"/connections")
+	seg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/bars/"+seg+"/connections")
 }
 
 // CreateBarConnection creates a connection from a bar.
 func (c *Client) CreateBarConnection(ctx context.Context, barID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/bars/"+barID+"/connections", data)
+	seg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Post(ctx, "/bars/"+seg+"/connections", data)
 }
 
 // DeleteBarConnection deletes a connection.
 func (c *Client) DeleteBarConnection(ctx context.Context, barID, connectionID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/bars/%s/connections/%s", barID, connectionID))
+	barSeg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	connSeg, err := safeSeg("connection_id", connectionID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/bars/"+barSeg+"/connections/"+connSeg)
 }
 
 // ============================================================================
@@ -138,17 +204,33 @@ func (c *Client) DeleteBarConnection(ctx context.Context, barID, connectionID st
 
 // GetBarLinks returns links for a bar.
 func (c *Client) GetBarLinks(ctx context.Context, barID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/bars/"+barID+"/links")
+	seg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/bars/"+seg+"/links")
 }
 
 // CreateBarLink creates a link on a bar.
 func (c *Client) CreateBarLink(ctx context.Context, barID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/bars/"+barID+"/links", data)
+	seg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Post(ctx, "/bars/"+seg+"/links", data)
 }
 
 // DeleteBarLink deletes a link.
 func (c *Client) DeleteBarLink(ctx context.Context, barID, linkID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/bars/%s/links/%s", barID, linkID))
+	barSeg, err := safeSeg("bar_id", barID)
+	if err != nil {
+		return nil, err
+	}
+	linkSeg, err := safeSeg("link_id", linkID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/bars/"+barSeg+"/links/"+linkSeg)
 }
 
 // ============================================================================
@@ -157,17 +239,37 @@ func (c *Client) DeleteBarLink(ctx context.Context, barID, linkID string) (json.
 
 // CreateLane creates a new lane.
 func (c *Client) CreateLane(ctx context.Context, roadmapID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/roadmaps/"+roadmapID+"/lanes", data)
+	seg, err := safeSeg("roadmap_id", roadmapID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Post(ctx, "/roadmaps/"+seg+"/lanes", data)
 }
 
 // UpdateLane updates an existing lane.
 func (c *Client) UpdateLane(ctx context.Context, roadmapID, laneID string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, fmt.Sprintf("/roadmaps/%s/lanes/%s", roadmapID, laneID), data)
+	rSeg, err := safeSeg("roadmap_id", roadmapID)
+	if err != nil {
+		return nil, err
+	}
+	lSeg, err := safeSeg("lane_id", laneID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/roadmaps/"+rSeg+"/lanes/"+lSeg, data)
 }
 
 // DeleteLane deletes a lane.
 func (c *Client) DeleteLane(ctx context.Context, roadmapID, laneID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/roadmaps/%s/lanes/%s", roadmapID, laneID))
+	rSeg, err := safeSeg("roadmap_id", roadmapID)
+	if err != nil {
+		return nil, err
+	}
+	lSeg, err := safeSeg("lane_id", laneID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/roadmaps/"+rSeg+"/lanes/"+lSeg)
 }
 
 // ============================================================================
@@ -176,17 +278,37 @@ func (c *Client) DeleteLane(ctx context.Context, roadmapID, laneID string) (json
 
 // CreateMilestone creates a new milestone.
 func (c *Client) CreateMilestone(ctx context.Context, roadmapID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/roadmaps/"+roadmapID+"/milestones", data)
+	seg, err := safeSeg("roadmap_id", roadmapID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Post(ctx, "/roadmaps/"+seg+"/milestones", data)
 }
 
 // UpdateMilestone updates an existing milestone.
 func (c *Client) UpdateMilestone(ctx context.Context, roadmapID, milestoneID string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, fmt.Sprintf("/roadmaps/%s/milestones/%s", roadmapID, milestoneID), data)
+	rSeg, err := safeSeg("roadmap_id", roadmapID)
+	if err != nil {
+		return nil, err
+	}
+	mSeg, err := safeSeg("milestone_id", milestoneID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/roadmaps/"+rSeg+"/milestones/"+mSeg, data)
 }
 
 // DeleteMilestone deletes a milestone.
 func (c *Client) DeleteMilestone(ctx context.Context, roadmapID, milestoneID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/roadmaps/%s/milestones/%s", roadmapID, milestoneID))
+	rSeg, err := safeSeg("roadmap_id", roadmapID)
+	if err != nil {
+		return nil, err
+	}
+	mSeg, err := safeSeg("milestone_id", milestoneID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/roadmaps/"+rSeg+"/milestones/"+mSeg)
 }
 
 // ============================================================================
@@ -204,7 +326,11 @@ func (c *Client) ListObjectives(ctx context.Context) (json.RawMessage, error) {
 
 // GetObjective returns a single objective by ID.
 func (c *Client) GetObjective(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/strategy/objectives/"+id)
+	seg, err := safeSeg("objective_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/strategy/objectives/"+seg)
 }
 
 // CreateObjective creates a new objective.
@@ -214,12 +340,20 @@ func (c *Client) CreateObjective(ctx context.Context, data map[string]any) (json
 
 // UpdateObjective updates an existing objective.
 func (c *Client) UpdateObjective(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, "/strategy/objectives/"+id, data)
+	seg, err := safeSeg("objective_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/strategy/objectives/"+seg, data)
 }
 
 // DeleteObjective deletes an objective.
 func (c *Client) DeleteObjective(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Delete(ctx, "/strategy/objectives/"+id)
+	seg, err := safeSeg("objective_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/strategy/objectives/"+seg)
 }
 
 // ============================================================================
@@ -228,27 +362,59 @@ func (c *Client) DeleteObjective(ctx context.Context, id string) (json.RawMessag
 
 // ListKeyResults returns key results for an objective.
 func (c *Client) ListKeyResults(ctx context.Context, objectiveID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/strategy/objectives/"+objectiveID+"/key_results")
+	seg, err := safeSeg("objective_id", objectiveID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/strategy/objectives/"+seg+"/key_results")
 }
 
 // GetKeyResult returns a single key result by ID.
 func (c *Client) GetKeyResult(ctx context.Context, objectiveID, keyResultID string) (json.RawMessage, error) {
-	return c.Get(ctx, fmt.Sprintf("/strategy/objectives/%s/key_results/%s", objectiveID, keyResultID))
+	oSeg, err := safeSeg("objective_id", objectiveID)
+	if err != nil {
+		return nil, err
+	}
+	krSeg, err := safeSeg("key_result_id", keyResultID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/strategy/objectives/"+oSeg+"/key_results/"+krSeg)
 }
 
 // CreateKeyResult creates a new key result.
 func (c *Client) CreateKeyResult(ctx context.Context, objectiveID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/strategy/objectives/"+objectiveID+"/key_results", data)
+	seg, err := safeSeg("objective_id", objectiveID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Post(ctx, "/strategy/objectives/"+seg+"/key_results", data)
 }
 
 // UpdateKeyResult updates an existing key result.
 func (c *Client) UpdateKeyResult(ctx context.Context, objectiveID, keyResultID string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, fmt.Sprintf("/strategy/objectives/%s/key_results/%s", objectiveID, keyResultID), data)
+	oSeg, err := safeSeg("objective_id", objectiveID)
+	if err != nil {
+		return nil, err
+	}
+	krSeg, err := safeSeg("key_result_id", keyResultID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/strategy/objectives/"+oSeg+"/key_results/"+krSeg, data)
 }
 
 // DeleteKeyResult deletes a key result.
 func (c *Client) DeleteKeyResult(ctx context.Context, objectiveID, keyResultID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/strategy/objectives/%s/key_results/%s", objectiveID, keyResultID))
+	oSeg, err := safeSeg("objective_id", objectiveID)
+	if err != nil {
+		return nil, err
+	}
+	krSeg, err := safeSeg("key_result_id", keyResultID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/strategy/objectives/"+oSeg+"/key_results/"+krSeg)
 }
 
 // ============================================================================
@@ -266,7 +432,11 @@ func (c *Client) ListIdeas(ctx context.Context) (json.RawMessage, error) {
 
 // GetIdea returns a single idea by ID.
 func (c *Client) GetIdea(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/ideas/"+id)
+	seg, err := safeSeg("idea_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/discovery/ideas/"+seg)
 }
 
 // CreateIdea creates a new idea.
@@ -276,7 +446,11 @@ func (c *Client) CreateIdea(ctx context.Context, data map[string]any) (json.RawM
 
 // UpdateIdea updates an existing idea.
 func (c *Client) UpdateIdea(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, "/discovery/ideas/"+id, data)
+	seg, err := safeSeg("idea_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/discovery/ideas/"+seg, data)
 }
 
 // ============================================================================
@@ -312,7 +486,11 @@ func (c *Client) ListOpportunities(ctx context.Context) (json.RawMessage, error)
 
 // GetOpportunity returns a single opportunity by ID.
 func (c *Client) GetOpportunity(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/opportunities/"+id)
+	seg, err := safeSeg("opportunity_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/discovery/opportunities/"+seg)
 }
 
 // CreateOpportunity creates a new opportunity.
@@ -322,7 +500,11 @@ func (c *Client) CreateOpportunity(ctx context.Context, data map[string]any) (js
 
 // UpdateOpportunity updates an existing opportunity.
 func (c *Client) UpdateOpportunity(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, "/discovery/opportunities/"+id, data)
+	seg, err := safeSeg("opportunity_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/discovery/opportunities/"+seg, data)
 }
 
 // ============================================================================
@@ -336,7 +518,11 @@ func (c *Client) ListIdeaForms(ctx context.Context) (json.RawMessage, error) {
 
 // GetIdeaForm returns a single idea form by ID.
 func (c *Client) GetIdeaForm(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/idea_forms/"+id)
+	seg, err := safeSeg("idea_form_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/discovery/idea_forms/"+seg)
 }
 
 // ============================================================================
@@ -354,7 +540,11 @@ func (c *Client) ListLaunches(ctx context.Context) (json.RawMessage, error) {
 
 // GetLaunch returns a single launch by ID.
 func (c *Client) GetLaunch(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Get(ctx, "/launches/"+id)
+	seg, err := safeSeg("launch_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/launches/"+seg)
 }
 
 // CreateLaunch creates a new launch.
@@ -364,12 +554,20 @@ func (c *Client) CreateLaunch(ctx context.Context, data map[string]any) (json.Ra
 
 // UpdateLaunch updates an existing launch.
 func (c *Client) UpdateLaunch(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, "/launches/"+id, data)
+	seg, err := safeSeg("launch_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/launches/"+seg, data)
 }
 
 // DeleteLaunch deletes a launch.
 func (c *Client) DeleteLaunch(ctx context.Context, id string) (json.RawMessage, error) {
-	return c.Delete(ctx, "/launches/"+id)
+	seg, err := safeSeg("launch_id", id)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/launches/"+seg)
 }
 
 // ============================================================================
@@ -378,27 +576,59 @@ func (c *Client) DeleteLaunch(ctx context.Context, id string) (json.RawMessage, 
 
 // GetLaunchSections returns all checklist sections for a launch.
 func (c *Client) GetLaunchSections(ctx context.Context, launchID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/launches/"+launchID+"/checklist_sections")
+	seg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/launches/"+seg+"/checklist_sections")
 }
 
 // GetLaunchSection returns a single checklist section by ID.
 func (c *Client) GetLaunchSection(ctx context.Context, launchID, sectionID string) (json.RawMessage, error) {
-	return c.Get(ctx, fmt.Sprintf("/launches/%s/checklist_sections/%s", launchID, sectionID))
+	lSeg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	sSeg, err := safeSeg("section_id", sectionID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/launches/"+lSeg+"/checklist_sections/"+sSeg)
 }
 
 // CreateLaunchSection creates a new checklist section.
 func (c *Client) CreateLaunchSection(ctx context.Context, launchID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/launches/"+launchID+"/checklist_sections", data)
+	seg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Post(ctx, "/launches/"+seg+"/checklist_sections", data)
 }
 
 // UpdateLaunchSection updates an existing checklist section.
 func (c *Client) UpdateLaunchSection(ctx context.Context, launchID, sectionID string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, fmt.Sprintf("/launches/%s/checklist_sections/%s", launchID, sectionID), data)
+	lSeg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	sSeg, err := safeSeg("section_id", sectionID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/launches/"+lSeg+"/checklist_sections/"+sSeg, data)
 }
 
 // DeleteLaunchSection deletes a checklist section.
 func (c *Client) DeleteLaunchSection(ctx context.Context, launchID, sectionID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/launches/%s/checklist_sections/%s", launchID, sectionID))
+	lSeg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	sSeg, err := safeSeg("section_id", sectionID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/launches/"+lSeg+"/checklist_sections/"+sSeg)
 }
 
 // ============================================================================
@@ -407,27 +637,59 @@ func (c *Client) DeleteLaunchSection(ctx context.Context, launchID, sectionID st
 
 // GetLaunchTasks returns all tasks for a launch.
 func (c *Client) GetLaunchTasks(ctx context.Context, launchID string) (json.RawMessage, error) {
-	return c.Get(ctx, "/launches/"+launchID+"/tasks")
+	seg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/launches/"+seg+"/tasks")
 }
 
 // GetLaunchTask returns a single task by ID.
 func (c *Client) GetLaunchTask(ctx context.Context, launchID, taskID string) (json.RawMessage, error) {
-	return c.Get(ctx, fmt.Sprintf("/launches/%s/tasks/%s", launchID, taskID))
+	lSeg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	tSeg, err := safeSeg("task_id", taskID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Get(ctx, "/launches/"+lSeg+"/tasks/"+tSeg)
 }
 
 // CreateLaunchTask creates a new task in a launch.
 func (c *Client) CreateLaunchTask(ctx context.Context, launchID string, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/launches/"+launchID+"/tasks", data)
+	seg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Post(ctx, "/launches/"+seg+"/tasks", data)
 }
 
 // UpdateLaunchTask updates an existing task.
 func (c *Client) UpdateLaunchTask(ctx context.Context, launchID, taskID string, data map[string]any) (json.RawMessage, error) {
-	return c.Patch(ctx, fmt.Sprintf("/launches/%s/tasks/%s", launchID, taskID), data)
+	lSeg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	tSeg, err := safeSeg("task_id", taskID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Patch(ctx, "/launches/"+lSeg+"/tasks/"+tSeg, data)
 }
 
 // DeleteLaunchTask deletes a task.
 func (c *Client) DeleteLaunchTask(ctx context.Context, launchID, taskID string) (json.RawMessage, error) {
-	return c.Delete(ctx, fmt.Sprintf("/launches/%s/tasks/%s", launchID, taskID))
+	lSeg, err := safeSeg("launch_id", launchID)
+	if err != nil {
+		return nil, err
+	}
+	tSeg, err := safeSeg("task_id", taskID)
+	if err != nil {
+		return nil, err
+	}
+	return c.Delete(ctx, "/launches/"+lSeg+"/tasks/"+tSeg)
 }
 
 // ============================================================================
