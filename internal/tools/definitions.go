@@ -9,6 +9,9 @@ import (
 // floatPtr returns a pointer to a float64 value.
 func floatPtr(v float64) *float64 { return &v }
 
+// boolPtr returns a pointer to a bool value.
+func boolPtr(v bool) *bool { return &v }
+
 // BuildAllTools returns all ProductPlan tool definitions for MCP.
 func BuildAllTools() []mcp.Tool {
 	var tools []mcp.Tool
@@ -31,31 +34,44 @@ func BuildAllTools() []mcp.Tool {
 	// Utility
 	tools = append(tools, utilityTools()...)
 
-	// Auto-annotate: read-only tools get ReadOnlyHint
+	// Auto-annotate based on the tool name prefix.
+	//
+	// Read-only (get_*, list_*, check_*, health_check):
+	//   ReadOnlyHint=true, IdempotentHint=true.
+	//
+	// manage_*:
+	//   DestructiveHint=true. Each manage_* tool dispatches across
+	//   action=create/update/delete and supports cascade-delete with
+	//   documented blast radius (e.g., manage_launch removes its sections
+	//   and tasks, manage_objective cascades to all key results). MCP
+	//   clients use DestructiveHint to gate user-confirmation prompts on
+	//   irreversible operations.
+	//
+	//   IdempotentHint is deliberately NOT set on manage_* tools.
+	//   Idempotency varies per action: action=create twice produces two
+	//   records; action=delete twice 404s on the second call. A blanket
+	//   "idempotent" annotation misleads retry-aware clients into
+	//   duplicate writes. Leaving the hint unset is the safe default.
 	for i := range tools {
 		if tools[i].Annotations != nil {
 			continue
 		}
-		isReadOnly := strings.HasPrefix(tools[i].Name, "get_") ||
-			strings.HasPrefix(tools[i].Name, "list_") ||
-			strings.HasPrefix(tools[i].Name, "check_") ||
-			tools[i].Name == "health_check"
-		if isReadOnly {
-			tools[i].Annotations = &mcp.ToolAnnotations{ReadOnlyHint: true}
-		}
-	}
+		name := tools[i].Name
+		isReadOnly := strings.HasPrefix(name, "get_") ||
+			strings.HasPrefix(name, "list_") ||
+			strings.HasPrefix(name, "check_") ||
+			name == "health_check"
 
-	// Auto-annotate: idempotent tools
-	// All read-only tools are idempotent. manage_* tools that do updates (PATCH) are also idempotent.
-	for i := range tools {
-		if tools[i].Annotations != nil && tools[i].Annotations.ReadOnlyHint {
-			tools[i].Annotations.IdempotentHint = true
-		}
-		if strings.HasPrefix(tools[i].Name, "manage_") {
-			if tools[i].Annotations == nil {
-				tools[i].Annotations = &mcp.ToolAnnotations{}
+		switch {
+		case isReadOnly:
+			tools[i].Annotations = &mcp.ToolAnnotations{
+				ReadOnlyHint:   true,
+				IdempotentHint: true,
 			}
-			tools[i].Annotations.IdempotentHint = true
+		case strings.HasPrefix(name, "manage_"):
+			tools[i].Annotations = &mcp.ToolAnnotations{
+				DestructiveHint: boolPtr(true),
+			}
 		}
 	}
 
