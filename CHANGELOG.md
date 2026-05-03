@@ -5,6 +5,16 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-05-03
+
+### Security
+
+- **`manage_*` tools now correctly annotated as Destructive.** Twelve write tools (`manage_lane`, `manage_milestone`, `manage_bar`, `manage_bar_connection`, `manage_bar_link`, `manage_objective`, `manage_key_result`, `manage_idea`, `manage_opportunity`, `manage_launch`, `manage_launch_section`, `manage_launch_task`) all support `action=delete` with documented cascade-delete behavior, but none carried `DestructiveHint=true`. Repo-wide grep for `DestructiveHint` returned a single hit — the type definition. MCP clients that gate user-confirmation on this hint will now prompt before `manage_*` deletions and updates. Closes HG-3 violation.
+- **`IdempotentHint=true` no longer blanket-set on `manage_*`.** The previous annotation was a lie: `action=create` twice produces two records; `action=delete` twice 404s on the second call. Retry-aware MCP clients that trust the hint could silently duplicate writes on network blips. Annotation now omitted from `manage_*` tools so clients treat them as non-idempotent (safe default).
+- **Path-injection hardening across 40+ API endpoint methods.** Every method that interpolated user-supplied IDs into URL paths (`bars`, `launches`, `objectives`, `key_results`, `ideas`, `opportunities`, `roadmaps`, `lanes`, `milestones`, `launch_sections`, `launch_tasks`, etc.) now validates the ID against `^[A-Za-z0-9_-]+$` and `url.PathEscape`-s it before concatenation. Before: a prompt-injected agent could send `bar_id="../../strategy/objectives/SECRET"` and the request silently pivoted to a different resource via the upstream proxy normalising `..` segments. Now: invalid IDs rejected at the validator with `bar_id contains invalid characters` before any HTTP call. Real ProductPlan IDs (alphanumeric tokens, optionally with `-`/`_`) all match the regex; no legitimate workflow regresses.
+
+These three fixes close violations of patterns graduated 2026-04-25 (HG-3 destructive annotations + path-injection class). Validators in `pkg/productplan/validation.go` (`RequireBarID`, `RequireRoadmapID`, etc.) were previously dead code — now wired in via a new `safeSeg` helper at the API client boundary. Found by an autonomous-vulnerability-research sweep across the MCP portfolio.
+
 ## [5.0.1] - 2026-04-26
 
 ### Security
