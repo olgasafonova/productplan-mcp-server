@@ -8,12 +8,29 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/logging"
 	"github.com/olgasafonova/productplan-mcp-server/pkg/productplan"
 )
+
+// safeSeg validates an ID arg as a URL-safe path segment and returns the
+// PathEscape-d form ready for interpolation. Used by every endpoint method
+// that interpolates user-supplied IDs into a path; without it, an
+// adversarial caller could send `bar_id="../../strategy/objectives/SECRET"`
+// and pivot a manage_bar action to a different resource.
+//
+// PathEscape on a validator-approved ID is a no-op today (the regex restricts
+// to URL-safe chars), but it stays as belt-and-braces against future regex
+// loosening.
+func safeSeg(field, value string) (string, error) {
+	if err := productplan.RequireID(field, value); err != nil {
+		return "", err
+	}
+	return url.PathEscape(strings.TrimSpace(value)), nil
+}
 
 const (
 	// DefaultBaseURL is the ProductPlan API base URL.
