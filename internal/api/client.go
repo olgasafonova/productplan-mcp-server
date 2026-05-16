@@ -32,6 +32,23 @@ func safeSeg(field, value string) (string, error) {
 	return url.PathEscape(strings.TrimSpace(value)), nil
 }
 
+// safeSegPair is a convenience for the recurring "validate two IDs, then
+// interpolate" pattern used by every update/delete of a sub-resource. It
+// returns the two escaped segments or the first validation error encountered.
+// The order of fields in the call site is the order returned, which keeps the
+// URL composition local and obvious at the call site.
+func safeSegPair(field1, value1, field2, value2 string) (string, string, error) {
+	seg1, err := safeSeg(field1, value1)
+	if err != nil {
+		return "", "", err
+	}
+	seg2, err := safeSeg(field2, value2)
+	if err != nil {
+		return "", "", err
+	}
+	return seg1, seg2, nil
+}
+
 const (
 	// DefaultBaseURL is the ProductPlan API base URL.
 	DefaultBaseURL = "https://app.productplan.com/api/v2"
