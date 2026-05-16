@@ -118,48 +118,43 @@ type ArgumentResult struct {
 	WrongArgs   []string `json:"wrong_args,omitempty"`
 }
 
-// LoadToolSelectionSuite loads a tool selection test suite from a JSON file.
-func LoadToolSelectionSuite(path string) (*ToolSelectionSuite, error) {
+// loadJSON reads a file at path and decodes it into out. Returns wrapped
+// errors so the caller can attach context-specific messages.
+func loadJSON(path string, out any) error {
 	data, err := os.ReadFile(path) // #nosec G304 -- path is controlled by eval framework
 	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
+		return fmt.Errorf("failed to read file: %w", err)
 	}
+	if err := json.Unmarshal(data, out); err != nil {
+		return fmt.Errorf("failed to parse JSON: %w", err)
+	}
+	return nil
+}
 
+// LoadToolSelectionSuite loads a tool selection test suite from a JSON file.
+func LoadToolSelectionSuite(path string) (*ToolSelectionSuite, error) {
 	var suite ToolSelectionSuite
-	if err := json.Unmarshal(data, &suite); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	if err := loadJSON(path, &suite); err != nil {
+		return nil, err
 	}
-
 	return &suite, nil
 }
 
 // LoadConfusionPairSuite loads a confusion pair test suite from a JSON file.
 func LoadConfusionPairSuite(path string) (*ConfusionPairSuite, error) {
-	data, err := os.ReadFile(path) // #nosec G304 -- path is controlled by eval framework
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
-	}
-
 	var suite ConfusionPairSuite
-	if err := json.Unmarshal(data, &suite); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	if err := loadJSON(path, &suite); err != nil {
+		return nil, err
 	}
-
 	return &suite, nil
 }
 
 // LoadArgumentSuite loads an argument test suite from a JSON file.
 func LoadArgumentSuite(path string) (*ArgumentSuite, error) {
-	data, err := os.ReadFile(path) // #nosec G304 -- path is controlled by eval framework
-	if err != nil {
-		return nil, fmt.Errorf("failed to read file: %w", err)
-	}
-
 	var suite ArgumentSuite
-	if err := json.Unmarshal(data, &suite); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	if err := loadJSON(path, &suite); err != nil {
+		return nil, err
 	}
-
 	return &suite, nil
 }
 
@@ -234,6 +229,39 @@ func EvaluateToolSelection(suite *ToolSelectionSuite, selector ToolSelector) (*E
 }
 
 // EvaluateConfusionPairs runs confusion pair tests and returns metrics.
+// runConfusionPairTest executes one prompt/expected-tool case against the selector.
+func runConfusionPairTest(pair ConfusionPair, test ConfusionPairTest, selector ToolSelector) ConfusionPairResult {
+	result := ConfusionPairResult{
+		Tools:    pair.Tools,
+		Prompt:   test.Prompt,
+		Expected: test.ExpectedTool,
+	}
+	toolName, _, err := selector.SelectTool(test.Prompt)
+	if err != nil {
+		result.ErrorMessage = err.Error()
+		result.Passed = false
+		return result
+	}
+	result.Actual = toolName
+	result.Passed = toolName == test.ExpectedTool
+	return result
+}
+
+// recordConfusionPairResult updates the per-pair metrics aggregate.
+func recordConfusionPairResult(metrics *EvalMetrics, pairKey string, test ConfusionPairTest, result ConfusionPairResult) {
+	metrics.TotalTests++
+	metrics.ByCategory[pairKey].Total++
+	if result.Passed {
+		metrics.PassedTests++
+		metrics.ByCategory[pairKey].Passed++
+		return
+	}
+	metrics.FailedTests++
+	metrics.ByCategory[pairKey].Failed++
+	metrics.FailedDetails = append(metrics.FailedDetails,
+		fmt.Sprintf("[%s] %s: expected %s, got %s", pairKey, test.Prompt, test.ExpectedTool, result.Actual))
+}
+
 func EvaluateConfusionPairs(suite *ConfusionPairSuite, selector ToolSelector) (*EvalMetrics, []ConfusionPairResult) {
 	metrics := &EvalMetrics{
 		ByCategory: make(map[string]*CategoryMetrics),
@@ -242,40 +270,14 @@ func EvaluateConfusionPairs(suite *ConfusionPairSuite, selector ToolSelector) (*
 
 	for _, pair := range suite.Pairs {
 		pairKey := strings.Join(pair.Tools, "_vs_")
-
 		if _, ok := metrics.ByCategory[pairKey]; !ok {
 			metrics.ByCategory[pairKey] = &CategoryMetrics{}
 		}
 
 		for _, test := range pair.Tests {
-			result := ConfusionPairResult{
-				Tools:    pair.Tools,
-				Prompt:   test.Prompt,
-				Expected: test.ExpectedTool,
-			}
-
-			toolName, _, err := selector.SelectTool(test.Prompt)
-			if err != nil {
-				result.ErrorMessage = err.Error()
-				result.Passed = false
-			} else {
-				result.Actual = toolName
-				result.Passed = toolName == test.ExpectedTool
-			}
-
+			result := runConfusionPairTest(pair, test, selector)
 			results = append(results, result)
-			metrics.TotalTests++
-			metrics.ByCategory[pairKey].Total++
-
-			if result.Passed {
-				metrics.PassedTests++
-				metrics.ByCategory[pairKey].Passed++
-			} else {
-				metrics.FailedTests++
-				metrics.ByCategory[pairKey].Failed++
-				metrics.FailedDetails = append(metrics.FailedDetails,
-					fmt.Sprintf("[%s] %s: expected %s, got %s", pairKey, test.Prompt, test.ExpectedTool, result.Actual))
-			}
+			recordConfusionPairResult(metrics, pairKey, test, result)
 		}
 	}
 
@@ -286,6 +288,84 @@ func EvaluateConfusionPairs(suite *ConfusionPairSuite, selector ToolSelector) (*
 	return metrics, results
 }
 
+// runArgumentTest executes a single argument-extraction test and returns its result.
+func runArgumentTest(test ArgumentTest, selector ToolSelector) ArgumentResult {
+	result := ArgumentResult{
+		TestID: test.ID,
+		Tool:   test.Tool,
+	}
+
+	_, args, err := selector.SelectTool(test.Prompt)
+	if err != nil {
+		result.Passed = false
+		result.MissingArgs = test.RequiredArgs
+		return result
+	}
+
+	result.MissingArgs = findMissingArgs(test.RequiredArgs, args)
+	result.WrongArgs = findWrongArgs(test.ExpectedArgs, args)
+	result.Passed = len(result.MissingArgs) == 0 && len(result.WrongArgs) == 0
+	return result
+}
+
+// findMissingArgs returns required arg names that are absent from args.
+func findMissingArgs(required []string, args map[string]any) []string {
+	var missing []string
+	for _, reqArg := range required {
+		if _, ok := args[reqArg]; !ok {
+			missing = append(missing, reqArg)
+		}
+	}
+	return missing
+}
+
+// findWrongArgs returns "key: expected X, got Y" descriptions for every arg
+// where args[key] is present but does not compare equal to the expected value.
+func findWrongArgs(expected map[string]any, args map[string]any) []string {
+	var wrong []string
+	for key, expectedVal := range expected {
+		actualVal, ok := args[key]
+		if !ok {
+			continue
+		}
+		if !compareValues(expectedVal, actualVal) {
+			wrong = append(wrong, fmt.Sprintf("%s: expected %v, got %v", key, expectedVal, actualVal))
+		}
+	}
+	return wrong
+}
+
+// recordArgumentResult updates the metrics aggregate for a single test outcome.
+func recordArgumentResult(metrics *EvalMetrics, test ArgumentTest, result ArgumentResult) {
+	metrics.TotalTests++
+	if _, ok := metrics.ByCategory[test.Category]; !ok {
+		metrics.ByCategory[test.Category] = &CategoryMetrics{}
+	}
+	cat := metrics.ByCategory[test.Category]
+	cat.Total++
+
+	if result.Passed {
+		metrics.PassedTests++
+		cat.Passed++
+		return
+	}
+	metrics.FailedTests++
+	cat.Failed++
+	metrics.FailedDetails = append(metrics.FailedDetails, formatArgumentFailure(test, result))
+}
+
+// formatArgumentFailure renders a one-line failure summary for the metrics log.
+func formatArgumentFailure(test ArgumentTest, result ArgumentResult) string {
+	details := fmt.Sprintf("[%s] %s", test.ID, test.Prompt)
+	if len(result.MissingArgs) > 0 {
+		details += fmt.Sprintf(" missing: %v", result.MissingArgs)
+	}
+	if len(result.WrongArgs) > 0 {
+		details += fmt.Sprintf(" wrong: %v", result.WrongArgs)
+	}
+	return details
+}
+
 // EvaluateArguments runs argument extraction tests and returns metrics.
 func EvaluateArguments(suite *ArgumentSuite, selector ToolSelector) (*EvalMetrics, []ArgumentResult) {
 	metrics := &EvalMetrics{
@@ -294,60 +374,9 @@ func EvaluateArguments(suite *ArgumentSuite, selector ToolSelector) (*EvalMetric
 	var results []ArgumentResult
 
 	for _, test := range suite.Tests {
-		result := ArgumentResult{
-			TestID: test.ID,
-			Tool:   test.Tool,
-		}
-
-		_, args, err := selector.SelectTool(test.Prompt)
-		if err != nil {
-			result.Passed = false
-			result.MissingArgs = test.RequiredArgs
-		} else {
-			// Check required args
-			for _, reqArg := range test.RequiredArgs {
-				if _, ok := args[reqArg]; !ok {
-					result.MissingArgs = append(result.MissingArgs, reqArg)
-				}
-			}
-
-			// Check expected values
-			for key, expectedVal := range test.ExpectedArgs {
-				if actualVal, ok := args[key]; ok {
-					if !compareValues(expectedVal, actualVal) {
-						result.WrongArgs = append(result.WrongArgs,
-							fmt.Sprintf("%s: expected %v, got %v", key, expectedVal, actualVal))
-					}
-				}
-			}
-
-			result.Passed = len(result.MissingArgs) == 0 && len(result.WrongArgs) == 0
-		}
-
+		result := runArgumentTest(test, selector)
 		results = append(results, result)
-		metrics.TotalTests++
-
-		// Update category metrics
-		if _, ok := metrics.ByCategory[test.Category]; !ok {
-			metrics.ByCategory[test.Category] = &CategoryMetrics{}
-		}
-		metrics.ByCategory[test.Category].Total++
-
-		if result.Passed {
-			metrics.PassedTests++
-			metrics.ByCategory[test.Category].Passed++
-		} else {
-			metrics.FailedTests++
-			metrics.ByCategory[test.Category].Failed++
-			details := fmt.Sprintf("[%s] %s", test.ID, test.Prompt)
-			if len(result.MissingArgs) > 0 {
-				details += fmt.Sprintf(" missing: %v", result.MissingArgs)
-			}
-			if len(result.WrongArgs) > 0 {
-				details += fmt.Sprintf(" wrong: %v", result.WrongArgs)
-			}
-			metrics.FailedDetails = append(metrics.FailedDetails, details)
-		}
+		recordArgumentResult(metrics, test, result)
 	}
 
 	if metrics.TotalTests > 0 {
@@ -382,6 +411,32 @@ func compareValues(expected, actual interface{}) bool {
 	return reflect.DeepEqual(expected, actual)
 }
 
+// writeCategoryBreakdown appends the "By Category" block to sb. No-op for empty input.
+func writeCategoryBreakdown(sb *strings.Builder, byCategory map[string]*CategoryMetrics) {
+	if len(byCategory) == 0 {
+		return
+	}
+	sb.WriteString("\nBy Category:\n")
+	for cat, catMetrics := range byCategory {
+		accuracy := float64(0)
+		if catMetrics.Total > 0 {
+			accuracy = float64(catMetrics.Passed) / float64(catMetrics.Total) * 100
+		}
+		fmt.Fprintf(sb, "  %s: %d/%d (%.1f%%)\n", cat, catMetrics.Passed, catMetrics.Total, accuracy)
+	}
+}
+
+// writeFailedDetails appends the "Failed Tests" block to sb. No-op for empty input.
+func writeFailedDetails(sb *strings.Builder, failedDetails []string) {
+	if len(failedDetails) == 0 {
+		return
+	}
+	sb.WriteString("\nFailed Tests:\n")
+	for _, detail := range failedDetails {
+		fmt.Fprintf(sb, "  - %s\n", detail)
+	}
+}
+
 // FormatMetrics returns a formatted string representation of metrics.
 func FormatMetrics(metrics *EvalMetrics, suiteName string) string {
 	var sb strings.Builder
@@ -391,24 +446,8 @@ func FormatMetrics(metrics *EvalMetrics, suiteName string) string {
 		metrics.TotalTests, metrics.PassedTests, metrics.FailedTests)
 	fmt.Fprintf(&sb, "Accuracy: %.1f%%\n", metrics.Accuracy*100)
 
-	if len(metrics.ByCategory) > 0 {
-		sb.WriteString("\nBy Category:\n")
-		for cat, catMetrics := range metrics.ByCategory {
-			accuracy := float64(0)
-			if catMetrics.Total > 0 {
-				accuracy = float64(catMetrics.Passed) / float64(catMetrics.Total) * 100
-			}
-			fmt.Fprintf(&sb, "  %s: %d/%d (%.1f%%)\n",
-				cat, catMetrics.Passed, catMetrics.Total, accuracy)
-		}
-	}
-
-	if len(metrics.FailedDetails) > 0 {
-		sb.WriteString("\nFailed Tests:\n")
-		for _, detail := range metrics.FailedDetails {
-			fmt.Fprintf(&sb, "  - %s\n", detail)
-		}
-	}
+	writeCategoryBreakdown(&sb, metrics.ByCategory)
+	writeFailedDetails(&sb, metrics.FailedDetails)
 
 	return sb.String()
 }
