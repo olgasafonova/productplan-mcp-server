@@ -57,6 +57,13 @@ func NewBatchExecutor(config BatchConfig) *BatchExecutor {
 	return &BatchExecutor{config: config}
 }
 
+// indexedResult pairs a batch result with its original index for ordered collection.
+type indexedResult[T any] struct {
+	index  int
+	result T
+	err    error
+}
+
 // Execute runs the given functions with configured concurrency.
 // Each function receives its index and should return a result or error.
 func Execute[T any](ctx context.Context, config BatchConfig, fns []func(ctx context.Context) (T, error)) *BatchResult[T] {
@@ -69,41 +76,37 @@ func Execute[T any](ctx context.Context, config BatchConfig, fns []func(ctx cont
 		return result
 	}
 
-	// Sequential execution
 	if config.Concurrency <= 1 {
-		for i, fn := range fns {
-			if ctx.Err() != nil {
-				result.Errors = append(result.Errors, BatchError{
-					Index: i,
-					Err:   ctx.Err(),
-				})
-				break
-			}
+		return executeSequential(ctx, config, fns, result)
+	}
+	return executeConcurrent(ctx, config, fns, result)
+}
 
-			res, err := fn(ctx)
-			if err != nil {
-				result.Errors = append(result.Errors, BatchError{
-					Index: i,
-					Err:   err,
-				})
-				if config.StopOnError {
-					break
-				}
-				continue
-			}
-			result.Results = append(result.Results, res)
+// executeSequential runs the functions one at a time in the calling goroutine.
+func executeSequential[T any](ctx context.Context, config BatchConfig, fns []func(ctx context.Context) (T, error), result *BatchResult[T]) *BatchResult[T] {
+	for i, fn := range fns {
+		if ctx.Err() != nil {
+			result.Errors = append(result.Errors, BatchError{Index: i, Err: ctx.Err()})
+			break
 		}
-		return result
-	}
 
-	// Concurrent execution with semaphore
-	type indexedResult struct {
-		index  int
-		result T
-		err    error
-	}
+		res, err := fn(ctx)
+		if err == nil {
+			result.Results = append(result.Results, res)
+			continue
+		}
 
-	resultChan := make(chan indexedResult, len(fns))
+		result.Errors = append(result.Errors, BatchError{Index: i, Err: err})
+		if config.StopOnError {
+			break
+		}
+	}
+	return result
+}
+
+// executeConcurrent runs the functions in parallel, bounded by config.Concurrency.
+func executeConcurrent[T any](ctx context.Context, config BatchConfig, fns []func(ctx context.Context) (T, error), result *BatchResult[T]) *BatchResult[T] {
+	resultChan := make(chan indexedResult[T], len(fns))
 	sem := make(chan struct{}, config.Concurrency)
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -112,52 +115,48 @@ func Execute[T any](ctx context.Context, config BatchConfig, fns []func(ctx cont
 	var wg sync.WaitGroup
 	for i, fn := range fns {
 		wg.Add(1)
-		go func(idx int, f func(ctx context.Context) (T, error)) {
-			defer wg.Done()
-
-			// Acquire semaphore
-			select {
-			case sem <- struct{}{}:
-				defer func() { <-sem }()
-			case <-ctx.Done():
-				resultChan <- indexedResult{index: idx, err: ctx.Err()}
-				return
-			}
-
-			res, err := f(ctx)
-			if err != nil && config.StopOnError {
-				cancel()
-			}
-			resultChan <- indexedResult{index: idx, result: res, err: err}
-		}(i, fn)
+		go runBatchFn(ctx, cancel, config, sem, resultChan, &wg, i, fn)
 	}
 
-	// Close channel when all done
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
 
-	// Collect results maintaining order info
-	indexed := make(map[int]indexedResult)
+	indexed := make(map[int]indexedResult[T])
 	for ir := range resultChan {
 		indexed[ir.index] = ir
 	}
 
-	// Process in order
 	for i := 0; i < len(fns); i++ {
 		ir := indexed[i]
 		if ir.err != nil {
-			result.Errors = append(result.Errors, BatchError{
-				Index: i,
-				Err:   ir.err,
-			})
-		} else {
-			result.Results = append(result.Results, ir.result)
+			result.Errors = append(result.Errors, BatchError{Index: i, Err: ir.err})
+			continue
 		}
+		result.Results = append(result.Results, ir.result)
 	}
 
 	return result
+}
+
+// runBatchFn executes a single batch function while honouring the semaphore and cancellation.
+func runBatchFn[T any](ctx context.Context, cancel context.CancelFunc, config BatchConfig, sem chan struct{}, resultChan chan<- indexedResult[T], wg *sync.WaitGroup, idx int, fn func(ctx context.Context) (T, error)) {
+	defer wg.Done()
+
+	select {
+	case sem <- struct{}{}:
+		defer func() { <-sem }()
+	case <-ctx.Done():
+		resultChan <- indexedResult[T]{index: idx, err: ctx.Err()}
+		return
+	}
+
+	res, err := fn(ctx)
+	if err != nil && config.StopOnError {
+		cancel()
+	}
+	resultChan <- indexedResult[T]{index: idx, result: res, err: err}
 }
 
 // ExecuteWithKeys runs operations associated with string keys.
