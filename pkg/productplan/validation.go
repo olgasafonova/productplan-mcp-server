@@ -84,30 +84,34 @@ func RequireAction(value string, allowed []string) error {
 	return NewValidationError("action", "must be one of: "+strings.Join(allowed, ", "))
 }
 
-// ValidateDate checks if a date string is in YYYY-MM-DD format.
-func ValidateDate(field, value string) error {
+// Pre-compiled patterns shared by the optional-format validators below.
+// Compiled once at package load to avoid per-call allocations.
+var (
+	datePattern  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+	colorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
+	emailPattern = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+)
+
+// validateOptionalPattern returns nil for empty values, otherwise checks the value
+// against the pattern and returns a ValidationError with the supplied message on mismatch.
+func validateOptionalPattern(field, value string, pattern *regexp.Regexp, message string) error {
 	if value == "" {
 		return nil // Optional field
 	}
-
-	datePattern := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
-	if !datePattern.MatchString(value) {
-		return NewValidationError(field, "must be in YYYY-MM-DD format (e.g., 2024-06-30)")
+	if !pattern.MatchString(value) {
+		return NewValidationError(field, message)
 	}
 	return nil
 }
 
+// ValidateDate checks if a date string is in YYYY-MM-DD format.
+func ValidateDate(field, value string) error {
+	return validateOptionalPattern(field, value, datePattern, "must be in YYYY-MM-DD format (e.g., 2024-06-30)")
+}
+
 // ValidateColor checks if a color string is a valid hex color.
 func ValidateColor(field, value string) error {
-	if value == "" {
-		return nil // Optional field
-	}
-
-	colorPattern := regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
-	if !colorPattern.MatchString(value) {
-		return NewValidationError(field, "must be a hex color code (e.g., #FF5733)")
-	}
-	return nil
+	return validateOptionalPattern(field, value, colorPattern, "must be a hex color code (e.g., #FF5733)")
 }
 
 // ValidateURL checks if a URL string is valid.
@@ -124,15 +128,7 @@ func ValidateURL(field, value string) error {
 
 // ValidateEmail checks if an email string is valid.
 func ValidateEmail(field, value string) error {
-	if value == "" {
-		return nil // Optional field
-	}
-
-	emailPattern := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-	if !emailPattern.MatchString(value) {
-		return NewValidationError(field, "must be a valid email address")
-	}
-	return nil
+	return validateOptionalPattern(field, value, emailPattern, "must be a valid email address")
 }
 
 // GetString safely extracts a string from a map.
@@ -147,19 +143,26 @@ func GetString(args map[string]interface{}, key string) string {
 
 // GetStringSlice safely extracts a string slice from a map.
 func GetStringSlice(args map[string]interface{}, key string) []string {
-	if v, ok := args[key]; ok {
-		switch val := v.(type) {
-		case []string:
-			return val
-		case []interface{}:
-			result := make([]string, 0, len(val))
-			for _, item := range val {
-				if s, ok := item.(string); ok {
-					result = append(result, s)
-				}
-			}
-			return result
-		}
+	v, ok := args[key]
+	if !ok {
+		return nil
+	}
+	switch val := v.(type) {
+	case []string:
+		return val
+	case []interface{}:
+		return interfaceSliceToStrings(val)
 	}
 	return nil
+}
+
+// interfaceSliceToStrings filters val keeping only string items, in order.
+func interfaceSliceToStrings(val []interface{}) []string {
+	result := make([]string, 0, len(val))
+	for _, item := range val {
+		if s, ok := item.(string); ok {
+			result = append(result, s)
+		}
+	}
+	return result
 }
