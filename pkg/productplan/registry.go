@@ -248,35 +248,52 @@ func (r *ToolRegistry) GenerateMarkdownDocs() string {
 	fmt.Fprintf(&sb, "Total tools: %d\n\n", len(r.tools))
 
 	for _, cat := range r.Categories() {
-		tools := r.byCategory[cat]
-		fmt.Fprintf(&sb, "## %s (%d tools)\n\n", capitalizeFirst(string(cat)), len(tools))
-
-		for _, def := range tools {
-			fmt.Fprintf(&sb, "### %s\n\n", def.Name)
-			fmt.Fprintf(&sb, "%s\n\n", def.Description)
-
-			if len(def.Properties) > 0 {
-				sb.WriteString("**Parameters:**\n\n")
-				for _, p := range def.Properties {
-					required := ""
-					for _, req := range def.Required {
-						if req == p.Name {
-							required = " *(required)*"
-							break
-						}
-					}
-					fmt.Fprintf(&sb, "- `%s` (%s)%s: %s", p.Name, p.Type, required, p.Description)
-					if len(p.Enum) > 0 {
-						fmt.Fprintf(&sb, " Values: %s", strings.Join(p.Enum, ", "))
-					}
-					sb.WriteString("\n")
-				}
-				sb.WriteString("\n")
-			}
-		}
+		writeCategoryDocs(&sb, cat, r.byCategory[cat])
 	}
 
 	return sb.String()
+}
+
+// writeCategoryDocs renders the Markdown block for a single tool category.
+func writeCategoryDocs(sb *strings.Builder, cat ToolCategory, tools []*ToolDefinition) {
+	fmt.Fprintf(sb, "## %s (%d tools)\n\n", capitalizeFirst(string(cat)), len(tools))
+	for _, def := range tools {
+		writeToolDocs(sb, def)
+	}
+}
+
+// writeToolDocs renders the Markdown block for a single tool definition.
+func writeToolDocs(sb *strings.Builder, def *ToolDefinition) {
+	fmt.Fprintf(sb, "### %s\n\n", def.Name)
+	fmt.Fprintf(sb, "%s\n\n", def.Description)
+
+	if len(def.Properties) == 0 {
+		return
+	}
+
+	requiredSet := make(map[string]struct{}, len(def.Required))
+	for _, req := range def.Required {
+		requiredSet[req] = struct{}{}
+	}
+
+	sb.WriteString("**Parameters:**\n\n")
+	for _, p := range def.Properties {
+		writePropertyDocs(sb, p, requiredSet)
+	}
+	sb.WriteString("\n")
+}
+
+// writePropertyDocs renders a single tool-parameter bullet.
+func writePropertyDocs(sb *strings.Builder, p PropertyDef, requiredSet map[string]struct{}) {
+	required := ""
+	if _, ok := requiredSet[p.Name]; ok {
+		required = " *(required)*"
+	}
+	fmt.Fprintf(sb, "- `%s` (%s)%s: %s", p.Name, p.Type, required, p.Description)
+	if len(p.Enum) > 0 {
+		fmt.Fprintf(sb, " Values: %s", strings.Join(p.Enum, ", "))
+	}
+	sb.WriteString("\n")
 }
 
 // Summary returns a brief summary of the registry.
