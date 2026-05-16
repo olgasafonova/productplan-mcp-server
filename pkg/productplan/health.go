@@ -75,82 +75,101 @@ func (h *HealthChecker) Check(ctx context.Context, deep bool) HealthReport {
 		Components: make([]ComponentHealth, 0),
 	}
 
-	// Check rate limiter status
-	if h.rateLimiter != nil {
-		state := h.rateLimiter.State()
-		remaining := h.rateLimiter.RemainingPercent()
-
-		report.RateLimit = &RateLimitHealth{
-			Limit:     state.Limit,
-			Remaining: state.Remaining,
-			Percent:   remaining,
-		}
-
-		status := HealthOK
-		message := "Rate limits healthy"
-
-		if remaining < 10 {
-			status = HealthDegraded
-			message = "Rate limit nearly exhausted"
-			if report.Status == HealthOK {
-				report.Status = HealthDegraded
-			}
-		}
-
-		report.Components = append(report.Components, ComponentHealth{
-			Name:    "rate_limiter",
-			Status:  status,
-			Message: message,
-		})
-	}
-
-	// Check cache status
-	if h.cache != nil {
-		stats := h.cache.Stats()
-		report.CacheStats = &stats
-
-		report.Components = append(report.Components, ComponentHealth{
-			Name:    "cache",
-			Status:  HealthOK,
-			Message: "Cache operational",
-		})
-	}
-
-	// Deep check: verify API connectivity
-	if deep && h.apiChecker != nil {
-		latency, err := h.apiChecker(ctx)
-
-		if err != nil {
-			report.Components = append(report.Components, ComponentHealth{
-				Name:    "api",
-				Status:  HealthDown,
-				Message: err.Error(),
-				Latency: latency,
-			})
-			report.Status = HealthDown
-		} else {
-			status := HealthOK
-			message := "API responding"
-
-			if latency > 5000 {
-				status = HealthDegraded
-				message = "API response slow"
-				if report.Status == HealthOK {
-					report.Status = HealthDegraded
-				}
-			}
-
-			report.Components = append(report.Components, ComponentHealth{
-				Name:    "api",
-				Status:  status,
-				Message: message,
-				Latency: latency,
-			})
-		}
+	h.checkRateLimiter(&report)
+	h.checkCache(&report)
+	if deep {
+		h.checkAPI(ctx, &report)
 	}
 
 	report.ResponseTime = time.Since(start).Milliseconds()
 	return report
+}
+
+// checkRateLimiter adds rate limiter health to the report.
+func (h *HealthChecker) checkRateLimiter(report *HealthReport) {
+	if h.rateLimiter == nil {
+		return
+	}
+	state := h.rateLimiter.State()
+	remaining := h.rateLimiter.RemainingPercent()
+
+	report.RateLimit = &RateLimitHealth{
+		Limit:     state.Limit,
+		Remaining: state.Remaining,
+		Percent:   remaining,
+	}
+
+	status, message := rateLimiterStatus(remaining)
+	if status == HealthDegraded && report.Status == HealthOK {
+		report.Status = HealthDegraded
+	}
+
+	report.Components = append(report.Components, ComponentHealth{
+		Name:    "rate_limiter",
+		Status:  status,
+		Message: message,
+	})
+}
+
+// rateLimiterStatus returns the status and message for a given remaining percentage.
+func rateLimiterStatus(remaining float64) (HealthStatus, string) {
+	if remaining < 10 {
+		return HealthDegraded, "Rate limit nearly exhausted"
+	}
+	return HealthOK, "Rate limits healthy"
+}
+
+// checkCache adds cache health to the report.
+func (h *HealthChecker) checkCache(report *HealthReport) {
+	if h.cache == nil {
+		return
+	}
+	stats := h.cache.Stats()
+	report.CacheStats = &stats
+
+	report.Components = append(report.Components, ComponentHealth{
+		Name:    "cache",
+		Status:  HealthOK,
+		Message: "Cache operational",
+	})
+}
+
+// checkAPI adds API connectivity health to the report.
+func (h *HealthChecker) checkAPI(ctx context.Context, report *HealthReport) {
+	if h.apiChecker == nil {
+		return
+	}
+	latency, err := h.apiChecker(ctx)
+	if err != nil {
+		report.Components = append(report.Components, ComponentHealth{
+			Name:    "api",
+			Status:  HealthDown,
+			Message: err.Error(),
+			Latency: latency,
+		})
+		report.Status = HealthDown
+		return
+	}
+
+	status, message := apiStatus(latency)
+	if status == HealthDegraded && report.Status == HealthOK {
+		report.Status = HealthDegraded
+	}
+
+	report.Components = append(report.Components, ComponentHealth{
+		Name:    "api",
+		Status:  status,
+		Message: message,
+		Latency: latency,
+	})
+}
+
+// apiStatus returns the status and message based on API latency in ms.
+func apiStatus(latency int64) (HealthStatus, string) {
+	if latency > 5000 {
+		return HealthDegraded, "API response slow"
+	}
+	return HealthOK, "API responding"
 }
 
 // ToJSON converts the health report to JSON.
