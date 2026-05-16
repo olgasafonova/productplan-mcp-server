@@ -110,6 +110,44 @@ func sanitizeBodyForCaller(body []byte) string {
 	return excerpt
 }
 
+// apiErrorBody mirrors the conventional JSON error shape returned by the API.
+type apiErrorBody struct {
+	Error   string `json:"error"`
+	Message string `json:"message"`
+	Code    string `json:"code"`
+	Details string `json:"details"`
+}
+
+// applyErrorBody copies non-empty fields from the parsed body onto apiErr.
+// Message prefers `message` over `error` (latter wins last-write semantics).
+func applyErrorBody(apiErr *APIError, errBody apiErrorBody) {
+	if errBody.Error != "" {
+		apiErr.Message = errBody.Error
+	}
+	if errBody.Message != "" {
+		apiErr.Message = errBody.Message
+	}
+	if errBody.Code != "" {
+		apiErr.Code = errBody.Code
+	}
+	if errBody.Details != "" {
+		apiErr.Details = errBody.Details
+	}
+}
+
+// applyRetryAfter parses the Retry-After header (integer seconds form) into apiErr.
+func applyRetryAfter(apiErr *APIError, resp *http.Response) {
+	retryAfter := resp.Header.Get("Retry-After")
+	if retryAfter == "" {
+		return
+	}
+	seconds, err := strconv.Atoi(retryAfter)
+	if err != nil {
+		return
+	}
+	apiErr.RetryAfter = seconds
+}
+
 // ParseAPIError creates an APIError from an HTTP response.
 func ParseAPIError(resp *http.Response, body []byte) *APIError {
 	apiErr := &APIError{
@@ -117,38 +155,14 @@ func ParseAPIError(resp *http.Response, body []byte) *APIError {
 		Message:    http.StatusText(resp.StatusCode),
 	}
 
-	// Try to parse error details from response body
-	var errBody struct {
-		Error   string `json:"error"`
-		Message string `json:"message"`
-		Code    string `json:"code"`
-		Details string `json:"details"`
-	}
-
+	var errBody apiErrorBody
 	if err := json.Unmarshal(body, &errBody); err == nil {
-		if errBody.Error != "" {
-			apiErr.Message = errBody.Error
-		}
-		if errBody.Message != "" {
-			apiErr.Message = errBody.Message
-		}
-		if errBody.Code != "" {
-			apiErr.Code = errBody.Code
-		}
-		if errBody.Details != "" {
-			apiErr.Details = errBody.Details
-		}
+		applyErrorBody(apiErr, errBody)
 	} else if len(body) > 0 {
 		apiErr.Details = sanitizeBodyForCaller(body)
 	}
 
-	// Parse Retry-After header for rate limiting
-	if retryAfter := resp.Header.Get("Retry-After"); retryAfter != "" {
-		if seconds, err := strconv.Atoi(retryAfter); err == nil {
-			apiErr.RetryAfter = seconds
-		}
-	}
-
+	applyRetryAfter(apiErr, resp)
 	return apiErr
 }
 
