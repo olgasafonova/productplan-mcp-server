@@ -19,6 +19,9 @@ func ParseArgs[T any](args map[string]any) (T, error) {
 	return result, nil
 }
 
+// fieldCheck pairs a struct field value with its JSON name for batch validation.
+type fieldCheck struct{ value, name string }
+
 // requireField returns a "required parameter missing" error when value is empty.
 // Returns nil otherwise.
 func requireField(value, name string) error {
@@ -33,6 +36,29 @@ func requireField(value, name string) error {
 func requireFieldForAction(value, name, action string) error {
 	if value == "" {
 		return fmt.Errorf("required parameter missing: %s (required for %s)", name, action)
+	}
+	return nil
+}
+
+// requireAll runs requireField against each check in order, returning the
+// first error encountered. Centralises the "validate N mandatory fields" pattern.
+func requireAll(checks ...fieldCheck) error {
+	for _, c := range checks {
+		if err := requireField(c.value, c.name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// requireAllForAction runs requireFieldForAction against each check in order,
+// returning the first error encountered. Centralises the "validate N action-gated
+// fields" pattern.
+func requireAllForAction(action string, checks ...fieldCheck) error {
+	for _, c := range checks {
+		if err := requireFieldForAction(c.value, c.name, action); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -60,10 +86,10 @@ type ManageLaneArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageLaneArgs) Validate() error {
-	if err := requireField(a.Action, "action"); err != nil {
-		return err
-	}
-	if err := requireField(a.RoadmapID, "roadmap_id"); err != nil {
+	if err := requireAll(
+		fieldCheck{a.Action, "action"},
+		fieldCheck{a.RoadmapID, "roadmap_id"},
+	); err != nil {
 		return err
 	}
 	if a.Action == "update" || a.Action == "delete" {
@@ -83,10 +109,10 @@ type ManageMilestoneArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageMilestoneArgs) Validate() error {
-	if err := requireField(a.Action, "action"); err != nil {
-		return err
-	}
-	if err := requireField(a.RoadmapID, "roadmap_id"); err != nil {
+	if err := requireAll(
+		fieldCheck{a.Action, "action"},
+		fieldCheck{a.RoadmapID, "roadmap_id"},
+	); err != nil {
 		return err
 	}
 	if a.Action == "update" || a.Action == "delete" {
@@ -143,13 +169,11 @@ func (a ManageBarArgs) Validate() error {
 	}
 	switch a.Action {
 	case "create":
-		if err := requireFieldForAction(a.RoadmapID, "roadmap_id", "create"); err != nil {
-			return err
-		}
-		if err := requireFieldForAction(a.LaneID, "lane_id", "create"); err != nil {
-			return err
-		}
-		return requireFieldForAction(a.Name, "name", "create")
+		return requireAllForAction("create",
+			fieldCheck{a.RoadmapID, "roadmap_id"},
+			fieldCheck{a.LaneID, "lane_id"},
+			fieldCheck{a.Name, "name"},
+		)
 	case "update", "delete":
 		return requireFieldForAction(a.BarID, "bar_id", a.Action)
 	}
@@ -166,10 +190,10 @@ type ManageBarConnectionArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageBarConnectionArgs) Validate() error {
-	if err := requireField(a.Action, "action"); err != nil {
-		return err
-	}
-	if err := requireField(a.BarID, "bar_id"); err != nil {
+	if err := requireAll(
+		fieldCheck{a.Action, "action"},
+		fieldCheck{a.BarID, "bar_id"},
+	); err != nil {
 		return err
 	}
 	switch a.Action {
@@ -192,10 +216,10 @@ type ManageBarLinkArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageBarLinkArgs) Validate() error {
-	if err := requireField(a.Action, "action"); err != nil {
-		return err
-	}
-	if err := requireField(a.BarID, "bar_id"); err != nil {
+	if err := requireAll(
+		fieldCheck{a.Action, "action"},
+		fieldCheck{a.BarID, "bar_id"},
+	); err != nil {
 		return err
 	}
 	switch a.Action {
@@ -254,10 +278,10 @@ type ManageKeyResultArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageKeyResultArgs) Validate() error {
-	if err := requireField(a.Action, "action"); err != nil {
-		return err
-	}
-	if err := requireField(a.ObjectiveID, "objective_id"); err != nil {
+	if err := requireAll(
+		fieldCheck{a.Action, "action"},
+		fieldCheck{a.ObjectiveID, "objective_id"},
+	); err != nil {
 		return err
 	}
 	if a.Action == "update" || a.Action == "delete" {
@@ -274,10 +298,10 @@ type GetKeyResultArgs struct {
 
 // Validate checks required fields.
 func (a GetKeyResultArgs) Validate() error {
-	if err := requireField(a.ObjectiveID, "objective_id"); err != nil {
-		return err
-	}
-	return requireField(a.KeyResultID, "key_result_id")
+	return requireAll(
+		fieldCheck{a.ObjectiveID, "objective_id"},
+		fieldCheck{a.KeyResultID, "key_result_id"},
+	)
 }
 
 // --- Idea Args ---
@@ -378,10 +402,10 @@ type GetLaunchSectionArgs struct {
 
 // Validate checks required fields.
 func (a GetLaunchSectionArgs) Validate() error {
-	if err := requireField(a.LaunchID, "launch_id"); err != nil {
-		return err
-	}
-	return requireField(a.SectionID, "section_id")
+	return requireAll(
+		fieldCheck{a.LaunchID, "launch_id"},
+		fieldCheck{a.SectionID, "section_id"},
+	)
 }
 
 // GetLaunchTaskArgs holds arguments for getting a single launch task.
@@ -392,10 +416,10 @@ type GetLaunchTaskArgs struct {
 
 // Validate checks required fields.
 func (a GetLaunchTaskArgs) Validate() error {
-	if err := requireField(a.LaunchID, "launch_id"); err != nil {
-		return err
-	}
-	return requireField(a.TaskID, "task_id")
+	return requireAll(
+		fieldCheck{a.LaunchID, "launch_id"},
+		fieldCheck{a.TaskID, "task_id"},
+	)
 }
 
 // ManageLaunchArgs holds arguments for launch management operations.
@@ -431,10 +455,10 @@ type ManageLaunchSectionArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageLaunchSectionArgs) Validate() error {
-	if err := requireField(a.Action, "action"); err != nil {
-		return err
-	}
-	if err := requireField(a.LaunchID, "launch_id"); err != nil {
+	if err := requireAll(
+		fieldCheck{a.Action, "action"},
+		fieldCheck{a.LaunchID, "launch_id"},
+	); err != nil {
 		return err
 	}
 	if a.Action == "update" || a.Action == "delete" {
@@ -458,18 +482,18 @@ type ManageLaunchTaskArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageLaunchTaskArgs) Validate() error {
-	if err := requireField(a.Action, "action"); err != nil {
-		return err
-	}
-	if err := requireField(a.LaunchID, "launch_id"); err != nil {
+	if err := requireAll(
+		fieldCheck{a.Action, "action"},
+		fieldCheck{a.LaunchID, "launch_id"},
+	); err != nil {
 		return err
 	}
 	switch a.Action {
 	case "create":
-		if err := requireFieldForAction(a.SectionID, "section_id", "create"); err != nil {
-			return err
-		}
-		return requireFieldForAction(a.Name, "name", "create")
+		return requireAllForAction("create",
+			fieldCheck{a.SectionID, "section_id"},
+			fieldCheck{a.Name, "name"},
+		)
 	case "update", "delete":
 		return requireFieldForAction(a.TaskID, "task_id", a.Action)
 	}
