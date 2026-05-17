@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-25T13:34:42Z",
+  "generated_at": "2026-05-17T09:09:30Z",
   "deslop_version": "2.1.0",
   "scores": {
-    "file_health": 45.0,
+    "file_health": 70.0,
     "test_coverage": 69.0,
     "secret_detection": 100.0,
     "todo_debt": 100.0,
     "dependency_health": 100.0,
     "structural_quality": 100.0,
-    "overall": 85.7
+    "overall": 89.8
   },
   "findings": [
     {
@@ -22,19 +22,25 @@
       "detector": "file_health",
       "severity": "high",
       "key": "internal/tools/definitions.go",
-      "summary": "internal/tools/definitions.go (837 LOC)"
+      "summary": "internal/tools/definitions.go (957 LOC)"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "evals/runner.go",
-      "summary": "evals/runner.go (502 LOC)"
+      "summary": "evals/runner.go (541 LOC)"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "evals/runner_test.go",
       "summary": "evals/runner_test.go (579 LOC)"
+    },
+    {
+      "detector": "file_health",
+      "severity": "warning",
+      "key": "internal/api/endpoints.go",
+      "summary": "internal/api/endpoints.go (652 LOC)"
     },
     {
       "detector": "file_health",
@@ -52,7 +58,7 @@
       "detector": "file_health",
       "severity": "warning",
       "key": "internal/tools/types.go",
-      "summary": "internal/tools/types.go (545 LOC)"
+      "summary": "internal/tools/types.go (513 LOC)"
     },
     {
       "detector": "test_coverage",
