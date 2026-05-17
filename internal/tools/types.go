@@ -19,6 +19,24 @@ func ParseArgs[T any](args map[string]any) (T, error) {
 	return result, nil
 }
 
+// requireField returns a "required parameter missing" error when value is empty.
+// Returns nil otherwise.
+func requireField(value, name string) error {
+	if value == "" {
+		return fmt.Errorf("required parameter missing: %s", name)
+	}
+	return nil
+}
+
+// requireFieldForAction returns a "required parameter missing" error scoped
+// to a specific action. Returns nil when value is non-empty.
+func requireFieldForAction(value, name, action string) error {
+	if value == "" {
+		return fmt.Errorf("required parameter missing: %s (required for %s)", name, action)
+	}
+	return nil
+}
+
 // --- Roadmap Args ---
 
 // GetRoadmapArgs holds arguments for roadmap get operations.
@@ -28,10 +46,7 @@ type GetRoadmapArgs struct {
 
 // Validate checks required fields.
 func (a GetRoadmapArgs) Validate() error {
-	if a.RoadmapID == "" {
-		return fmt.Errorf("required parameter missing: roadmap_id")
-	}
-	return nil
+	return requireField(a.RoadmapID, "roadmap_id")
 }
 
 // ManageLaneArgs holds arguments for lane management operations.
@@ -45,17 +60,14 @@ type ManageLaneArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageLaneArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
-	if a.RoadmapID == "" {
-		return fmt.Errorf("required parameter missing: roadmap_id")
+	if err := requireField(a.RoadmapID, "roadmap_id"); err != nil {
+		return err
 	}
-	switch a.Action {
-	case "update", "delete":
-		if a.LaneID == "" {
-			return fmt.Errorf("required parameter missing: lane_id (required for %s)", a.Action)
-		}
+	if a.Action == "update" || a.Action == "delete" {
+		return requireFieldForAction(a.LaneID, "lane_id", a.Action)
 	}
 	return nil
 }
@@ -71,17 +83,14 @@ type ManageMilestoneArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageMilestoneArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
-	if a.RoadmapID == "" {
-		return fmt.Errorf("required parameter missing: roadmap_id")
+	if err := requireField(a.RoadmapID, "roadmap_id"); err != nil {
+		return err
 	}
-	switch a.Action {
-	case "update", "delete":
-		if a.MilestoneID == "" {
-			return fmt.Errorf("required parameter missing: milestone_id (required for %s)", a.Action)
-		}
+	if a.Action == "update" || a.Action == "delete" {
+		return requireFieldForAction(a.MilestoneID, "milestone_id", a.Action)
 	}
 	return nil
 }
@@ -95,10 +104,7 @@ type GetBarArgs struct {
 
 // Validate checks required fields.
 func (a GetBarArgs) Validate() error {
-	if a.BarID == "" {
-		return fmt.Errorf("required parameter missing: bar_id")
-	}
-	return nil
+	return requireField(a.BarID, "bar_id")
 }
 
 // CustomFieldValue represents a name-value pair for custom fields.
@@ -132,24 +138,20 @@ type ManageBarArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageBarArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.RoadmapID == "" {
-			return fmt.Errorf("required parameter missing: roadmap_id (required for create)")
+		if err := requireFieldForAction(a.RoadmapID, "roadmap_id", "create"); err != nil {
+			return err
 		}
-		if a.LaneID == "" {
-			return fmt.Errorf("required parameter missing: lane_id (required for create)")
+		if err := requireFieldForAction(a.LaneID, "lane_id", "create"); err != nil {
+			return err
 		}
-		if a.Name == "" {
-			return fmt.Errorf("required parameter missing: name (required for create)")
-		}
+		return requireFieldForAction(a.Name, "name", "create")
 	case "update", "delete":
-		if a.BarID == "" {
-			return fmt.Errorf("required parameter missing: bar_id (required for %s)", a.Action)
-		}
+		return requireFieldForAction(a.BarID, "bar_id", a.Action)
 	}
 	return nil
 }
@@ -164,21 +166,17 @@ type ManageBarConnectionArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageBarConnectionArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
-	if a.BarID == "" {
-		return fmt.Errorf("required parameter missing: bar_id")
+	if err := requireField(a.BarID, "bar_id"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.TargetBarID == "" {
-			return fmt.Errorf("required parameter missing: target_bar_id (required for create)")
-		}
+		return requireFieldForAction(a.TargetBarID, "target_bar_id", "create")
 	case "delete":
-		if a.ConnectionID == "" {
-			return fmt.Errorf("required parameter missing: connection_id (required for delete)")
-		}
+		return requireFieldForAction(a.ConnectionID, "connection_id", "delete")
 	}
 	return nil
 }
@@ -194,21 +192,17 @@ type ManageBarLinkArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageBarLinkArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
-	if a.BarID == "" {
-		return fmt.Errorf("required parameter missing: bar_id")
+	if err := requireField(a.BarID, "bar_id"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.URL == "" {
-			return fmt.Errorf("required parameter missing: url (required for create)")
-		}
+		return requireFieldForAction(a.URL, "url", "create")
 	case "delete":
-		if a.LinkID == "" {
-			return fmt.Errorf("required parameter missing: link_id (required for delete)")
-		}
+		return requireFieldForAction(a.LinkID, "link_id", "delete")
 	}
 	return nil
 }
@@ -222,10 +216,7 @@ type GetObjectiveArgs struct {
 
 // Validate checks required fields.
 func (a GetObjectiveArgs) Validate() error {
-	if a.ObjectiveID == "" {
-		return fmt.Errorf("required parameter missing: objective_id")
-	}
-	return nil
+	return requireField(a.ObjectiveID, "objective_id")
 }
 
 // ManageObjectiveArgs holds arguments for objective management operations.
@@ -239,18 +230,14 @@ type ManageObjectiveArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageObjectiveArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.Name == "" {
-			return fmt.Errorf("required parameter missing: name (required for create)")
-		}
+		return requireFieldForAction(a.Name, "name", "create")
 	case "update", "delete":
-		if a.ObjectiveID == "" {
-			return fmt.Errorf("required parameter missing: objective_id (required for %s)", a.Action)
-		}
+		return requireFieldForAction(a.ObjectiveID, "objective_id", a.Action)
 	}
 	return nil
 }
@@ -267,17 +254,14 @@ type ManageKeyResultArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageKeyResultArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
-	if a.ObjectiveID == "" {
-		return fmt.Errorf("required parameter missing: objective_id")
+	if err := requireField(a.ObjectiveID, "objective_id"); err != nil {
+		return err
 	}
-	switch a.Action {
-	case "update", "delete":
-		if a.KeyResultID == "" {
-			return fmt.Errorf("required parameter missing: key_result_id (required for %s)", a.Action)
-		}
+	if a.Action == "update" || a.Action == "delete" {
+		return requireFieldForAction(a.KeyResultID, "key_result_id", a.Action)
 	}
 	return nil
 }
@@ -290,13 +274,10 @@ type GetKeyResultArgs struct {
 
 // Validate checks required fields.
 func (a GetKeyResultArgs) Validate() error {
-	if a.ObjectiveID == "" {
-		return fmt.Errorf("required parameter missing: objective_id")
+	if err := requireField(a.ObjectiveID, "objective_id"); err != nil {
+		return err
 	}
-	if a.KeyResultID == "" {
-		return fmt.Errorf("required parameter missing: key_result_id")
-	}
-	return nil
+	return requireField(a.KeyResultID, "key_result_id")
 }
 
 // --- Idea Args ---
@@ -308,10 +289,7 @@ type GetIdeaArgs struct {
 
 // Validate checks required fields.
 func (a GetIdeaArgs) Validate() error {
-	if a.IdeaID == "" {
-		return fmt.Errorf("required parameter missing: idea_id")
-	}
-	return nil
+	return requireField(a.IdeaID, "idea_id")
 }
 
 // GetOpportunityArgs holds arguments for opportunity get operations.
@@ -321,10 +299,7 @@ type GetOpportunityArgs struct {
 
 // Validate checks required fields.
 func (a GetOpportunityArgs) Validate() error {
-	if a.OpportunityID == "" {
-		return fmt.Errorf("required parameter missing: opportunity_id")
-	}
-	return nil
+	return requireField(a.OpportunityID, "opportunity_id")
 }
 
 // GetIdeaFormArgs holds arguments for idea form get operations.
@@ -334,10 +309,7 @@ type GetIdeaFormArgs struct {
 
 // Validate checks required fields.
 func (a GetIdeaFormArgs) Validate() error {
-	if a.FormID == "" {
-		return fmt.Errorf("required parameter missing: form_id")
-	}
-	return nil
+	return requireField(a.FormID, "form_id")
 }
 
 // ManageIdeaArgs holds arguments for idea management operations.
@@ -351,18 +323,14 @@ type ManageIdeaArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageIdeaArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.Title == "" {
-			return fmt.Errorf("required parameter missing: title (required for create)")
-		}
+		return requireFieldForAction(a.Title, "title", "create")
 	case "update":
-		if a.IdeaID == "" {
-			return fmt.Errorf("required parameter missing: idea_id (required for update)")
-		}
+		return requireFieldForAction(a.IdeaID, "idea_id", "update")
 	}
 	return nil
 }
@@ -378,18 +346,14 @@ type ManageOpportunityArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageOpportunityArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.ProblemStatement == "" {
-			return fmt.Errorf("required parameter missing: problem_statement (required for create)")
-		}
+		return requireFieldForAction(a.ProblemStatement, "problem_statement", "create")
 	case "update":
-		if a.OpportunityID == "" {
-			return fmt.Errorf("required parameter missing: opportunity_id (required for update)")
-		}
+		return requireFieldForAction(a.OpportunityID, "opportunity_id", "update")
 	}
 	return nil
 }
@@ -403,10 +367,7 @@ type GetLaunchArgs struct {
 
 // Validate checks required fields.
 func (a GetLaunchArgs) Validate() error {
-	if a.LaunchID == "" {
-		return fmt.Errorf("required parameter missing: launch_id")
-	}
-	return nil
+	return requireField(a.LaunchID, "launch_id")
 }
 
 // GetLaunchSectionArgs holds arguments for getting a single launch section.
@@ -417,13 +378,10 @@ type GetLaunchSectionArgs struct {
 
 // Validate checks required fields.
 func (a GetLaunchSectionArgs) Validate() error {
-	if a.LaunchID == "" {
-		return fmt.Errorf("required parameter missing: launch_id")
+	if err := requireField(a.LaunchID, "launch_id"); err != nil {
+		return err
 	}
-	if a.SectionID == "" {
-		return fmt.Errorf("required parameter missing: section_id")
-	}
-	return nil
+	return requireField(a.SectionID, "section_id")
 }
 
 // GetLaunchTaskArgs holds arguments for getting a single launch task.
@@ -434,13 +392,10 @@ type GetLaunchTaskArgs struct {
 
 // Validate checks required fields.
 func (a GetLaunchTaskArgs) Validate() error {
-	if a.LaunchID == "" {
-		return fmt.Errorf("required parameter missing: launch_id")
+	if err := requireField(a.LaunchID, "launch_id"); err != nil {
+		return err
 	}
-	if a.TaskID == "" {
-		return fmt.Errorf("required parameter missing: task_id")
-	}
-	return nil
+	return requireField(a.TaskID, "task_id")
 }
 
 // ManageLaunchArgs holds arguments for launch management operations.
@@ -454,18 +409,14 @@ type ManageLaunchArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageLaunchArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.Name == "" {
-			return fmt.Errorf("required parameter missing: name (required for create)")
-		}
+		return requireFieldForAction(a.Name, "name", "create")
 	case "update", "delete":
-		if a.LaunchID == "" {
-			return fmt.Errorf("required parameter missing: launch_id (required for %s)", a.Action)
-		}
+		return requireFieldForAction(a.LaunchID, "launch_id", a.Action)
 	}
 	return nil
 }
@@ -480,17 +431,14 @@ type ManageLaunchSectionArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageLaunchSectionArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
-	if a.LaunchID == "" {
-		return fmt.Errorf("required parameter missing: launch_id")
+	if err := requireField(a.LaunchID, "launch_id"); err != nil {
+		return err
 	}
-	switch a.Action {
-	case "update", "delete":
-		if a.SectionID == "" {
-			return fmt.Errorf("required parameter missing: section_id (required for %s)", a.Action)
-		}
+	if a.Action == "update" || a.Action == "delete" {
+		return requireFieldForAction(a.SectionID, "section_id", a.Action)
 	}
 	return nil
 }
@@ -510,24 +458,20 @@ type ManageLaunchTaskArgs struct {
 
 // Validate checks required fields based on action.
 func (a ManageLaunchTaskArgs) Validate() error {
-	if a.Action == "" {
-		return fmt.Errorf("required parameter missing: action")
+	if err := requireField(a.Action, "action"); err != nil {
+		return err
 	}
-	if a.LaunchID == "" {
-		return fmt.Errorf("required parameter missing: launch_id")
+	if err := requireField(a.LaunchID, "launch_id"); err != nil {
+		return err
 	}
 	switch a.Action {
 	case "create":
-		if a.SectionID == "" {
-			return fmt.Errorf("required parameter missing: section_id (required for create)")
+		if err := requireFieldForAction(a.SectionID, "section_id", "create"); err != nil {
+			return err
 		}
-		if a.Name == "" {
-			return fmt.Errorf("required parameter missing: name (required for create)")
-		}
+		return requireFieldForAction(a.Name, "name", "create")
 	case "update", "delete":
-		if a.TaskID == "" {
-			return fmt.Errorf("required parameter missing: task_id (required for %s)", a.Action)
-		}
+		return requireFieldForAction(a.TaskID, "task_id", a.Action)
 	}
 	return nil
 }
