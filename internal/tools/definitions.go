@@ -80,6 +80,18 @@ func BuildAllTools() []mcp.Tool {
 
 // roadmapTools returns roadmap-related tool definitions.
 func roadmapTools() []mcp.Tool {
+	tools := roadmapReadTools()
+	return append(tools, roadmapManageTools()...)
+}
+
+// roadmapReadTools returns read-only roadmap tool definitions.
+func roadmapReadTools() []mcp.Tool {
+	tools := roadmapMetaTools()
+	return append(tools, roadmapDetailTools()...)
+}
+
+// roadmapMetaTools returns read tools for the roadmap itself (no sub-resources).
+func roadmapMetaTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
 			Name: "list_roadmaps",
@@ -109,6 +121,18 @@ FAILS WHEN: roadmap_id not found (get valid IDs from list_roadmaps first).`,
 				Required: []string{"roadmap_id"},
 			},
 		},
+	}
+}
+
+// roadmapDetailTools returns read tools for roadmap sub-resources (bars, lanes, milestones, etc).
+func roadmapDetailTools() []mcp.Tool {
+	tools := roadmapComponentTools()
+	return append(tools, roadmapAggregateTools()...)
+}
+
+// roadmapComponentTools returns read tools for individual roadmap sub-collections.
+func roadmapComponentTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "get_roadmap_bars",
 			Description: `Get all bars (features/items) on a roadmap.
@@ -169,6 +193,13 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 				Required: []string{"roadmap_id"},
 			},
 		},
+	}
+}
+
+// roadmapAggregateTools returns aggregate/cross-cutting roadmap read tools
+// (complete dump, roadmap-level comments).
+func roadmapAggregateTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "get_roadmap_complete",
 			Description: `Get complete roadmap in one call. Details, bars, lanes, milestones combined.
@@ -201,6 +232,12 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 				Required: []string{"roadmap_id"},
 			},
 		},
+	}
+}
+
+// roadmapManageTools returns roadmap mutation tool definitions (manage_lane, manage_milestone).
+func roadmapManageTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "manage_lane",
 			Description: `Create, update, or delete a lane on a roadmap.
@@ -246,6 +283,12 @@ FAILS WHEN: create without title or date, update/delete without milestone_id (ge
 
 // barTools returns bar-related tool definitions.
 func barTools() []mcp.Tool {
+	tools := barReadTools()
+	return append(tools, barManageTools()...)
+}
+
+// barReadTools returns read-only bar tool definitions.
+func barReadTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
 			Name: "get_bar",
@@ -319,6 +362,12 @@ FAILS WHEN: bar_id not found. Returns empty list if bar has no external links.`,
 				Required: []string{"bar_id"},
 			},
 		},
+	}
+}
+
+// barManageTools returns bar mutation tool definitions.
+func barManageTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "manage_bar",
 			Description: `Create, update, or delete a bar on a roadmap.
@@ -395,6 +444,12 @@ FAILS WHEN: create without url, delete without link_id (get IDs from get_bar_lin
 
 // objectiveTools returns OKR-related tool definitions.
 func objectiveTools() []mcp.Tool {
+	tools := objectiveReadTools()
+	return append(tools, objectiveManageTools()...)
+}
+
+// objectiveReadTools returns read-only OKR tool definitions.
+func objectiveReadTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
 			Name: "list_objectives",
@@ -452,6 +507,12 @@ FAILS WHEN: objective_id or key_result_id not found (use list_key_results to get
 				Required: []string{"objective_id", "key_result_id"},
 			},
 		},
+	}
+}
+
+// objectiveManageTools returns OKR mutation tool definitions.
+func objectiveManageTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "manage_objective",
 			Description: `Create, update, or delete an objective.
@@ -498,6 +559,18 @@ FAILS WHEN: create without name or target_value, update/delete without key_resul
 
 // ideaTools returns idea and discovery tool definitions.
 func ideaTools() []mcp.Tool {
+	tools := ideaReadTools()
+	return append(tools, ideaManageTools()...)
+}
+
+// ideaReadTools returns read-only idea/discovery tool definitions.
+func ideaReadTools() []mcp.Tool {
+	tools := ideaCoreReadTools()
+	return append(tools, opportunityReadTools()...)
+}
+
+// ideaCoreReadTools returns read tools for ideas themselves.
+func ideaCoreReadTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
 			Name: "list_ideas",
@@ -525,6 +598,12 @@ FAILS WHEN: idea_id not found (get valid IDs from list_ideas).`,
 				Required: []string{"idea_id"},
 			},
 		},
+	}
+}
+
+// opportunityReadTools returns read tools for opportunities and discovery metadata.
+func opportunityReadTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "list_opportunities",
 			Description: `List all opportunities. START HERE for discovery.
@@ -599,6 +678,12 @@ FAILS WHEN: API token invalid.`,
 				Properties: map[string]mcp.Property{},
 			},
 		},
+	}
+}
+
+// ideaManageTools returns idea/opportunity mutation tool definitions.
+func ideaManageTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "manage_idea",
 			Description: `Create or update an idea. Note: delete not available via API.
@@ -644,6 +729,13 @@ FAILS WHEN: create without problem_statement, update without opportunity_id (get
 
 // launchTools returns launch-related tool definitions.
 func launchTools() []mcp.Tool {
+	tools := launchCoreTools()
+	tools = append(tools, launchSectionTools()...)
+	return append(tools, launchTaskTools()...)
+}
+
+// launchCoreTools returns core launch tools (list, get, manage launch itself).
+func launchCoreTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
 			Name: "list_launches",
@@ -691,6 +783,12 @@ FAILS WHEN: create without name or date, update/delete without launch_id, date n
 				Required: []string{"action"},
 			},
 		},
+	}
+}
+
+// launchSectionTools returns launch checklist section tool definitions.
+func launchSectionTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "get_launch_sections",
 			Description: `Get checklist sections for a launch.
@@ -741,6 +839,12 @@ FAILS WHEN: create without name, update/delete without section_id (get IDs from 
 				Required: []string{"action", "launch_id"},
 			},
 		},
+	}
+}
+
+// launchTaskTools returns launch task tool definitions.
+func launchTaskTools() []mcp.Tool {
+	return []mcp.Tool{
 		{
 			Name: "get_launch_tasks",
 			Description: `Get all tasks for a launch.

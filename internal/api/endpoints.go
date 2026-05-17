@@ -187,11 +187,7 @@ func (c *Client) CreateBarConnection(ctx context.Context, barID string, data map
 
 // DeleteBarConnection deletes a connection.
 func (c *Client) DeleteBarConnection(ctx context.Context, barID, connectionID string) (json.RawMessage, error) {
-	barSeg, err := safeSeg("bar_id", barID)
-	if err != nil {
-		return nil, err
-	}
-	connSeg, err := safeSeg("connection_id", connectionID)
+	barSeg, connSeg, err := safeSegPair("bar_id", barID, "connection_id", connectionID)
 	if err != nil {
 		return nil, err
 	}
@@ -222,11 +218,7 @@ func (c *Client) CreateBarLink(ctx context.Context, barID string, data map[strin
 
 // DeleteBarLink deletes a link.
 func (c *Client) DeleteBarLink(ctx context.Context, barID, linkID string) (json.RawMessage, error) {
-	barSeg, err := safeSeg("bar_id", barID)
-	if err != nil {
-		return nil, err
-	}
-	linkSeg, err := safeSeg("link_id", linkID)
+	barSeg, linkSeg, err := safeSegPair("bar_id", barID, "link_id", linkID)
 	if err != nil {
 		return nil, err
 	}
@@ -248,11 +240,7 @@ func (c *Client) CreateLane(ctx context.Context, roadmapID string, data map[stri
 
 // UpdateLane updates an existing lane.
 func (c *Client) UpdateLane(ctx context.Context, roadmapID, laneID string, data map[string]any) (json.RawMessage, error) {
-	rSeg, err := safeSeg("roadmap_id", roadmapID)
-	if err != nil {
-		return nil, err
-	}
-	lSeg, err := safeSeg("lane_id", laneID)
+	rSeg, lSeg, err := safeSegPair("roadmap_id", roadmapID, "lane_id", laneID)
 	if err != nil {
 		return nil, err
 	}
@@ -261,11 +249,7 @@ func (c *Client) UpdateLane(ctx context.Context, roadmapID, laneID string, data 
 
 // DeleteLane deletes a lane.
 func (c *Client) DeleteLane(ctx context.Context, roadmapID, laneID string) (json.RawMessage, error) {
-	rSeg, err := safeSeg("roadmap_id", roadmapID)
-	if err != nil {
-		return nil, err
-	}
-	lSeg, err := safeSeg("lane_id", laneID)
+	rSeg, lSeg, err := safeSegPair("roadmap_id", roadmapID, "lane_id", laneID)
 	if err != nil {
 		return nil, err
 	}
@@ -287,11 +271,7 @@ func (c *Client) CreateMilestone(ctx context.Context, roadmapID string, data map
 
 // UpdateMilestone updates an existing milestone.
 func (c *Client) UpdateMilestone(ctx context.Context, roadmapID, milestoneID string, data map[string]any) (json.RawMessage, error) {
-	rSeg, err := safeSeg("roadmap_id", roadmapID)
-	if err != nil {
-		return nil, err
-	}
-	mSeg, err := safeSeg("milestone_id", milestoneID)
+	rSeg, mSeg, err := safeSegPair("roadmap_id", roadmapID, "milestone_id", milestoneID)
 	if err != nil {
 		return nil, err
 	}
@@ -300,11 +280,7 @@ func (c *Client) UpdateMilestone(ctx context.Context, roadmapID, milestoneID str
 
 // DeleteMilestone deletes a milestone.
 func (c *Client) DeleteMilestone(ctx context.Context, roadmapID, milestoneID string) (json.RawMessage, error) {
-	rSeg, err := safeSeg("roadmap_id", roadmapID)
-	if err != nil {
-		return nil, err
-	}
-	mSeg, err := safeSeg("milestone_id", milestoneID)
+	rSeg, mSeg, err := safeSegPair("roadmap_id", roadmapID, "milestone_id", milestoneID)
 	if err != nil {
 		return nil, err
 	}
@@ -371,11 +347,7 @@ func (c *Client) ListKeyResults(ctx context.Context, objectiveID string) (json.R
 
 // GetKeyResult returns a single key result by ID.
 func (c *Client) GetKeyResult(ctx context.Context, objectiveID, keyResultID string) (json.RawMessage, error) {
-	oSeg, err := safeSeg("objective_id", objectiveID)
-	if err != nil {
-		return nil, err
-	}
-	krSeg, err := safeSeg("key_result_id", keyResultID)
+	oSeg, krSeg, err := safeSegPair("objective_id", objectiveID, "key_result_id", keyResultID)
 	if err != nil {
 		return nil, err
 	}
@@ -393,11 +365,7 @@ func (c *Client) CreateKeyResult(ctx context.Context, objectiveID string, data m
 
 // UpdateKeyResult updates an existing key result.
 func (c *Client) UpdateKeyResult(ctx context.Context, objectiveID, keyResultID string, data map[string]any) (json.RawMessage, error) {
-	oSeg, err := safeSeg("objective_id", objectiveID)
-	if err != nil {
-		return nil, err
-	}
-	krSeg, err := safeSeg("key_result_id", keyResultID)
+	oSeg, krSeg, err := safeSegPair("objective_id", objectiveID, "key_result_id", keyResultID)
 	if err != nil {
 		return nil, err
 	}
@@ -406,11 +374,7 @@ func (c *Client) UpdateKeyResult(ctx context.Context, objectiveID, keyResultID s
 
 // DeleteKeyResult deletes a key result.
 func (c *Client) DeleteKeyResult(ctx context.Context, objectiveID, keyResultID string) (json.RawMessage, error) {
-	oSeg, err := safeSeg("objective_id", objectiveID)
-	if err != nil {
-		return nil, err
-	}
-	krSeg, err := safeSeg("key_result_id", keyResultID)
+	oSeg, krSeg, err := safeSegPair("objective_id", objectiveID, "key_result_id", keyResultID)
 	if err != nil {
 		return nil, err
 	}
@@ -585,11 +549,7 @@ func (c *Client) GetLaunchSections(ctx context.Context, launchID string) (json.R
 
 // GetLaunchSection returns a single checklist section by ID.
 func (c *Client) GetLaunchSection(ctx context.Context, launchID, sectionID string) (json.RawMessage, error) {
-	lSeg, err := safeSeg("launch_id", launchID)
-	if err != nil {
-		return nil, err
-	}
-	sSeg, err := safeSeg("section_id", sectionID)
+	lSeg, sSeg, err := safeSegPair("launch_id", launchID, "section_id", sectionID)
 	if err != nil {
 		return nil, err
 	}
@@ -607,11 +567,7 @@ func (c *Client) CreateLaunchSection(ctx context.Context, launchID string, data 
 
 // UpdateLaunchSection updates an existing checklist section.
 func (c *Client) UpdateLaunchSection(ctx context.Context, launchID, sectionID string, data map[string]any) (json.RawMessage, error) {
-	lSeg, err := safeSeg("launch_id", launchID)
-	if err != nil {
-		return nil, err
-	}
-	sSeg, err := safeSeg("section_id", sectionID)
+	lSeg, sSeg, err := safeSegPair("launch_id", launchID, "section_id", sectionID)
 	if err != nil {
 		return nil, err
 	}
@@ -620,11 +576,7 @@ func (c *Client) UpdateLaunchSection(ctx context.Context, launchID, sectionID st
 
 // DeleteLaunchSection deletes a checklist section.
 func (c *Client) DeleteLaunchSection(ctx context.Context, launchID, sectionID string) (json.RawMessage, error) {
-	lSeg, err := safeSeg("launch_id", launchID)
-	if err != nil {
-		return nil, err
-	}
-	sSeg, err := safeSeg("section_id", sectionID)
+	lSeg, sSeg, err := safeSegPair("launch_id", launchID, "section_id", sectionID)
 	if err != nil {
 		return nil, err
 	}
@@ -646,11 +598,7 @@ func (c *Client) GetLaunchTasks(ctx context.Context, launchID string) (json.RawM
 
 // GetLaunchTask returns a single task by ID.
 func (c *Client) GetLaunchTask(ctx context.Context, launchID, taskID string) (json.RawMessage, error) {
-	lSeg, err := safeSeg("launch_id", launchID)
-	if err != nil {
-		return nil, err
-	}
-	tSeg, err := safeSeg("task_id", taskID)
+	lSeg, tSeg, err := safeSegPair("launch_id", launchID, "task_id", taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -668,11 +616,7 @@ func (c *Client) CreateLaunchTask(ctx context.Context, launchID string, data map
 
 // UpdateLaunchTask updates an existing task.
 func (c *Client) UpdateLaunchTask(ctx context.Context, launchID, taskID string, data map[string]any) (json.RawMessage, error) {
-	lSeg, err := safeSeg("launch_id", launchID)
-	if err != nil {
-		return nil, err
-	}
-	tSeg, err := safeSeg("task_id", taskID)
+	lSeg, tSeg, err := safeSegPair("launch_id", launchID, "task_id", taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -681,11 +625,7 @@ func (c *Client) UpdateLaunchTask(ctx context.Context, launchID, taskID string, 
 
 // DeleteLaunchTask deletes a task.
 func (c *Client) DeleteLaunchTask(ctx context.Context, launchID, taskID string) (json.RawMessage, error) {
-	lSeg, err := safeSeg("launch_id", launchID)
-	if err != nil {
-		return nil, err
-	}
-	tSeg, err := safeSeg("task_id", taskID)
+	lSeg, tSeg, err := safeSegPair("launch_id", launchID, "task_id", taskID)
 	if err != nil {
 		return nil, err
 	}

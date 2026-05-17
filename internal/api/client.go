@@ -32,6 +32,23 @@ func safeSeg(field, value string) (string, error) {
 	return url.PathEscape(strings.TrimSpace(value)), nil
 }
 
+// safeSegPair is a convenience for the recurring "validate two IDs, then
+// interpolate" pattern used by every update/delete of a sub-resource. It
+// returns the two escaped segments or the first validation error encountered.
+// The order of fields in the call site is the order returned, which keeps the
+// URL composition local and obvious at the call site.
+func safeSegPair(field1, value1, field2, value2 string) (string, string, error) {
+	seg1, err := safeSeg(field1, value1)
+	if err != nil {
+		return "", "", err
+	}
+	seg2, err := safeSeg(field2, value2)
+	if err != nil {
+		return "", "", err
+	}
+	return seg1, seg2, nil
+}
+
 const (
 	// DefaultBaseURL is the ProductPlan API base URL.
 	DefaultBaseURL = "https://app.productplan.com/api/v2"
@@ -104,21 +121,8 @@ func NewSimple(token string) (*Client, error) {
 	return New(DefaultConfig(token))
 }
 
-// Request performs an HTTP request to the API.
-func (c *Client) Request(ctx context.Context, method, endpoint string, body any) (json.RawMessage, error) {
-	start := time.Now()
-
-	// Wait if rate limited
-	if c.rateLimiter != nil {
-		c.rateLimiter.Wait()
-	}
-
-	// Build URL by concatenating base URL with endpoint path.
-	// ResolveReference strips the base path when endpoint starts with "/",
-	// so we use simple string concatenation instead.
-	reqURL := c.baseURL + endpoint
-
-	// Prepare request body
+// buildRequest constructs an HTTP request with auth and content-type headers attached.
+func (c *Client) buildRequest(ctx context.Context, method, endpoint string, body any) (*http.Request, error) {
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
@@ -128,21 +132,52 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 		reqBody = bytes.NewReader(jsonBody)
 	}
 
-	// Create request
-	req, err := http.NewRequestWithContext(ctx, method, reqURL, reqBody)
+	// Build URL by concatenating base URL with endpoint path.
+	// ResolveReference strips the base path when endpoint starts with "/",
+	// so we use simple string concatenation instead.
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+endpoint, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+c.token)
 	req.Header.Set("Content-Type", "application/json")
+	return req, nil
+}
+
+// handleResponse converts an HTTP response body and status into the API contract.
+func handleResponse(resp *http.Response, respBody []byte) (json.RawMessage, error) {
+	if resp.StatusCode >= 400 {
+		apiErr := productplan.ParseAPIError(resp, respBody)
+		if suggestion := apiErr.Suggestion(); suggestion != "" {
+			return nil, fmt.Errorf("%s. %s", apiErr.Error(), suggestion)
+		}
+		return nil, apiErr
+	}
+	if resp.StatusCode == 204 {
+		return json.RawMessage(`{"success": true}`), nil
+	}
+	return respBody, nil
+}
+
+// Request performs an HTTP request to the API.
+func (c *Client) Request(ctx context.Context, method, endpoint string, body any) (json.RawMessage, error) {
+	start := time.Now()
+
+	if c.rateLimiter != nil {
+		c.rateLimiter.Wait()
+	}
+
+	req, err := c.buildRequest(ctx, method, endpoint, body)
+	if err != nil {
+		return nil, err
+	}
 
 	c.logger.Debug("API request",
 		logging.Endpoint(endpoint),
 		logging.F("method", method),
 	)
 
-	// Execute request
 	resp, err := c.httpClient.Do(req) // #nosec G704 -- URL is the configured ProductPlan API endpoint, not user-controlled
 	if err != nil {
 		c.logger.Error("API request failed",
@@ -154,12 +189,10 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// Update rate limiter from response headers
 	if c.rateLimiter != nil {
 		c.rateLimiter.UpdateFromResponse(resp)
 	}
 
-	// Read response body
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
@@ -171,21 +204,7 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 		logging.Duration(time.Since(start)),
 	)
 
-	// Handle errors
-	if resp.StatusCode >= 400 {
-		apiErr := productplan.ParseAPIError(resp, respBody)
-		if suggestion := apiErr.Suggestion(); suggestion != "" {
-			return nil, fmt.Errorf("%s. %s", apiErr.Error(), suggestion)
-		}
-		return nil, apiErr
-	}
-
-	// Handle 204 No Content
-	if resp.StatusCode == 204 {
-		return json.RawMessage(`{"success": true}`), nil
-	}
-
-	return respBody, nil
+	return handleResponse(resp, respBody)
 }
 
 // Get performs a GET request.

@@ -61,42 +61,47 @@ func NewAdaptiveRateLimiter(config RateLimiterConfig) *AdaptiveRateLimiter {
 	}
 }
 
+// parseIntHeader applies fn to the integer value of header, ignoring empty
+// or unparseable values. Centralises the "if header non-empty and parses" idiom.
+func parseIntHeader(resp *http.Response, header string, fn func(int)) {
+	v := resp.Header.Get(header)
+	if v == "" {
+		return
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return
+	}
+	fn(n)
+}
+
+// parseUnixHeader applies fn to the time.Time parsed from a Unix-timestamp header.
+func parseUnixHeader(resp *http.Response, header string, fn func(time.Time)) {
+	v := resp.Header.Get(header)
+	if v == "" {
+		return
+	}
+	ts, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return
+	}
+	fn(time.Unix(ts, 0))
+}
+
 // UpdateFromResponse updates the rate limit state from response headers.
+// It honours both the common X-RateLimit-* family and the IETF RateLimit-* family.
 func (r *AdaptiveRateLimiter) UpdateFromResponse(resp *http.Response) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Parse X-RateLimit-* headers (common format)
-	if limit := resp.Header.Get("X-RateLimit-Limit"); limit != "" {
-		if l, err := strconv.Atoi(limit); err == nil {
-			r.state.Limit = l
-		}
-	}
+	// X-RateLimit-* headers (common format)
+	parseIntHeader(resp, "X-RateLimit-Limit", func(n int) { r.state.Limit = n })
+	parseIntHeader(resp, "X-RateLimit-Remaining", func(n int) { r.state.Remaining = n })
+	parseUnixHeader(resp, "X-RateLimit-Reset", func(t time.Time) { r.state.ResetAt = t })
 
-	if remaining := resp.Header.Get("X-RateLimit-Remaining"); remaining != "" {
-		if rem, err := strconv.Atoi(remaining); err == nil {
-			r.state.Remaining = rem
-		}
-	}
-
-	if reset := resp.Header.Get("X-RateLimit-Reset"); reset != "" {
-		if ts, err := strconv.ParseInt(reset, 10, 64); err == nil {
-			r.state.ResetAt = time.Unix(ts, 0)
-		}
-	}
-
-	// Also check RateLimit-* headers (IETF standard)
-	if limit := resp.Header.Get("RateLimit-Limit"); limit != "" {
-		if l, err := strconv.Atoi(limit); err == nil {
-			r.state.Limit = l
-		}
-	}
-
-	if remaining := resp.Header.Get("RateLimit-Remaining"); remaining != "" {
-		if rem, err := strconv.Atoi(remaining); err == nil {
-			r.state.Remaining = rem
-		}
-	}
+	// RateLimit-* headers (IETF standard)
+	parseIntHeader(resp, "RateLimit-Limit", func(n int) { r.state.Limit = n })
+	parseIntHeader(resp, "RateLimit-Remaining", func(n int) { r.state.Remaining = n })
 }
 
 // Wait blocks until it's safe to make the next request.

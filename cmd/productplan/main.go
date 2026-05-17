@@ -20,41 +20,54 @@ func main() {
 	os.Exit(run())
 }
 
+// isHelpArg returns true when the first arg requests help.
+func isHelpArg(arg string) bool {
+	return arg == "-h" || arg == "--help" || arg == "help"
+}
+
+// isServerArg returns true when the first arg selects the MCP server mode.
+// Empty args (mode default) also yield true; pass the first positional arg or "".
+func isServerArg(arg string) bool {
+	return arg == "" || arg == "serve" || arg == "mcp"
+}
+
+// requireToken reads PRODUCTPLAN_API_TOKEN and reports a friendly error to stderr if missing.
+func requireToken() (string, bool) {
+	token := os.Getenv("PRODUCTPLAN_API_TOKEN")
+	if token == "" {
+		fmt.Fprintln(os.Stderr, "Error: PRODUCTPLAN_API_TOKEN environment variable is required")
+		return "", false
+	}
+	return token, true
+}
+
 func run() int {
 	args := os.Args[1:]
 
-	// Handle help (before token validation)
-	if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
+	if len(args) > 0 && isHelpArg(args[0]) {
 		printHelp()
 		return 0
 	}
 
-	// Validate API token
-	apiToken := os.Getenv("PRODUCTPLAN_API_TOKEN")
-	if apiToken == "" {
-		fmt.Fprintln(os.Stderr, "Error: PRODUCTPLAN_API_TOKEN environment variable is required")
+	apiToken, ok := requireToken()
+	if !ok {
 		return 1
 	}
 
-	// Create logger (writes to stderr, stdout reserved for MCP protocol)
 	logger := logging.New(logging.LevelInfo)
-
-	// Create API client
-	client, err := api.New(api.Config{
-		Token:  apiToken,
-		Logger: logger,
-	})
+	client, err := api.New(api.Config{Token: apiToken, Logger: logger})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to create API client: %v\n", err)
 		return 1
 	}
 
-	// MCP server mode (default or explicit)
-	if len(args) == 0 || args[0] == "serve" || args[0] == "mcp" {
+	first := ""
+	if len(args) > 0 {
+		first = args[0]
+	}
+	if isServerArg(first) {
 		return runMCPServer(client, logger)
 	}
-
-	// CLI mode
 	return runCLI(client, args)
 }
 
