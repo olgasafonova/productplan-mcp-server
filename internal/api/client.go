@@ -107,9 +107,23 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	return &Client{
-		baseURL:     baseURL,
-		token:       cfg.Token,
-		httpClient:  &http.Client{Timeout: timeout},
+		baseURL: baseURL,
+		token:   cfg.Token,
+		httpClient: &http.Client{
+			Timeout: timeout,
+			// SECURITY: Refuse all redirects. The configured BaseURL
+			// (app.productplan.com/api/v2 by default) is the only legitimate
+			// target. Without CheckRedirect, Go follows up to 10 3xx responses;
+			// a misconfigured deployment combined with an upstream returning
+			// Location: http://169.254.169.254/... would pivot the request to
+			// internal IPs (cloud metadata, link-local). HG-4 graduated rule
+			// (rules/code-review-prompts.md): every HTTP client must set
+			// CheckRedirect. Full-refuse is appropriate here because the
+			// ProductPlan API has exactly one legitimate upstream.
+			CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
+		},
 		rateLimiter: productplan.NewAdaptiveRateLimiter(productplan.DefaultRateLimiterConfig()),
 		cache:       productplan.NewCache(productplan.DefaultCacheConfig()),
 		logger:      logger,
