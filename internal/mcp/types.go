@@ -53,14 +53,30 @@ type ToolAnnotations struct {
 
 // Tool represents an MCP tool definition.
 type Tool struct {
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	InputSchema InputSchema      `json:"inputSchema"`
-	Annotations *ToolAnnotations `json:"annotations,omitempty"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	InputSchema InputSchema `json:"inputSchema"`
+	// OutputSchema is the optional JSON Schema describing the tool's
+	// structured result. When set, the server returns the handler result
+	// both as serialized JSON text (for backwards compatibility) and as a
+	// structuredContent object that conforms to this schema. This makes the
+	// tool eligible for Code Mode, where clients drive tools programmatically
+	// against the declared output shape (MCP spec 2025-06-18).
+	OutputSchema *OutputSchema    `json:"outputSchema,omitempty"`
+	Annotations  *ToolAnnotations `json:"annotations,omitempty"`
 }
 
 // InputSchema defines the JSON Schema for tool inputs.
 type InputSchema struct {
+	Type       string              `json:"type"`
+	Properties map[string]Property `json:"properties,omitempty"`
+	Required   []string            `json:"required,omitempty"`
+}
+
+// OutputSchema defines the JSON Schema for a tool's structured result.
+// It mirrors InputSchema but is kept as a distinct type so output-only
+// fields can diverge from input-only fields without coupling the two.
+type OutputSchema struct {
 	Type       string              `json:"type"`
 	Properties map[string]Property `json:"properties,omitempty"`
 	Required   []string            `json:"required,omitempty"`
@@ -87,13 +103,28 @@ type ToolContent struct {
 // ToolResult represents the result of a tool call.
 type ToolResult struct {
 	Content []ToolContent `json:"content"`
-	IsError bool          `json:"isError,omitempty"`
+	// StructuredContent carries the result as a JSON object/array that
+	// conforms to the tool's OutputSchema. Set only for tools that declare
+	// an OutputSchema; omitted otherwise. This is what makes a tool's output
+	// machine-consumable for Code Mode (MCP spec 2025-06-18).
+	StructuredContent json.RawMessage `json:"structuredContent,omitempty"`
+	IsError           bool            `json:"isError,omitempty"`
 }
 
 // NewTextResult creates a successful text result.
 func NewTextResult(text string) ToolResult {
 	return ToolResult{
 		Content: []ToolContent{{Type: "text", Text: text}},
+	}
+}
+
+// NewStructuredResult creates a successful result that carries the payload
+// both as serialized JSON text (backwards-compatible) and as structuredContent.
+// The payload must be valid JSON; callers pass the same bytes a handler returns.
+func NewStructuredResult(payload json.RawMessage) ToolResult {
+	return ToolResult{
+		Content:           []ToolContent{{Type: "text", Text: string(payload)}},
+		StructuredContent: payload,
 	}
 }
 

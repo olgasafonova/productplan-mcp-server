@@ -12,6 +12,26 @@ func floatPtr(v float64) *float64 { return &v }
 // boolPtr returns a pointer to a bool value.
 func boolPtr(v bool) *bool { return &v }
 
+// readOutputSchema describes the structured result every read-only tool
+// returns: the FormattedResponse shape produced by FormatList / FormatItem /
+// FormatAction (see internal/tools/formatter.go). Declaring it makes read
+// tools Code Mode eligible — clients can drive them against a typed output
+// shape instead of parsing free-form text.
+//
+// `data` is intentionally untyped (an object or array): the underlying
+// ProductPlan payloads vary per endpoint and pass through verbatim, so the
+// schema asserts the wrapper, not the per-endpoint body.
+func readOutputSchema() *mcp.OutputSchema {
+	return &mcp.OutputSchema{
+		Type: "object",
+		Properties: map[string]mcp.Property{
+			"summary": {Type: "string", Description: "Human-readable summary of the result (e.g. \"Found 3 roadmaps\")"},
+			"data":    {Type: "object", Description: "The ProductPlan payload (object or array) returned by the API, passed through verbatim"},
+		},
+		Required: []string{"summary", "data"},
+	}
+}
+
 // BuildAllTools returns all ProductPlan tool definitions for MCP.
 func BuildAllTools() []mcp.Tool {
 	var tools []mcp.Tool
@@ -67,6 +87,12 @@ func BuildAllTools() []mcp.Tool {
 			tools[i].Annotations = &mcp.ToolAnnotations{
 				ReadOnlyHint:   true,
 				IdempotentHint: true,
+			}
+			// Read tools return the uniform FormattedResponse wrapper, so
+			// they declare an OutputSchema and become Code Mode eligible.
+			// Only set it when unset, mirroring the Annotations guard above.
+			if tools[i].OutputSchema == nil {
+				tools[i].OutputSchema = readOutputSchema()
 			}
 		case strings.HasPrefix(name, "manage_"):
 			tools[i].Annotations = &mcp.ToolAnnotations{

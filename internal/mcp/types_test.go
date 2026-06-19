@@ -3,6 +3,7 @@ package mcp
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -42,6 +43,50 @@ func TestNewErrorResult(t *testing.T) {
 	}
 	if !result.IsError {
 		t.Error("expected IsError to be true")
+	}
+}
+
+func TestNewStructuredResult(t *testing.T) {
+	payload := json.RawMessage(`{"summary":"ok","data":{"id":"1"}}`)
+	result := NewStructuredResult(payload)
+
+	if string(result.StructuredContent) != string(payload) {
+		t.Errorf("expected structuredContent %q, got %q", payload, result.StructuredContent)
+	}
+	if len(result.Content) != 1 || result.Content[0].Type != "text" {
+		t.Fatalf("expected one text content item, got %+v", result.Content)
+	}
+	if result.Content[0].Text != string(payload) {
+		t.Errorf("expected text to mirror payload, got %q", result.Content[0].Text)
+	}
+	if result.IsError {
+		t.Error("expected IsError to be false")
+	}
+}
+
+func TestToolOutputSchemaOmittedWhenNil(t *testing.T) {
+	data, err := json.Marshal(Tool{Name: "t", Description: "d", InputSchema: InputSchema{Type: "object"}})
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if strings.Contains(string(data), "outputSchema") {
+		t.Errorf("expected outputSchema to be omitted when nil, got %s", data)
+	}
+}
+
+func TestToolOutputSchemaMarshaled(t *testing.T) {
+	tool := Tool{
+		Name:         "t",
+		Description:  "d",
+		InputSchema:  InputSchema{Type: "object"},
+		OutputSchema: &OutputSchema{Type: "object", Required: []string{"summary"}},
+	}
+	data, err := json.Marshal(tool)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if !strings.Contains(string(data), `"outputSchema"`) {
+		t.Errorf("expected outputSchema in marshaled tool, got %s", data)
 	}
 }
 

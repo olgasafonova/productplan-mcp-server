@@ -66,6 +66,19 @@ func (r *Registry) Handler(name string) (Handler, bool) {
 	return h, ok
 }
 
+// HasOutputSchema reports whether the named tool declares an OutputSchema.
+// The server uses this to decide whether to emit structuredContent.
+func (r *Registry) HasOutputSchema(name string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for i := range r.tools {
+		if r.tools[i].Name == name {
+			return r.tools[i].OutputSchema != nil
+		}
+	}
+	return false
+}
+
 // Call executes a tool by name with the given arguments.
 func (r *Registry) Call(ctx context.Context, name string, args map[string]any) (result json.RawMessage, err error) {
 	handler, ok := r.Handler(name)

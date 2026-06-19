@@ -153,13 +153,18 @@ func (s *Server) handleRequest(ctx context.Context, req JSONRPCRequest) JSONRPCR
 		)
 
 		result, err := s.registry.Call(ctx, params.Name, params.Arguments)
-		if err != nil {
+		switch {
+		case err != nil:
 			s.logger.Debug("tool call failed",
 				logging.Tool(params.Name),
 				logging.Error(err),
 			)
 			resp.Result = NewErrorResult(err)
-		} else {
+		case s.registry.HasOutputSchema(params.Name) && json.Valid(result):
+			// Tools that declare an OutputSchema return structuredContent
+			// alongside the text payload, making them Code Mode eligible.
+			resp.Result = NewStructuredResult(result)
+		default:
 			resp.Result = NewTextResult(string(result))
 		}
 

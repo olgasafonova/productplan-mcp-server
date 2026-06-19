@@ -93,3 +93,59 @@ func TestReadOnlyToolsAnnotation(t *testing.T) {
 		t.Error("found no read-only tools; expected several get_*/list_* tools")
 	}
 }
+
+// isReadOnlyName mirrors the read-only classification in BuildAllTools.
+func isReadOnlyName(name string) bool {
+	return strings.HasPrefix(name, "get_") ||
+		strings.HasPrefix(name, "list_") ||
+		strings.HasPrefix(name, "check_") ||
+		name == "health_check"
+}
+
+// TestReadOnlyToolsHaveOutputSchema guards Code Mode eligibility: every
+// read-only tool must declare an OutputSchema describing the FormattedResponse
+// wrapper, so clients can drive it against a typed output shape.
+func TestReadOnlyToolsHaveOutputSchema(t *testing.T) {
+	tools := BuildAllTools()
+
+	roCount := 0
+	for _, tool := range tools {
+		if !isReadOnlyName(tool.Name) {
+			continue
+		}
+		roCount++
+		if tool.OutputSchema == nil {
+			t.Errorf("read-only tool %q missing OutputSchema (Code Mode ineligible)", tool.Name)
+			continue
+		}
+		if tool.OutputSchema.Type != "object" {
+			t.Errorf("read-only tool %q OutputSchema.Type = %q, want \"object\"", tool.Name, tool.OutputSchema.Type)
+		}
+		if _, ok := tool.OutputSchema.Properties["summary"]; !ok {
+			t.Errorf("read-only tool %q OutputSchema missing \"summary\" property", tool.Name)
+		}
+		if _, ok := tool.OutputSchema.Properties["data"]; !ok {
+			t.Errorf("read-only tool %q OutputSchema missing \"data\" property", tool.Name)
+		}
+	}
+
+	if roCount != 35 {
+		t.Errorf("expected 35 read-only tools, found %d", roCount)
+	}
+}
+
+// TestManageToolsHaveNoOutputSchema asserts write tools do not declare an
+// OutputSchema. Their results vary per action (create/update/delete) and are
+// not part of this Code Mode pass; leaving them unset keeps the contract honest.
+func TestManageToolsHaveNoOutputSchema(t *testing.T) {
+	tools := BuildAllTools()
+
+	for _, tool := range tools {
+		if !strings.HasPrefix(tool.Name, "manage_") {
+			continue
+		}
+		if tool.OutputSchema != nil {
+			t.Errorf("manage tool %q unexpectedly has an OutputSchema", tool.Name)
+		}
+	}
+}

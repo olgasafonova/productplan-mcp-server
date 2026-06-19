@@ -179,6 +179,70 @@ func TestServerToolsCall(t *testing.T) {
 	}
 }
 
+func TestServerToolsCallStructuredContent(t *testing.T) {
+	registry := NewRegistry()
+	payload := `{"summary":"Found 2 roadmaps","data":[{"id":"1"},{"id":"2"}]}`
+	registry.RegisterFunc(
+		Tool{
+			Name:         "list_things",
+			Description:  "List tool with output schema",
+			OutputSchema: &OutputSchema{Type: "object"},
+		},
+		func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+			return json.RawMessage(payload), nil
+		},
+	)
+
+	server := NewServer("test", "1.0.0", registry)
+
+	params, _ := json.Marshal(ToolCallParams{Name: "list_things", Arguments: map[string]any{}})
+	resp := server.ProcessRequest(context.Background(), JSONRPCRequest{
+		JSONRPC: "2.0", ID: 1, Method: "tools/call", Params: params,
+	})
+
+	if resp.Error != nil {
+		t.Fatalf("unexpected error: %v", resp.Error)
+	}
+	result, ok := resp.Result.(ToolResult)
+	if !ok {
+		t.Fatalf("expected ToolResult, got %T", resp.Result)
+	}
+	if len(result.StructuredContent) == 0 {
+		t.Fatal("expected structuredContent to be set for a tool with an OutputSchema")
+	}
+	if string(result.StructuredContent) != payload {
+		t.Errorf("structuredContent mismatch: got %q", string(result.StructuredContent))
+	}
+	// Backwards compatibility: text content still carries the payload.
+	if len(result.Content) != 1 || result.Content[0].Text != payload {
+		t.Errorf("expected text content to mirror payload, got %+v", result.Content)
+	}
+}
+
+func TestServerToolsCallNoOutputSchemaOmitsStructured(t *testing.T) {
+	registry := NewRegistry()
+	registry.RegisterFunc(
+		Tool{Name: "plain", Description: "No output schema"},
+		func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+			return json.RawMessage(`{"ok":true}`), nil
+		},
+	)
+	server := NewServer("test", "1.0.0", registry)
+
+	params, _ := json.Marshal(ToolCallParams{Name: "plain", Arguments: map[string]any{}})
+	resp := server.ProcessRequest(context.Background(), JSONRPCRequest{
+		JSONRPC: "2.0", ID: 1, Method: "tools/call", Params: params,
+	})
+
+	result, ok := resp.Result.(ToolResult)
+	if !ok {
+		t.Fatalf("expected ToolResult, got %T", resp.Result)
+	}
+	if len(result.StructuredContent) != 0 {
+		t.Errorf("expected no structuredContent for a tool without OutputSchema, got %q", string(result.StructuredContent))
+	}
+}
+
 func TestServerToolsCallError(t *testing.T) {
 	registry := NewRegistry()
 	registry.RegisterFunc(
