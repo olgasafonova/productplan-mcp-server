@@ -2,6 +2,22 @@ package api
 
 import "encoding/json"
 
+// defaultListCap bounds the number of items any list tool returns by default,
+// so a large collection does not blow the caller's context (HG-2 cost-lens).
+// Responses carry total alongside count, plus truncated=true when clipped, so
+// the caller can tell "all of them" from "the first 50 of many".
+const defaultListCap = 50
+
+// capList truncates items to defaultListCap, reporting the original total and
+// whether anything was dropped.
+func capList(items []map[string]any) (capped []map[string]any, total int, truncated bool) {
+	total = len(items)
+	if total > defaultListCap {
+		return items[:defaultListCap], total, true
+	}
+	return items, total, false
+}
+
 // pickKeys copies the named keys from src into a fresh map.
 // Missing keys are recorded as nil to preserve JSON null serialisation.
 func pickKeys(src map[string]any, keys ...string) map[string]any {
@@ -36,14 +52,19 @@ func formatList(data json.RawMessage, collectionKey string, hint string, project
 		return data
 	}
 
-	results := make([]map[string]any, 0, len(items))
-	for _, item := range items {
+	capped, total, truncated := capList(items)
+	results := make([]map[string]any, 0, len(capped))
+	for _, item := range capped {
 		results = append(results, project(item))
 	}
 
 	payload := map[string]any{
 		"count":       len(results),
+		"total":       total,
 		collectionKey: results,
+	}
+	if truncated {
+		payload["truncated"] = true
 	}
 	if hint != "" {
 		payload["hint"] = hint
@@ -108,15 +129,21 @@ func FormatBarsWithContext(bars json.RawMessage, lanes json.RawMessage) json.Raw
 	}
 
 	laneLookup := buildLaneLookup(laneList)
-	results := make([]map[string]any, 0, len(barList))
-	for _, bar := range barList {
+	capped, total, truncated := capList(barList)
+	results := make([]map[string]any, 0, len(capped))
+	for _, bar := range capped {
 		results = append(results, projectBar(bar, laneLookup))
 	}
 
-	output, _ := json.Marshal(map[string]any{
+	payload := map[string]any{
 		"count": len(results),
+		"total": total,
 		"bars":  results,
-	})
+	}
+	if truncated {
+		payload["truncated"] = true
+	}
+	output, _ := json.Marshal(payload)
 	return output
 }
 
