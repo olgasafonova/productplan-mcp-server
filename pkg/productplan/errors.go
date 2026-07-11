@@ -100,7 +100,16 @@ const maxClientFacingDetailLen = 200
 // Per HG-2 in code-review-prompts.md: raw response bodies must not reach the
 // MCP caller verbatim.
 func sanitizeBodyForCaller(body []byte) string {
-	excerpt := strings.TrimSpace(string(body))
+	return sanitizeFieldForCaller(string(body))
+}
+
+// sanitizeFieldForCaller applies the same single-line, capped-length treatment
+// to an individual body-derived string field. JSON error bodies carry
+// upstream-controlled text in `message`, `details`, and friends, so the same
+// HG-2 discipline applies on the JSON path: strip at the first newline and cap
+// at maxClientFacingDetailLen before the value can reach Error() output.
+func sanitizeFieldForCaller(field string) string {
+	excerpt := strings.TrimSpace(field)
 	if i := strings.IndexAny(excerpt, "\r\n"); i >= 0 {
 		excerpt = excerpt[:i]
 	}
@@ -120,18 +129,22 @@ type apiErrorBody struct {
 
 // applyErrorBody copies non-empty fields from the parsed body onto apiErr.
 // Message prefers `message` over `error` (latter wins last-write semantics).
+// Every field is body-derived text, so each value passes through
+// sanitizeFieldForCaller before assignment; a structured JSON error with a
+// huge or multi-line message/details must not bypass the HG-2 cap that the
+// non-JSON path already enforces.
 func applyErrorBody(apiErr *APIError, errBody apiErrorBody) {
 	if errBody.Error != "" {
-		apiErr.Message = errBody.Error
+		apiErr.Message = sanitizeFieldForCaller(errBody.Error)
 	}
 	if errBody.Message != "" {
-		apiErr.Message = errBody.Message
+		apiErr.Message = sanitizeFieldForCaller(errBody.Message)
 	}
 	if errBody.Code != "" {
-		apiErr.Code = errBody.Code
+		apiErr.Code = sanitizeFieldForCaller(errBody.Code)
 	}
 	if errBody.Details != "" {
-		apiErr.Details = errBody.Details
+		apiErr.Details = sanitizeFieldForCaller(errBody.Details)
 	}
 }
 
