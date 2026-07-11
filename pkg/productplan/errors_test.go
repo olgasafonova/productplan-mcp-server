@@ -259,6 +259,73 @@ func TestParseAPIError_NonJSONBodyIsSanitized(t *testing.T) {
 	}
 }
 
+func TestParseAPIError_JSONFieldsAreSanitized(t *testing.T) {
+	// HG-2, JSON path: a structured JSON error body must not smuggle a large
+	// or multi-line payload past the cap that the non-JSON path enforces.
+	// applyErrorBody must strip message/details at the first newline and cap
+	// total length. Verified through Error(), the caller-facing surface.
+	longMessage := strings.Repeat("M", 500)
+	tests := []struct {
+		name           string
+		body           string
+		wantError      string // exact Error() output when deterministic
+		wantContains   string
+		mustNotContain string
+	}{
+		{
+			name:      "short clean json message passes through unchanged",
+			body:      `{"message": "Invalid parameter"}`,
+			wantError: "ProductPlan API error 400: Invalid parameter",
+		},
+		{
+			name:           "long json message is capped",
+			body:           `{"message": "` + longMessage + `"}`,
+			wantContains:   strings.Repeat("M", maxClientFacingDetailLen) + "...",
+			mustNotContain: strings.Repeat("M", 300),
+		},
+		{
+			name:      "multi-line json details strips at first newline",
+			body:      `{"message": "Bad Request", "details": "line one\nline two with a stack trace"}`,
+			wantError: "ProductPlan API error 400: Bad Request - line one",
+		},
+		{
+			name:      "multi-line json message strips at first newline",
+			body:      `{"message": "first line\r\nsecond line"}`,
+			wantError: "ProductPlan API error 400: first line",
+		},
+		{
+			name:           "long json details is capped",
+			body:           `{"message": "Bad Request", "details": "` + strings.Repeat("D", 500) + `"}`,
+			wantContains:   strings.Repeat("D", maxClientFacingDetailLen) + "...",
+			mustNotContain: strings.Repeat("D", 300),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp := &http.Response{StatusCode: 400, Header: make(http.Header)}
+			got := ParseAPIError(resp, []byte(tt.body))
+			errOut := got.Error()
+
+			if tt.wantError != "" && errOut != tt.wantError {
+				t.Errorf("Error() = %q, want %q", errOut, tt.wantError)
+			}
+			if tt.wantContains != "" && !strings.Contains(errOut, tt.wantContains) {
+				t.Errorf("Error() = %q, expected to contain capped excerpt", errOut)
+			}
+			if tt.mustNotContain != "" && strings.Contains(errOut, tt.mustNotContain) {
+				t.Errorf("Error() = %q, must not contain a 300-char run of input", errOut)
+			}
+			if len(got.Message) > maxClientFacingDetailLen+3 {
+				t.Errorf("Message length = %d, exceeds cap %d (+3 for ellipsis)", len(got.Message), maxClientFacingDetailLen)
+			}
+			if len(got.Details) > maxClientFacingDetailLen+3 {
+				t.Errorf("Details length = %d, exceeds cap %d (+3 for ellipsis)", len(got.Details), maxClientFacingDetailLen)
+			}
+		})
+	}
+}
+
 func TestValidationError(t *testing.T) {
 	err := NewValidationError("roadmap_id", "is required")
 
