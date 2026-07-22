@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewHealthChecker(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 
 	if checker == nil {
 		t.Fatal("expected non-nil health checker")
@@ -23,20 +23,16 @@ func TestNewHealthChecker(t *testing.T) {
 
 func TestNewHealthCheckerWithComponents(t *testing.T) {
 	rateLimiter := NewAdaptiveRateLimiter(DefaultRateLimiterConfig())
-	cache := NewCache(CacheConfig{MaxEntries: 1000})
 
-	checker := NewHealthChecker("2.0.0", rateLimiter, cache)
+	checker := NewHealthChecker("2.0.0", rateLimiter)
 
 	if checker.rateLimiter == nil {
 		t.Error("expected rate limiter to be set")
 	}
-	if checker.cache == nil {
-		t.Error("expected cache to be set")
-	}
 }
 
 func TestSetAPIChecker(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 
 	called := false
 	checker.SetAPIChecker(func(ctx context.Context) (int64, error) {
@@ -56,7 +52,7 @@ func TestSetAPIChecker(t *testing.T) {
 }
 
 func TestCheck_Basic(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 
 	report := checker.Check(context.Background(), false)
 
@@ -76,7 +72,7 @@ func TestCheck_Basic(t *testing.T) {
 
 func TestCheck_WithRateLimiter_Healthy(t *testing.T) {
 	rateLimiter := NewAdaptiveRateLimiter(DefaultRateLimiterConfig())
-	checker := NewHealthChecker("1.0.0", rateLimiter, nil)
+	checker := NewHealthChecker("1.0.0", rateLimiter)
 
 	report := checker.Check(context.Background(), false)
 
@@ -112,7 +108,7 @@ func TestCheck_WithRateLimiter_Degraded(t *testing.T) {
 	resp.Header.Set("X-RateLimit-Remaining", "5")
 	rateLimiter.UpdateFromResponse(resp)
 
-	checker := NewHealthChecker("1.0.0", rateLimiter, nil)
+	checker := NewHealthChecker("1.0.0", rateLimiter)
 	report := checker.Check(context.Background(), false)
 
 	if report.Status != HealthDegraded {
@@ -128,28 +124,8 @@ func TestCheck_WithRateLimiter_Degraded(t *testing.T) {
 	}
 }
 
-func TestCheck_WithCache(t *testing.T) {
-	cache := NewCache(CacheConfig{MaxEntries: 1000})
-	checker := NewHealthChecker("1.0.0", nil, cache)
-
-	report := checker.Check(context.Background(), false)
-
-	if report.CacheStats == nil {
-		t.Fatal("expected cache stats to be set")
-	}
-	if len(report.Components) != 1 {
-		t.Fatalf("expected 1 component, got %d", len(report.Components))
-	}
-	if report.Components[0].Name != "cache" {
-		t.Errorf("expected cache component, got %s", report.Components[0].Name)
-	}
-	if report.Components[0].Status != HealthOK {
-		t.Errorf("expected OK status, got %s", report.Components[0].Status)
-	}
-}
-
 func TestCheck_Deep_APIHealthy(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 	checker.SetAPIChecker(func(ctx context.Context) (int64, error) {
 		return 150, nil // 150ms latency
 	})
@@ -171,7 +147,7 @@ func TestCheck_Deep_APIHealthy(t *testing.T) {
 }
 
 func TestCheck_Deep_APISlow(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 	checker.SetAPIChecker(func(ctx context.Context) (int64, error) {
 		return 6000, nil // 6 seconds - over 5000ms threshold
 	})
@@ -190,7 +166,7 @@ func TestCheck_Deep_APISlow(t *testing.T) {
 }
 
 func TestCheck_Deep_APIError(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 	checker.SetAPIChecker(func(ctx context.Context) (int64, error) {
 		return 0, errors.New("connection refused")
 	})
@@ -209,7 +185,7 @@ func TestCheck_Deep_APIError(t *testing.T) {
 }
 
 func TestCheck_Deep_WithoutChecker(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 	// No API checker set
 
 	report := checker.Check(context.Background(), true)
@@ -225,8 +201,7 @@ func TestCheck_Deep_WithoutChecker(t *testing.T) {
 
 func TestCheck_AllComponents(t *testing.T) {
 	rateLimiter := NewAdaptiveRateLimiter(DefaultRateLimiterConfig())
-	cache := NewCache(CacheConfig{MaxEntries: 1000})
-	checker := NewHealthChecker("1.0.0", rateLimiter, cache)
+	checker := NewHealthChecker("1.0.0", rateLimiter)
 	checker.SetAPIChecker(func(ctx context.Context) (int64, error) {
 		return 100, nil
 	})
@@ -236,8 +211,8 @@ func TestCheck_AllComponents(t *testing.T) {
 	if report.Status != HealthOK {
 		t.Errorf("expected status OK, got %s", report.Status)
 	}
-	if len(report.Components) != 3 {
-		t.Errorf("expected 3 components, got %d", len(report.Components))
+	if len(report.Components) != 2 {
+		t.Errorf("expected 2 components, got %d", len(report.Components))
 	}
 
 	// Verify all components present
@@ -246,7 +221,7 @@ func TestCheck_AllComponents(t *testing.T) {
 		names[c.Name] = true
 	}
 
-	expected := []string{"rate_limiter", "cache", "api"}
+	expected := []string{"rate_limiter", "api"}
 	for _, name := range expected {
 		if !names[name] {
 			t.Errorf("expected component %s not found", name)
@@ -255,7 +230,7 @@ func TestCheck_AllComponents(t *testing.T) {
 }
 
 func TestCheck_ResponseTime(t *testing.T) {
-	checker := NewHealthChecker("1.0.0", nil, nil)
+	checker := NewHealthChecker("1.0.0", nil)
 
 	report := checker.Check(context.Background(), false)
 
@@ -326,4 +301,3 @@ func TestHealthReport_ToJSON_WithRateLimit(t *testing.T) {
 		t.Errorf("expected limit 100, got %v", rateLimit["limit"])
 	}
 }
-

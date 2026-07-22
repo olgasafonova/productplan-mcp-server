@@ -81,7 +81,6 @@ type Client struct {
 	token       string
 	httpClient  *http.Client
 	rateLimiter *productplan.AdaptiveRateLimiter
-	cache       *productplan.Cache
 	logger      logging.Logger
 }
 
@@ -125,7 +124,6 @@ func New(cfg Config) (*Client, error) {
 			},
 		},
 		rateLimiter: productplan.NewAdaptiveRateLimiter(productplan.DefaultRateLimiterConfig()),
-		cache:       productplan.NewCache(productplan.DefaultCacheConfig()),
 		logger:      logger,
 	}, nil
 }
@@ -239,11 +237,6 @@ func (c *Client) Patch(ctx context.Context, endpoint string, body any) (json.Raw
 // Delete performs a DELETE request.
 func (c *Client) Delete(ctx context.Context, endpoint string) (json.RawMessage, error) {
 	return c.Request(ctx, http.MethodDelete, endpoint, nil)
-}
-
-// Cache returns the client's cache for external use.
-func (c *Client) Cache() *productplan.Cache {
-	return c.cache
 }
 
 // RateLimiter returns the client's rate limiter for external use.

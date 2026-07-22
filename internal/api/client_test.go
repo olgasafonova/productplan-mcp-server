@@ -301,14 +301,6 @@ func TestClientHTTPMethods(t *testing.T) {
 	_ = receivedBody
 }
 
-func TestClientCache(t *testing.T) {
-	client, _ := NewSimple("test-token")
-	cache := client.Cache()
-	if cache == nil {
-		t.Error("expected non-nil cache")
-	}
-}
-
 func TestClientRateLimiter(t *testing.T) {
 	client, _ := NewSimple("test-token")
 	limiter := client.RateLimiter()

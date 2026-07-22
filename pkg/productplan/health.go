@@ -30,7 +30,6 @@ type HealthReport struct {
 	Timestamp    time.Time         `json:"timestamp"`
 	Components   []ComponentHealth `json:"components"`
 	RateLimit    *RateLimitHealth  `json:"rate_limit,omitempty"`
-	CacheStats   *CacheStats       `json:"cache,omitempty"`
 	ResponseTime int64             `json:"response_time_ms"`
 }
 
@@ -45,16 +44,14 @@ type RateLimitHealth struct {
 type HealthChecker struct {
 	version     string
 	rateLimiter *AdaptiveRateLimiter
-	cache       *Cache
 	apiChecker  func(ctx context.Context) (int64, error) // Returns latency in ms
 }
 
 // NewHealthChecker creates a new health checker.
-func NewHealthChecker(version string, rateLimiter *AdaptiveRateLimiter, cache *Cache) *HealthChecker {
+func NewHealthChecker(version string, rateLimiter *AdaptiveRateLimiter) *HealthChecker {
 	return &HealthChecker{
 		version:     version,
 		rateLimiter: rateLimiter,
-		cache:       cache,
 	}
 }
 
@@ -76,7 +73,6 @@ func (h *HealthChecker) Check(ctx context.Context, deep bool) HealthReport {
 	}
 
 	h.checkRateLimiter(&report)
-	h.checkCache(&report)
 	if deep {
 		h.checkAPI(ctx, &report)
 	}
@@ -117,21 +113,6 @@ func rateLimiterStatus(remaining float64) (HealthStatus, string) {
 		return HealthDegraded, "Rate limit nearly exhausted"
 	}
 	return HealthOK, "Rate limits healthy"
-}
-
-// checkCache adds cache health to the report.
-func (h *HealthChecker) checkCache(report *HealthReport) {
-	if h.cache == nil {
-		return
-	}
-	stats := h.cache.Stats()
-	report.CacheStats = &stats
-
-	report.Components = append(report.Components, ComponentHealth{
-		Name:    "cache",
-		Status:  HealthOK,
-		Message: "Cache operational",
-	})
 }
 
 // checkAPI adds API connectivity health to the report.
