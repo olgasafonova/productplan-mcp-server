@@ -80,68 +80,38 @@ func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
 	})
 }
 
+// manageLaneHandler creates, updates, or deletes lanes on a roadmap.
+// The create payload always names the lane; updates send only set fields.
 func manageLaneHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageLaneArgs](func(ctx context.Context, a ManageLaneArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{"name": a.Name}
-			if a.Color != "" {
-				payload["color"] = a.Color
-			}
-			data, err = client.CreateLane(ctx, a.RoadmapID, payload)
-		case "update":
-			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
-			if a.Color != "" {
-				payload["color"] = a.Color
-			}
-			data, err = client.UpdateLane(ctx, a.RoadmapID, a.LaneID, payload)
-		case "delete":
-			data, err = client.DeleteLane(ctx, a.RoadmapID, a.LaneID)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "lane", a.LaneID)
+	ops := parentScopedOps{resource: "lane", create: client.CreateLane, update: client.UpdateLane, delete: client.DeleteLane}
+	return manageHandler(ops, func(a ManageLaneArgs) manageRequest {
+		create := buildPayload(map[string]any{"name": a.Name}, fieldCheck{a.Color, "color"})
+		update := buildPayload(nil, fieldCheck{a.Name, "name"}, fieldCheck{a.Color, "color"})
+		return manageRequest{action: a.Action, parentID: a.RoadmapID, id: a.LaneID, createPayload: create, updatePayload: update}
 	})
 }
 
+// manageMilestoneHandler creates, updates, or deletes roadmap milestones.
+// The create payload always carries title and date, even when empty, to
+// match the ProductPlan API contract; updates send only set fields.
 func manageMilestoneHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageMilestoneArgs](func(ctx context.Context, a ManageMilestoneArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{
-				"title": a.Title,
-				"date":  a.Date,
-			}
-			data, err = client.CreateMilestone(ctx, a.RoadmapID, payload)
-		case "update":
-			payload := make(map[string]any)
-			if a.Title != "" {
-				payload["title"] = a.Title
-			}
-			if a.Date != "" {
-				payload["date"] = a.Date
-			}
-			data, err = client.UpdateMilestone(ctx, a.RoadmapID, a.MilestoneID, payload)
-		case "delete":
-			data, err = client.DeleteMilestone(ctx, a.RoadmapID, a.MilestoneID)
+	ops := parentScopedOps{resource: "milestone", create: client.CreateMilestone, update: client.UpdateMilestone, delete: client.DeleteMilestone}
+	return manageHandler(ops, func(a ManageMilestoneArgs) manageRequest {
+		return manageRequest{
+			action: a.Action, parentID: a.RoadmapID, id: a.MilestoneID,
+			createPayload: map[string]any{"title": a.Title, "date": a.Date},
+			updatePayload: buildPayload(nil, fieldCheck{a.Title, "title"}, fieldCheck{a.Date, "date"}),
 		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "milestone", a.MilestoneID)
 	})
+}
+
+// roadmapSection is one optional part of a get_roadmap_complete response,
+// fetched in parallel with the others.
+type roadmapSection struct {
+	name  string
+	fetch func(ctx context.Context, roadmapID string) (json.RawMessage, error)
+	data  json.RawMessage
+	err   error
 }
 
 // getRoadmapCompleteHandler fetches roadmap details, bars, lanes, and milestones in parallel.
@@ -149,70 +119,47 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
 		roadmapID := a.RoadmapID
+		sections := []*roadmapSection{
+			{name: "bars", fetch: client.GetRoadmapBars},
+			{name: "lanes", fetch: client.GetRoadmapLanes},
+			{name: "milestones", fetch: client.GetRoadmapMilestones},
+		}
 
-		// Fetch all data in parallel
+		// Fetch the roadmap and every section in parallel.
 		var wg sync.WaitGroup
-		var roadmap, bars, lanes, milestones json.RawMessage
-		var roadmapErr, barsErr, lanesErr, milestonesErr error
-
-		wg.Add(4)
-
+		var roadmap json.RawMessage
+		var roadmapErr error
+		wg.Add(len(sections) + 1)
 		go func() {
 			defer wg.Done()
 			roadmap, roadmapErr = client.GetRoadmap(ctx, roadmapID)
 		}()
-
-		go func() {
-			defer wg.Done()
-			bars, barsErr = client.GetRoadmapBars(ctx, roadmapID)
-		}()
-
-		go func() {
-			defer wg.Done()
-			lanes, lanesErr = client.GetRoadmapLanes(ctx, roadmapID)
-		}()
-
-		go func() {
-			defer wg.Done()
-			milestones, milestonesErr = client.GetRoadmapMilestones(ctx, roadmapID)
-		}()
-
+		for _, s := range sections {
+			go func() {
+				defer wg.Done()
+				s.data, s.err = s.fetch(ctx, roadmapID)
+			}()
+		}
 		wg.Wait()
 
-		// If roadmap itself fails, the whole request is invalid
+		// If the roadmap itself fails, the whole request is invalid.
 		if roadmapErr != nil {
 			return nil, roadmapErr
 		}
 
-		// Collect per-section errors instead of failing on first error
+		// Include sections that succeeded; collect errors for the rest
+		// instead of failing on the first one.
+		result := map[string]any{"roadmap": roadmap}
 		var sectionErrors []map[string]string
-		if barsErr != nil {
-			sectionErrors = append(sectionErrors, map[string]string{"section": "bars", "error": barsErr.Error()})
-		}
-		if lanesErr != nil {
-			sectionErrors = append(sectionErrors, map[string]string{"section": "lanes", "error": lanesErr.Error()})
-		}
-		if milestonesErr != nil {
-			sectionErrors = append(sectionErrors, map[string]string{"section": "milestones", "error": milestonesErr.Error()})
+		for _, s := range sections {
+			if s.err != nil {
+				sectionErrors = append(sectionErrors, map[string]string{"section": s.name, "error": s.err.Error()})
+				continue
+			}
+			result[s.name] = s.data
 		}
 
-		// Build result with partial data
-		result := map[string]any{
-			"roadmap": json.RawMessage(roadmap),
-		}
-
-		// Include sections that succeeded
-		if barsErr == nil {
-			result["bars"] = json.RawMessage(bars)
-		}
-		if lanesErr == nil {
-			result["lanes"] = json.RawMessage(lanes)
-		}
-		if milestonesErr == nil {
-			result["milestones"] = json.RawMessage(milestones)
-		}
-
-		// Always include errors array (empty if all succeeded)
+		// Always include the errors array (empty if all succeeded).
 		result["errors"] = sectionErrors
 
 		data, err := json.Marshal(result)

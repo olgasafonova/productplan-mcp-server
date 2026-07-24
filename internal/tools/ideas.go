@@ -88,74 +88,25 @@ func listAllTagsHandler(client *api.Client) mcp.Handler {
 	})
 }
 
+// manageIdeaHandler creates or updates ideas. Validation guarantees a
+// non-empty title on create, so one payload serves both actions.
 func manageIdeaHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageIdeaArgs](func(ctx context.Context, a ManageIdeaArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{"name": a.Title}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.Status != "" {
-				payload["status"] = a.Status
-			}
-			data, err = client.CreateIdea(ctx, payload)
-		case "update":
-			payload := make(map[string]any)
-			if a.Title != "" {
-				payload["name"] = a.Title
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.Status != "" {
-				payload["status"] = a.Status
-			}
-			data, err = client.UpdateIdea(ctx, a.IdeaID, payload)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "idea", a.IdeaID)
+	ops := topLevelOps{resource: "idea", create: client.CreateIdea, update: client.UpdateIdea}
+	return manageHandler(ops, func(a ManageIdeaArgs) manageRequest {
+		payload := buildPayload(nil,
+			fieldCheck{a.Title, "name"}, fieldCheck{a.Description, "description"}, fieldCheck{a.Status, "status"})
+		return manageRequest{action: a.Action, id: a.IdeaID, createPayload: payload, updatePayload: payload}
 	})
 }
 
+// manageOpportunityHandler creates or updates opportunities. Validation
+// guarantees a non-empty problem statement on create, so one payload serves
+// both actions.
 func manageOpportunityHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageOpportunityArgs](func(ctx context.Context, a ManageOpportunityArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{"problem_statement": a.ProblemStatement}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.WorkflowStatus != "" {
-				payload["workflow_status"] = a.WorkflowStatus
-			}
-			data, err = client.CreateOpportunity(ctx, payload)
-		case "update":
-			payload := make(map[string]any)
-			if a.ProblemStatement != "" {
-				payload["problem_statement"] = a.ProblemStatement
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.WorkflowStatus != "" {
-				payload["workflow_status"] = a.WorkflowStatus
-			}
-			data, err = client.UpdateOpportunity(ctx, a.OpportunityID, payload)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "opportunity", a.OpportunityID)
+	ops := topLevelOps{resource: "opportunity", create: client.CreateOpportunity, update: client.UpdateOpportunity}
+	return manageHandler(ops, func(a ManageOpportunityArgs) manageRequest {
+		payload := buildPayload(nil, fieldCheck{a.ProblemStatement, "problem_statement"},
+			fieldCheck{a.Description, "description"}, fieldCheck{a.WorkflowStatus, "workflow_status"})
+		return manageRequest{action: a.Action, id: a.OpportunityID, createPayload: payload, updatePayload: payload}
 	})
 }

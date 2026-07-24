@@ -48,72 +48,32 @@ func getKeyResultHandler(client *api.Client) mcp.Handler {
 	})
 }
 
+// manageObjectiveHandler creates, updates, or deletes objectives.
+// Validation guarantees a non-empty name on create; time_frame is only
+// settable at creation, matching the ProductPlan API.
 func manageObjectiveHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageObjectiveArgs](func(ctx context.Context, a ManageObjectiveArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{"name": a.Name}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			if a.TimeFrame != "" {
-				payload["time_frame"] = a.TimeFrame
-			}
-			data, err = client.CreateObjective(ctx, payload)
-		case "update":
-			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
-			if a.Description != "" {
-				payload["description"] = a.Description
-			}
-			data, err = client.UpdateObjective(ctx, a.ObjectiveID, payload)
-		case "delete":
-			data, err = client.DeleteObjective(ctx, a.ObjectiveID)
+	ops := topLevelOps{resource: "objective", create: client.CreateObjective, update: client.UpdateObjective, delete: client.DeleteObjective}
+	return manageHandler(ops, func(a ManageObjectiveArgs) manageRequest {
+		return manageRequest{
+			action: a.Action, id: a.ObjectiveID,
+			createPayload: buildPayload(nil,
+				fieldCheck{a.Name, "name"}, fieldCheck{a.Description, "description"}, fieldCheck{a.TimeFrame, "time_frame"}),
+			updatePayload: buildPayload(nil, fieldCheck{a.Name, "name"}, fieldCheck{a.Description, "description"}),
 		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "objective", a.ObjectiveID)
 	})
 }
 
+// manageKeyResultHandler creates, updates, or deletes key results under an
+// objective. The create payload always names the key result; target_value
+// is only settable at creation, matching the ProductPlan API.
 func manageKeyResultHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageKeyResultArgs](func(ctx context.Context, a ManageKeyResultArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{"name": a.Name}
-			if a.TargetValue != "" {
-				payload["target_value"] = a.TargetValue
-			}
-			if a.CurrentValue != "" {
-				payload["current_value"] = a.CurrentValue
-			}
-			data, err = client.CreateKeyResult(ctx, a.ObjectiveID, payload)
-		case "update":
-			payload := make(map[string]any)
-			if a.Name != "" {
-				payload["name"] = a.Name
-			}
-			if a.CurrentValue != "" {
-				payload["current_value"] = a.CurrentValue
-			}
-			data, err = client.UpdateKeyResult(ctx, a.ObjectiveID, a.KeyResultID, payload)
-		case "delete":
-			data, err = client.DeleteKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
+	ops := parentScopedOps{resource: "key result", create: client.CreateKeyResult, update: client.UpdateKeyResult, delete: client.DeleteKeyResult}
+	return manageHandler(ops, func(a ManageKeyResultArgs) manageRequest {
+		return manageRequest{
+			action: a.Action, parentID: a.ObjectiveID, id: a.KeyResultID,
+			createPayload: buildPayload(map[string]any{"name": a.Name},
+				fieldCheck{a.TargetValue, "target_value"}, fieldCheck{a.CurrentValue, "current_value"}),
+			updatePayload: buildPayload(nil, fieldCheck{a.Name, "name"}, fieldCheck{a.CurrentValue, "current_value"}),
 		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "key result", a.KeyResultID)
 	})
 }
