@@ -1,7 +1,8 @@
 # ProductPlan MCP Server
 
 [![CI](https://github.com/olgasafonova/productplan-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/olgasafonova/productplan-mcp-server/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/olgasafonova/productplan-mcp-server?v=1)](https://goreportcard.com/report/github.com/olgasafonova/productplan-mcp-server)
+![lint](https://github.com/olgasafonova/productplan-mcp-server/actions/workflows/lint.yml/badge.svg)
+<!-- CodeScene Code Health badge: add after onboarding repo at codescene.io -->
 
 **Talk to your roadmaps using AI.** Ask questions, create ideas, check OKR progress, and manage launches through natural conversation with Claude, Cursor, or other AI assistants.
 
