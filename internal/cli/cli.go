@@ -47,6 +47,53 @@ func New(client *api.Client, cfg Config) *CLI {
 	}
 }
 
+// apiCall fetches data from the ProductPlan API for one CLI invocation.
+type apiCall func(ctx context.Context, args []string) (json.RawMessage, error)
+
+// command describes one CLI subcommand: how to run it and, when a required
+// first argument is missing, the usage line to print instead.
+type command struct {
+	usage string // non-empty when the first argument is required
+	run   apiCall
+}
+
+// listOrGet builds a command that lists the collection when no ID is given
+// and fetches a single item otherwise.
+func listOrGet(list func(context.Context) (json.RawMessage, error), get func(context.Context, string) (json.RawMessage, error)) command {
+	return command{run: func(ctx context.Context, args []string) (json.RawMessage, error) {
+		if len(args) == 0 {
+			return list(ctx)
+		}
+		return get(ctx, args[0])
+	}}
+}
+
+// withID builds a command that requires an ID as its first argument.
+func withID(usage string, get func(context.Context, string) (json.RawMessage, error)) command {
+	return command{usage: usage, run: func(ctx context.Context, args []string) (json.RawMessage, error) {
+		return get(ctx, args[0])
+	}}
+}
+
+// commands maps each subcommand name to its implementation.
+func (c *CLI) commands() map[string]command {
+	cl := c.client
+	return map[string]command{
+		"roadmaps":      listOrGet(cl.ListRoadmaps, cl.GetRoadmap),
+		"bars":          withID("Usage: productplan bars <roadmap_id>", cl.GetRoadmapBars),
+		"lanes":         withID("Usage: productplan lanes <roadmap_id>", cl.GetRoadmapLanes),
+		"milestones":    withID("Usage: productplan milestones <roadmap_id>", cl.GetRoadmapMilestones),
+		"objectives":    listOrGet(cl.ListObjectives, cl.GetObjective),
+		"key-results":   withID("Usage: productplan key-results <objective_id>", cl.ListKeyResults),
+		"ideas":         listOrGet(cl.ListIdeas, cl.GetIdea),
+		"launches":      listOrGet(cl.ListLaunches, cl.GetLaunch),
+		"opportunities": listOrGet(cl.ListOpportunities, cl.GetOpportunity),
+		"status": {run: func(ctx context.Context, _ []string) (json.RawMessage, error) {
+			return cl.CheckStatus(ctx)
+		}},
+	}
+}
+
 // Run executes the CLI with given arguments.
 // Returns exit code (0 for success, 1 for error).
 func (c *CLI) Run(args []string) int {
@@ -55,85 +102,19 @@ func (c *CLI) Run(args []string) int {
 		return 1
 	}
 
-	cmd := args[0]
-	subArgs := args[1:]
-	ctx := context.Background()
-
-	var result json.RawMessage
-	var err error
-
-	switch cmd {
-	case "roadmaps":
-		if len(subArgs) == 0 {
-			result, err = c.client.ListRoadmaps(ctx)
-		} else {
-			result, err = c.client.GetRoadmap(ctx, subArgs[0])
-		}
-
-	case "bars":
-		if len(subArgs) == 0 {
-			_, _ = fmt.Fprintln(c.errOut, "Usage: productplan bars <roadmap_id>")
-			return 1
-		}
-		result, err = c.client.GetRoadmapBars(ctx, subArgs[0])
-
-	case "lanes":
-		if len(subArgs) == 0 {
-			_, _ = fmt.Fprintln(c.errOut, "Usage: productplan lanes <roadmap_id>")
-			return 1
-		}
-		result, err = c.client.GetRoadmapLanes(ctx, subArgs[0])
-
-	case "milestones":
-		if len(subArgs) == 0 {
-			_, _ = fmt.Fprintln(c.errOut, "Usage: productplan milestones <roadmap_id>")
-			return 1
-		}
-		result, err = c.client.GetRoadmapMilestones(ctx, subArgs[0])
-
-	case "objectives":
-		if len(subArgs) == 0 {
-			result, err = c.client.ListObjectives(ctx)
-		} else {
-			result, err = c.client.GetObjective(ctx, subArgs[0])
-		}
-
-	case "key-results":
-		if len(subArgs) == 0 {
-			_, _ = fmt.Fprintln(c.errOut, "Usage: productplan key-results <objective_id>")
-			return 1
-		}
-		result, err = c.client.ListKeyResults(ctx, subArgs[0])
-
-	case "ideas":
-		if len(subArgs) == 0 {
-			result, err = c.client.ListIdeas(ctx)
-		} else {
-			result, err = c.client.GetIdea(ctx, subArgs[0])
-		}
-
-	case "launches":
-		if len(subArgs) == 0 {
-			result, err = c.client.ListLaunches(ctx)
-		} else {
-			result, err = c.client.GetLaunch(ctx, subArgs[0])
-		}
-
-	case "opportunities":
-		if len(subArgs) == 0 {
-			result, err = c.client.ListOpportunities(ctx)
-		} else {
-			result, err = c.client.GetOpportunity(ctx, subArgs[0])
-		}
-
-	case "status":
-		result, err = c.client.CheckStatus(ctx)
-
-	default:
+	cmd, ok := c.commands()[args[0]]
+	if !ok {
 		c.PrintUsage()
 		return 1
 	}
 
+	subArgs := args[1:]
+	if cmd.usage != "" && len(subArgs) == 0 {
+		_, _ = fmt.Fprintln(c.errOut, cmd.usage)
+		return 1
+	}
+
+	result, err := cmd.run(context.Background(), subArgs)
 	if err != nil {
 		_, _ = fmt.Fprintf(c.errOut, "Error: %v\n", err)
 		return 1

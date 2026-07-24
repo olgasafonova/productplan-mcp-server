@@ -386,22 +386,26 @@ func EvaluateArguments(suite *ArgumentSuite, selector ToolSelector) (*EvalMetric
 	return metrics, results
 }
 
+// asFloat normalises the numeric types JSON comparisons produce (int from
+// fixtures, float64 from decoded JSON) to float64.
+func asFloat(v interface{}) (float64, bool) {
+	switch n := v.(type) {
+	case int:
+		return float64(n), true
+	case float64:
+		return n, true
+	}
+	return 0, false
+}
+
 // compareValues compares two values for equality, handling type differences.
 func compareValues(expected, actual interface{}) bool {
-	if expected == nil && actual == nil {
-		return true
-	}
 	if expected == nil || actual == nil {
-		return false
+		return expected == nil && actual == nil
 	}
 
 	// Handle numeric comparisons (JSON numbers are float64)
-	switch e := expected.(type) {
-	case int:
-		if a, ok := actual.(float64); ok {
-			return float64(e) == a
-		}
-	case float64:
+	if e, ok := asFloat(expected); ok {
 		if a, ok := actual.(float64); ok {
 			return e == a
 		}

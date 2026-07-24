@@ -56,36 +56,31 @@ func (e *APIError) IsRetryable() bool {
 	return e.IsRateLimited() || e.IsServerError()
 }
 
+// suggestionByStatus maps specific HTTP status codes to actionable guidance.
+var suggestionByStatus = map[int]string{
+	404: "Resource not found. Verify the ID is correct using the list_* tools.",
+	401: "Invalid or expired API token. Check PRODUCTPLAN_API_TOKEN environment variable.",
+	403: "Access denied. Your API token may not have permission for this operation.",
+	400: "Invalid request. Check required parameters and their formats.",
+	422: "Validation error. Check the field values match expected formats.",
+}
+
 // Suggestion returns actionable guidance for handling this error.
 func (e *APIError) Suggestion() string {
-	switch {
-	case e.IsRateLimited():
-		if e.RetryAfter > 0 {
-			return fmt.Sprintf("Rate limited. Wait %d seconds before retrying.", e.RetryAfter)
+	if e.IsRateLimited() {
+		wait := e.RetryAfter
+		if wait <= 0 {
+			wait = 60
 		}
-		return "Rate limited. Wait 60 seconds before retrying."
-
-	case e.IsNotFound():
-		return "Resource not found. Verify the ID is correct using the list_* tools."
-
-	case e.IsUnauthorized():
-		return "Invalid or expired API token. Check PRODUCTPLAN_API_TOKEN environment variable."
-
-	case e.IsForbidden():
-		return "Access denied. Your API token may not have permission for this operation."
-
-	case e.StatusCode == 400:
-		return "Invalid request. Check required parameters and their formats."
-
-	case e.StatusCode == 422:
-		return "Validation error. Check the field values match expected formats."
-
-	case e.IsServerError():
-		return "ProductPlan server error. Try again in a few moments."
-
-	default:
-		return ""
+		return fmt.Sprintf("Rate limited. Wait %d seconds before retrying.", wait)
 	}
+	if s, ok := suggestionByStatus[e.StatusCode]; ok {
+		return s
+	}
+	if e.IsServerError() {
+		return "ProductPlan server error. Try again in a few moments."
+	}
+	return ""
 }
 
 // maxClientFacingDetailLen caps the body excerpt that may reach an MCP caller

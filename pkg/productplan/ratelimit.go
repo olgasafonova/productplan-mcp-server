@@ -61,31 +61,32 @@ func NewAdaptiveRateLimiter(config RateLimiterConfig) *AdaptiveRateLimiter {
 	}
 }
 
-// parseIntHeader applies fn to the integer value of header, ignoring empty
-// or unparseable values. Centralises the "if header non-empty and parses" idiom.
-func parseIntHeader(resp *http.Response, header string, fn func(int)) {
+// parseHeader applies fn to the value of header converted by parse,
+// ignoring empty or unparseable values. Centralises the "if header
+// non-empty and parses" idiom.
+func parseHeader[T any](resp *http.Response, header string, parse func(string) (T, error), fn func(T)) {
 	v := resp.Header.Get(header)
 	if v == "" {
 		return
 	}
-	n, err := strconv.Atoi(v)
+	parsed, err := parse(v)
 	if err != nil {
 		return
 	}
-	fn(n)
+	fn(parsed)
+}
+
+// parseIntHeader applies fn to the integer value of header.
+func parseIntHeader(resp *http.Response, header string, fn func(int)) {
+	parseHeader(resp, header, strconv.Atoi, fn)
 }
 
 // parseUnixHeader applies fn to the time.Time parsed from a Unix-timestamp header.
 func parseUnixHeader(resp *http.Response, header string, fn func(time.Time)) {
-	v := resp.Header.Get(header)
-	if v == "" {
-		return
-	}
-	ts, err := strconv.ParseInt(v, 10, 64)
-	if err != nil {
-		return
-	}
-	fn(time.Unix(ts, 0))
+	parseHeader(resp, header, func(v string) (time.Time, error) {
+		ts, err := strconv.ParseInt(v, 10, 64)
+		return time.Unix(ts, 0), err
+	}, fn)
 }
 
 // UpdateFromResponse updates the rate limit state from response headers.

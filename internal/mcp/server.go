@@ -142,34 +142,42 @@ func (s *Server) handleRequest(ctx context.Context, req JSONRPCRequest) JSONRPCR
 		resp.Result = ToolsListResult{Tools: s.registry.Tools()}
 
 	case "tools/call":
-		var params ToolCallParams
-		if err := json.Unmarshal(req.Params, &params); err != nil {
-			resp.Error = NewError(ErrInvalidParams, err.Error())
-			return resp
-		}
-
-		s.logger.Debug("calling tool",
-			logging.Tool(params.Name),
-		)
-
-		result, err := s.registry.Call(ctx, params.Name, params.Arguments)
-		switch {
-		case err != nil:
-			s.logger.Debug("tool call failed",
-				logging.Tool(params.Name),
-				logging.Error(err),
-			)
-			resp.Result = NewErrorResult(err)
-		case s.registry.HasOutputSchema(params.Name) && json.Valid(result):
-			// Tools that declare an OutputSchema return structuredContent
-			// alongside the text payload, making them Code Mode eligible.
-			resp.Result = NewStructuredResult(result)
-		default:
-			resp.Result = NewTextResult(string(result))
-		}
+		return s.handleToolCall(ctx, req, resp)
 
 	default:
 		resp.Error = NewError(ErrMethodNotFound, "Method not found: "+req.Method)
+	}
+
+	return resp
+}
+
+// handleToolCall dispatches a tools/call request to the registry and shapes
+// the response.
+func (s *Server) handleToolCall(ctx context.Context, req JSONRPCRequest, resp JSONRPCResponse) JSONRPCResponse {
+	var params ToolCallParams
+	if err := json.Unmarshal(req.Params, &params); err != nil {
+		resp.Error = NewError(ErrInvalidParams, err.Error())
+		return resp
+	}
+
+	s.logger.Debug("calling tool",
+		logging.Tool(params.Name),
+	)
+
+	result, err := s.registry.Call(ctx, params.Name, params.Arguments)
+	switch {
+	case err != nil:
+		s.logger.Debug("tool call failed",
+			logging.Tool(params.Name),
+			logging.Error(err),
+		)
+		resp.Result = NewErrorResult(err)
+	case s.registry.HasOutputSchema(params.Name) && json.Valid(result):
+		// Tools that declare an OutputSchema return structuredContent
+		// alongside the text payload, making them Code Mode eligible.
+		resp.Result = NewStructuredResult(result)
+	default:
+		resp.Result = NewTextResult(string(result))
 	}
 
 	return resp
