@@ -54,54 +54,63 @@ func BuildAllTools() []mcp.Tool {
 	// Utility
 	tools = append(tools, utilityTools()...)
 
-	// Auto-annotate based on the tool name prefix.
-	//
-	// Read-only (get_*, list_*, check_*, health_check):
-	//   ReadOnlyHint=true, IdempotentHint=true.
-	//
-	// manage_*:
-	//   DestructiveHint=true. Each manage_* tool dispatches across
-	//   action=create/update/delete and supports cascade-delete with
-	//   documented blast radius (e.g., manage_launch removes its sections
-	//   and tasks, manage_objective cascades to all key results). MCP
-	//   clients use DestructiveHint to gate user-confirmation prompts on
-	//   irreversible operations.
-	//
-	//   IdempotentHint is deliberately NOT set on manage_* tools.
-	//   Idempotency varies per action: action=create twice produces two
-	//   records; action=delete twice 404s on the second call. A blanket
-	//   "idempotent" annotation misleads retry-aware clients into
-	//   duplicate writes. Leaving the hint unset is the safe default.
 	for i := range tools {
-		if tools[i].Annotations != nil {
-			continue
-		}
-		name := tools[i].Name
-		isReadOnly := strings.HasPrefix(name, "get_") ||
-			strings.HasPrefix(name, "list_") ||
-			strings.HasPrefix(name, "check_") ||
-			name == "health_check"
-
-		switch {
-		case isReadOnly:
-			tools[i].Annotations = &mcp.ToolAnnotations{
-				ReadOnlyHint:   true,
-				IdempotentHint: true,
-			}
-			// Read tools return the uniform FormattedResponse wrapper, so
-			// they declare an OutputSchema and become Code Mode eligible.
-			// Only set it when unset, mirroring the Annotations guard above.
-			if tools[i].OutputSchema == nil {
-				tools[i].OutputSchema = readOutputSchema()
-			}
-		case strings.HasPrefix(name, "manage_"):
-			tools[i].Annotations = &mcp.ToolAnnotations{
-				DestructiveHint: boolPtr(true),
-			}
-		}
+		annotateTool(&tools[i])
 	}
 
 	return tools
+}
+
+// readOnlyToolName reports whether a tool name denotes a read-only tool.
+func readOnlyToolName(name string) bool {
+	return strings.HasPrefix(name, "get_") ||
+		strings.HasPrefix(name, "list_") ||
+		strings.HasPrefix(name, "check_") ||
+		name == "health_check"
+}
+
+// annotateTool fills default annotations based on the tool name prefix,
+// leaving tools with explicit annotations untouched.
+//
+// Read-only (get_*, list_*, check_*, health_check):
+//
+//	ReadOnlyHint=true, IdempotentHint=true.
+//
+// manage_*:
+//
+//	DestructiveHint=true. Each manage_* tool dispatches across
+//	action=create/update/delete and supports cascade-delete with
+//	documented blast radius (e.g., manage_launch removes its sections
+//	and tasks, manage_objective cascades to all key results). MCP
+//	clients use DestructiveHint to gate user-confirmation prompts on
+//	irreversible operations.
+//
+//	IdempotentHint is deliberately NOT set on manage_* tools.
+//	Idempotency varies per action: action=create twice produces two
+//	records; action=delete twice 404s on the second call. A blanket
+//	"idempotent" annotation misleads retry-aware clients into
+//	duplicate writes. Leaving the hint unset is the safe default.
+func annotateTool(tool *mcp.Tool) {
+	if tool.Annotations != nil {
+		return
+	}
+	switch {
+	case readOnlyToolName(tool.Name):
+		tool.Annotations = &mcp.ToolAnnotations{
+			ReadOnlyHint:   true,
+			IdempotentHint: true,
+		}
+		// Read tools return the uniform FormattedResponse wrapper, so
+		// they declare an OutputSchema and become Code Mode eligible.
+		// Only set it when unset, mirroring the Annotations guard above.
+		if tool.OutputSchema == nil {
+			tool.OutputSchema = readOutputSchema()
+		}
+	case strings.HasPrefix(tool.Name, "manage_"):
+		tool.Annotations = &mcp.ToolAnnotations{
+			DestructiveHint: boolPtr(true),
+		}
+	}
 }
 
 // roadmapTools returns roadmap-related tool definitions.

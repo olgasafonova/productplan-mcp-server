@@ -131,49 +131,51 @@ func addBarOptionalFields(payload map[string]any, a ManageBarArgs) {
 	setIfNotEmptySlice(payload, "custom_dropdown_fields", a.CustomDropdownFields)
 }
 
+// barSubresourceOps bundles the client calls for connections and links on
+// a bar, which support only create and delete. Unlike the other ops
+// bundles, unsupported actions are rejected with an error.
+type barSubresourceOps struct {
+	resource string
+	create   func(ctx context.Context, barID string, payload map[string]any) (json.RawMessage, error)
+	delete   func(ctx context.Context, barID, id string) (json.RawMessage, error)
+}
+
+// run dispatches the requested action to the matching client call and
+// formats the result.
+func (o barSubresourceOps) run(ctx context.Context, req manageRequest) (json.RawMessage, error) {
+	var data json.RawMessage
+	var err error
+	switch req.action {
+	case "create":
+		data, err = o.create(ctx, req.parentID, req.createPayload)
+	case "delete":
+		data, err = o.delete(ctx, req.parentID, req.id)
+	default:
+		return nil, fmt.Errorf("unknown action: %s", req.action)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return FormatAction(data, req.action, o.resource, req.id)
+}
+
+// manageBarConnectionHandler creates or deletes dependency connections
+// between bars.
 func manageBarConnectionHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageBarConnectionArgs](func(ctx context.Context, a ManageBarConnectionArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{"target_bar_id": a.TargetBarID}
-			data, err = client.CreateBarConnection(ctx, a.BarID, payload)
-		case "delete":
-			data, err = client.DeleteBarConnection(ctx, a.BarID, a.ConnectionID)
-		default:
-			return nil, fmt.Errorf("unknown action: %s", a.Action)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "connection", a.ConnectionID)
+	ops := barSubresourceOps{resource: "connection", create: client.CreateBarConnection, delete: client.DeleteBarConnection}
+	return manageHandler(ops, func(a ManageBarConnectionArgs) manageRequest {
+		return manageRequest{action: a.Action, parentID: a.BarID, id: a.ConnectionID,
+			createPayload: map[string]any{"target_bar_id": a.TargetBarID}}
 	})
 }
 
+// manageBarLinkHandler creates or deletes external links attached to a bar.
+// The create payload always carries url and name, matching the ProductPlan
+// API contract.
 func manageBarLinkHandler(client *api.Client) mcp.Handler {
-	return typedHandler[ManageBarLinkArgs](func(ctx context.Context, a ManageBarLinkArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
-		switch a.Action {
-		case "create":
-			payload := map[string]any{
-				"url":  a.URL,
-				"name": a.Name,
-			}
-			data, err = client.CreateBarLink(ctx, a.BarID, payload)
-		case "delete":
-			data, err = client.DeleteBarLink(ctx, a.BarID, a.LinkID)
-		default:
-			return nil, fmt.Errorf("unknown action: %s", a.Action)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "link", a.LinkID)
+	ops := barSubresourceOps{resource: "link", create: client.CreateBarLink, delete: client.DeleteBarLink}
+	return manageHandler(ops, func(a ManageBarLinkArgs) manageRequest {
+		return manageRequest{action: a.Action, parentID: a.BarID, id: a.LinkID,
+			createPayload: map[string]any{"url": a.URL, "name": a.Name}}
 	})
 }

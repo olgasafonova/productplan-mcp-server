@@ -30,118 +30,78 @@ func RegisterAll(registry *mcp.Registry, cfg Config) {
 	}
 }
 
-// createHandler returns the handler for a specific tool.
-func createHandler(name string, cfg Config) mcp.Handler {
-	switch name {
+// handlerConstructors maps each client-backed tool name to the function
+// that builds its handler. Tools with other dependencies (health_check)
+// are wired directly in createHandler.
+var handlerConstructors = map[string]func(*api.Client) mcp.Handler{
 	// Roadmap handlers
-	case "list_roadmaps":
-		return listRoadmapsHandler(cfg.Client)
-	case "get_roadmap":
-		return getRoadmapHandler(cfg.Client)
-	case "get_roadmap_bars":
-		return getRoadmapBarsHandler(cfg.Client)
-	case "get_roadmap_lanes":
-		return getRoadmapLanesHandler(cfg.Client)
-	case "get_roadmap_milestones":
-		return getRoadmapMilestonesHandler(cfg.Client)
-	case "get_roadmap_legends":
-		return getRoadmapLegendsHandler(cfg.Client)
-	case "get_roadmap_comments":
-		return getRoadmapCommentsHandler(cfg.Client)
-	case "get_roadmap_complete":
-		return getRoadmapCompleteHandler(cfg.Client)
-	case "manage_lane":
-		return manageLaneHandler(cfg.Client)
-	case "manage_milestone":
-		return manageMilestoneHandler(cfg.Client)
+	"list_roadmaps":          listRoadmapsHandler,
+	"get_roadmap":            getRoadmapHandler,
+	"get_roadmap_bars":       getRoadmapBarsHandler,
+	"get_roadmap_lanes":      getRoadmapLanesHandler,
+	"get_roadmap_milestones": getRoadmapMilestonesHandler,
+	"get_roadmap_legends":    getRoadmapLegendsHandler,
+	"get_roadmap_comments":   getRoadmapCommentsHandler,
+	"get_roadmap_complete":   getRoadmapCompleteHandler,
+	"manage_lane":            manageLaneHandler,
+	"manage_milestone":       manageMilestoneHandler,
 
 	// Bar handlers
-	case "get_bar":
-		return getBarHandler(cfg.Client)
-	case "get_bar_children":
-		return getBarChildrenHandler(cfg.Client)
-	case "get_bar_comments":
-		return getBarCommentsHandler(cfg.Client)
-	case "get_bar_connections":
-		return getBarConnectionsHandler(cfg.Client)
-	case "get_bar_links":
-		return getBarLinksHandler(cfg.Client)
-	case "manage_bar":
-		return manageBarHandler(cfg.Client)
-	case "manage_bar_connection":
-		return manageBarConnectionHandler(cfg.Client)
-	case "manage_bar_link":
-		return manageBarLinkHandler(cfg.Client)
+	"get_bar":               getBarHandler,
+	"get_bar_children":      getBarChildrenHandler,
+	"get_bar_comments":      getBarCommentsHandler,
+	"get_bar_connections":   getBarConnectionsHandler,
+	"get_bar_links":         getBarLinksHandler,
+	"manage_bar":            manageBarHandler,
+	"manage_bar_connection": manageBarConnectionHandler,
+	"manage_bar_link":       manageBarLinkHandler,
 
 	// Objective handlers
-	case "list_objectives":
-		return listObjectivesHandler(cfg.Client)
-	case "get_objective":
-		return getObjectiveHandler(cfg.Client)
-	case "list_key_results":
-		return listKeyResultsHandler(cfg.Client)
-	case "get_key_result":
-		return getKeyResultHandler(cfg.Client)
-	case "manage_objective":
-		return manageObjectiveHandler(cfg.Client)
-	case "manage_key_result":
-		return manageKeyResultHandler(cfg.Client)
+	"list_objectives":   listObjectivesHandler,
+	"get_objective":     getObjectiveHandler,
+	"list_key_results":  listKeyResultsHandler,
+	"get_key_result":    getKeyResultHandler,
+	"manage_objective":  manageObjectiveHandler,
+	"manage_key_result": manageKeyResultHandler,
 
 	// Idea handlers
-	case "list_ideas":
-		return listIdeasHandler(cfg.Client)
-	case "get_idea":
-		return getIdeaHandler(cfg.Client)
-	case "list_opportunities":
-		return listOpportunitiesHandler(cfg.Client)
-	case "get_opportunity":
-		return getOpportunityHandler(cfg.Client)
-	case "list_idea_forms":
-		return listIdeaFormsHandler(cfg.Client)
-	case "get_idea_form":
-		return getIdeaFormHandler(cfg.Client)
-	case "list_all_customers":
-		return listAllCustomersHandler(cfg.Client)
-	case "list_all_tags":
-		return listAllTagsHandler(cfg.Client)
-	case "manage_idea":
-		return manageIdeaHandler(cfg.Client)
-	case "manage_opportunity":
-		return manageOpportunityHandler(cfg.Client)
+	"list_ideas":         listIdeasHandler,
+	"get_idea":           getIdeaHandler,
+	"list_opportunities": listOpportunitiesHandler,
+	"get_opportunity":    getOpportunityHandler,
+	"list_idea_forms":    listIdeaFormsHandler,
+	"get_idea_form":      getIdeaFormHandler,
+	"list_all_customers": listAllCustomersHandler,
+	"list_all_tags":      listAllTagsHandler,
+	"manage_idea":        manageIdeaHandler,
+	"manage_opportunity": manageOpportunityHandler,
 
 	// Launch handlers
-	case "list_launches":
-		return listLaunchesHandler(cfg.Client)
-	case "get_launch":
-		return getLaunchHandler(cfg.Client)
-	case "manage_launch":
-		return manageLaunchHandler(cfg.Client)
-	case "get_launch_sections":
-		return getLaunchSectionsHandler(cfg.Client)
-	case "get_launch_section":
-		return getLaunchSectionHandler(cfg.Client)
-	case "manage_launch_section":
-		return manageLaunchSectionHandler(cfg.Client)
-	case "get_launch_tasks":
-		return getLaunchTasksHandler(cfg.Client)
-	case "get_launch_task":
-		return getLaunchTaskHandler(cfg.Client)
-	case "manage_launch_task":
-		return manageLaunchTaskHandler(cfg.Client)
+	"list_launches":         listLaunchesHandler,
+	"get_launch":            getLaunchHandler,
+	"manage_launch":         manageLaunchHandler,
+	"get_launch_sections":   getLaunchSectionsHandler,
+	"get_launch_section":    getLaunchSectionHandler,
+	"manage_launch_section": manageLaunchSectionHandler,
+	"get_launch_tasks":      getLaunchTasksHandler,
+	"get_launch_task":       getLaunchTaskHandler,
+	"manage_launch_task":    manageLaunchTaskHandler,
 
 	// Utility handlers
-	case "check_status":
-		return checkStatusHandler(cfg.Client)
-	case "health_check":
-		return healthCheckHandler(cfg.HealthChecker)
-	case "list_users":
-		return listUsersHandler(cfg.Client)
-	case "list_teams":
-		return listTeamsHandler(cfg.Client)
+	"check_status": checkStatusHandler,
+	"list_users":   listUsersHandler,
+	"list_teams":   listTeamsHandler,
+}
 
-	default:
-		return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-			return nil, fmt.Errorf("unknown tool: %s", name)
-		})
+// createHandler returns the handler for a specific tool.
+func createHandler(name string, cfg Config) mcp.Handler {
+	if name == "health_check" {
+		return healthCheckHandler(cfg.HealthChecker)
 	}
+	if construct, ok := handlerConstructors[name]; ok {
+		return construct(cfg.Client)
+	}
+	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+		return nil, fmt.Errorf("unknown tool: %s", name)
+	})
 }
