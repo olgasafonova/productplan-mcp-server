@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "generated_at": "2026-05-17T09:09:30Z",
-  "deslop_version": "2.1.0",
+  "deslop_version": "2.3.0",
   "scores": {
     "file_health": 70.0,
     "test_coverage": 69.0,
@@ -16,103 +16,137 @@
       "detector": "file_health",
       "severity": "high",
       "key": "internal/api/endpoints_test.go",
-      "summary": "internal/api/endpoints_test.go (864 LOC)"
+      "summary": "internal/api/endpoints_test.go (864 LOC)",
+      "fingerprint": "sha256:93108c04e44cc66708780bb0a7f27aa04ac3a9d3da00abbfb65159d6d5fe8a18",
+      "id": "9310"
     },
     {
       "detector": "file_health",
       "severity": "high",
       "key": "internal/tools/definitions.go",
-      "summary": "internal/tools/definitions.go (957 LOC)"
+      "summary": "internal/tools/definitions.go (957 LOC)",
+      "fingerprint": "sha256:12af641d7d39c6809b3cd34513eae49da9c46e063c5cef4674fc3c0d8b2a689a",
+      "id": "12af"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "evals/runner.go",
-      "summary": "evals/runner.go (541 LOC)"
+      "summary": "evals/runner.go (541 LOC)",
+      "fingerprint": "sha256:aca369b08738d96d6ba24f58f6e1f48095ce3eb37cc694b22c0cc8de6d33f621",
+      "id": "aca3"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "evals/runner_test.go",
-      "summary": "evals/runner_test.go (579 LOC)"
+      "summary": "evals/runner_test.go (579 LOC)",
+      "fingerprint": "sha256:aaeec2894ba4ef2362c887784783dc56b6972fcc13d5f6e7754cc83c7fae10c4",
+      "id": "aaee"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "internal/api/endpoints.go",
-      "summary": "internal/api/endpoints.go (652 LOC)"
+      "summary": "internal/api/endpoints.go (652 LOC)",
+      "fingerprint": "sha256:ea343ecc2a46d25713dd7670c50d42e482098a0377d4aa91bb61b19edc36396e",
+      "id": "ea34"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "internal/api/formatters_test.go",
-      "summary": "internal/api/formatters_test.go (573 LOC)"
+      "summary": "internal/api/formatters_test.go (573 LOC)",
+      "fingerprint": "sha256:d0d3cf196bbde755e658bc49993ce8cab48242b49b2d4761ae7d588b49e63178",
+      "id": "d0d3"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "internal/tools/handlers_test.go",
-      "summary": "internal/tools/handlers_test.go (575 LOC)"
+      "summary": "internal/tools/handlers_test.go (575 LOC)",
+      "fingerprint": "sha256:215759c8c11bad893b2f0e8268867cab41156c4cb6d8a2fed01185e8e95e6fdc",
+      "id": "2157"
     },
     {
       "detector": "file_health",
       "severity": "warning",
       "key": "internal/tools/types.go",
-      "summary": "internal/tools/types.go (513 LOC)"
+      "summary": "internal/tools/types.go (513 LOC)",
+      "fingerprint": "sha256:67aeda4d7384cd16167c387e9c3825dd8b1ed8b2f7714f8e0d9a6fb2bb49625d",
+      "id": "67ae"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/bars.go",
-      "summary": "internal/tools/bars.go has no test file"
+      "summary": "internal/tools/bars.go has no test file",
+      "fingerprint": "sha256:637da239d7573dce345920815f1eedbd8405c10c4c8e04a64ca304dbee91c466",
+      "id": "637d"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/helpers.go",
-      "summary": "internal/tools/helpers.go has no test file"
+      "summary": "internal/tools/helpers.go has no test file",
+      "fingerprint": "sha256:c4646908deff1afb432a2119ebe5fb4c8d2f4430f193970078f43ff2f88b3074",
+      "id": "c464"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/ideas.go",
-      "summary": "internal/tools/ideas.go has no test file"
+      "summary": "internal/tools/ideas.go has no test file",
+      "fingerprint": "sha256:46bab3e4c03d2dc396703a8d30154f5bdfff68594dc325373647a1f82c88e179",
+      "id": "46ba"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/launches.go",
-      "summary": "internal/tools/launches.go has no test file"
+      "summary": "internal/tools/launches.go has no test file",
+      "fingerprint": "sha256:b709e0d25e6d873df536e55be96586039e5b5ad35e15db23fa426b0c8ebf742c",
+      "id": "b709"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/objectives.go",
-      "summary": "internal/tools/objectives.go has no test file"
+      "summary": "internal/tools/objectives.go has no test file",
+      "fingerprint": "sha256:790783ad01e143cc7531587d5bbb358ac03e1de20678e6b11c69d1d1a18cc48d",
+      "id": "7907"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/roadmaps.go",
-      "summary": "internal/tools/roadmaps.go has no test file"
+      "summary": "internal/tools/roadmaps.go has no test file",
+      "fingerprint": "sha256:d0d0d9eb7ea60abde1bc971ca6aa78a99a6850d9a88c9c872fe62fe8fcf006ff",
+      "id": "d0d0"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/types.go",
-      "summary": "internal/tools/types.go has no test file"
+      "summary": "internal/tools/types.go has no test file",
+      "fingerprint": "sha256:947b39bad5567cd5948ccfc492e71f5e4c1835ec779c45d98faff33dd73af496",
+      "id": "947b"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "internal/tools/utility.go",
-      "summary": "internal/tools/utility.go has no test file"
+      "summary": "internal/tools/utility.go has no test file",
+      "fingerprint": "sha256:02ffd7de9588f0c240e4d3416b5ce6d816bf672e6d4e63de28a7cf4c6aa222d8",
+      "id": "02ff"
     },
     {
       "detector": "test_coverage",
       "severity": "warning",
       "key": "pkg/productplan/requestid.go",
-      "summary": "pkg/productplan/requestid.go has no test file"
+      "summary": "pkg/productplan/requestid.go has no test file",
+      "fingerprint": "sha256:e1bed06b8e8846630cb50b14f6fe01294289265c394e0dbd3ceb6a4ee7379a18",
+      "id": "e1be"
     }
   ]
 }
