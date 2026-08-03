@@ -5,23 +5,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/olgasafonova/mcp-cache-go/mcpcache"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/logging"
 )
 
 // SDKServer serves the tool registry over the official MCP SDK.
 //
-// Slice 2 of the go-sdk migration (bead claude-code-config-4fc4.14). This
-// replaces the hand-rolled JSON-RPC loop in server.go: the SDK now owns version
-// negotiation, server/discover, the initialize handshake, cache hints and every
-// future revision, which is the whole point of the migration. What stays local
-// is tool authoring (the Tool type plus BuildTool) and tool dispatch (Registry).
-//
-// The old Server is left in place by this slice and removed in the next one,
-// together with the hand-rolled protocol types and the tests written against
-// them. Keeping both compiling for one slice keeps this diff to the transport.
+// Introduced by the go-sdk migration (bead claude-code-config-4fc4.14). It
+// replaced a hand-rolled JSON-RPC loop pinned to protocol revision 2025-11-25:
+// the SDK now owns version negotiation, server/discover, the initialize
+// handshake and every future revision, which is the whole point of the
+// migration. What stays local is tool authoring (the Tool type plus BuildTool)
+// and tool dispatch (Registry).
 type SDKServer struct {
 	registry     *Registry
 	logger       logging.Logger
@@ -64,6 +63,26 @@ func NewSDKServer(name, version string, registry *Registry, opts ...SDKServerOpt
 		&mcp.ServerOptions{Instructions: s.instructions},
 	)
 
+	// SEP-2549 requires ttlMs and cacheScope on every cacheable result, but the
+	// SDK's setDefaultCacheableValues() sets cacheScope only and leaves TTLMs at
+	// its zero value, which the spec reads as "immediately stale". There is no
+	// ServerOptions knob for it, so a receiving middleware is the supported way
+	// to stamp a real TTL. Without this the server is spec-compliant and useless
+	// to a caching client: it advertises every list result as already stale.
+	//
+	// Thirty minutes matches the other large surfaces in this portfolio
+	// (mediawiki, public360, miro); the small ones use an hour. The tool set is
+	// compiled in and only changes when a release ships, so the number is a
+	// judgement about release cadence rather than about correctness.
+	s.server.AddReceivingMiddleware(
+		mcpcache.Middleware(mcpcache.Config{
+			TTLs: map[string]time.Duration{
+				mcpcache.MethodListTools: 30 * time.Minute,
+				mcpcache.MethodDiscover:  30 * time.Minute,
+			},
+		}),
+	)
+
 	for _, tool := range registry.Tools() {
 		s.server.AddTool(BuildTool(tool), s.handlerFor(tool.Name))
 	}
@@ -99,7 +118,7 @@ func (s *SDKServer) run(ctx context.Context, transport mcp.Transport) error {
 // Tool failures are reported as an error RESULT with IsError set, never as a
 // returned Go error. Returning an error here would surface as a JSON-RPC
 // protocol error, which tells the caller the request was malformed rather than
-// that the tool ran and failed. This mirrors what handleToolCall does today.
+// that the tool ran and failed. This mirrors what the hand-rolled server did.
 func (s *SDKServer) handlerFor(name string) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args, err := decodeArguments(req)
