@@ -80,8 +80,8 @@ func runMCPServer(client *api.Client, logger logging.Logger) int {
 	})
 
 	// Create and run MCP server
-	server := mcp.NewServer("productplan", version, registry,
-		mcp.WithLogger(logger),
+	server := mcp.NewSDKServer("productplan", version, registry,
+		mcp.WithSDKLogger(logger),
 	)
 
 	ctx := context.Background()
