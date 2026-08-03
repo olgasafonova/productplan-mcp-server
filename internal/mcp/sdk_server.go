@@ -149,8 +149,8 @@ func toolResult(registry *Registry, name string, payload json.RawMessage) *mcp.C
 	return res
 }
 
-// errorResult mirrors NewErrorResult's wire shape, including the "Error: "
-// prefix, so a client sees the same text before and after the migration.
+// errorResult keeps the "Error: " prefix the hand-rolled server used, so a
+// client sees the same text before and after the migration.
 func errorResult(err error) *mcp.CallToolResult {
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{&mcp.TextContent{Text: "Error: " + err.Error()}},

@@ -1,48 +1,27 @@
-// Package mcp provides the MCP (Model Context Protocol) server implementation.
+// Package mcp defines this server's tool-authoring types and its tool registry,
+// and serves them over the official MCP SDK.
+//
+// The JSON-RPC framing, the initialize handshake, protocol-version negotiation
+// and every wire type used to live here as a hand-rolled implementation pinned
+// to protocol revision 2025-11-25. Slice 2 of bead claude-code-config-4fc4.14
+// moved all of that to github.com/modelcontextprotocol/go-sdk, and slice 3
+// deleted the hand-rolled half. What remains is deliberately only the part the
+// SDK does not own:
+//
+//   - the Tool authoring format below, converted at registration by BuildTool
+//     (sdk.go)
+//   - the Registry and Handler contract (handler.go), which is where tool
+//     dispatch and its panic recovery live
+//
+// Keeping the authoring format local is the pattern the rest of the portfolio
+// uses; it is what lets internal/tools declare 47 tools without importing the
+// SDK.
 package mcp
 
-import "encoding/json"
-
-// ProtocolVersion is the MCP protocol version supported by this server.
-const ProtocolVersion = "2025-11-25"
-
-// JSONRPCRequest represents an incoming JSON-RPC 2.0 request.
-type JSONRPCRequest struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      any             `json:"id"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params,omitempty"`
-}
-
-// JSONRPCResponse represents an outgoing JSON-RPC 2.0 response.
-type JSONRPCResponse struct {
-	JSONRPC string    `json:"jsonrpc"`
-	ID      any       `json:"id"`
-	Result  any       `json:"result,omitempty"`
-	Error   *RPCError `json:"error,omitempty"`
-}
-
-// RPCError represents a JSON-RPC 2.0 error.
-type RPCError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-// Standard JSON-RPC error codes.
-const (
-	ErrParseError     = -32700
-	ErrInvalidRequest = -32600
-	ErrMethodNotFound = -32601
-	ErrInvalidParams  = -32602
-	ErrInternalError  = -32603
-)
-
-// NewError creates a new RPC error.
-func NewError(code int, message string) *RPCError {
-	return &RPCError{Code: code, Message: message}
-}
-
 // ToolAnnotations provides optional hints about a tool's behavior.
+//
+// The SDK's equivalent drops omitempty on ReadOnlyHint and IdempotentHint, so
+// both ship on every annotated tool once converted. See BuildTool.
 type ToolAnnotations struct {
 	Title           string `json:"title,omitempty"`
 	ReadOnlyHint    bool   `json:"readOnlyHint,omitempty"`
@@ -92,76 +71,4 @@ type Property struct {
 	Pattern     string    `json:"pattern,omitempty"`
 	Items       *Property `json:"items,omitempty"`
 	Examples    []any     `json:"examples,omitempty"`
-}
-
-// ToolContent represents content returned from a tool call.
-type ToolContent struct {
-	Type string `json:"type"`
-	Text string `json:"text"`
-}
-
-// ToolResult represents the result of a tool call.
-type ToolResult struct {
-	Content []ToolContent `json:"content"`
-	// StructuredContent carries the result as a JSON object/array that
-	// conforms to the tool's OutputSchema. Set only for tools that declare
-	// an OutputSchema; omitted otherwise. This is what makes a tool's output
-	// machine-consumable for Code Mode (MCP spec 2025-06-18).
-	StructuredContent json.RawMessage `json:"structuredContent,omitempty"`
-	IsError           bool            `json:"isError,omitempty"`
-}
-
-// NewTextResult creates a successful text result.
-func NewTextResult(text string) ToolResult {
-	return ToolResult{
-		Content: []ToolContent{{Type: "text", Text: text}},
-	}
-}
-
-// NewStructuredResult creates a successful result that carries the payload
-// both as serialized JSON text (backwards-compatible) and as structuredContent.
-// The payload must be valid JSON; callers pass the same bytes a handler returns.
-func NewStructuredResult(payload json.RawMessage) ToolResult {
-	return ToolResult{
-		Content:           []ToolContent{{Type: "text", Text: string(payload)}},
-		StructuredContent: payload,
-	}
-}
-
-// NewErrorResult creates an error result.
-func NewErrorResult(err error) ToolResult {
-	return ToolResult{
-		Content: []ToolContent{{Type: "text", Text: "Error: " + err.Error()}},
-		IsError: true,
-	}
-}
-
-// ToolCallParams represents the parameters for a tools/call request.
-type ToolCallParams struct {
-	Name      string         `json:"name"`
-	Arguments map[string]any `json:"arguments"`
-}
-
-// InitializeResult represents the result of an initialize request.
-type InitializeResult struct {
-	ProtocolVersion string       `json:"protocolVersion"`
-	ServerInfo      ServerInfo   `json:"serverInfo"`
-	Capabilities    Capabilities `json:"capabilities"`
-	Instructions    string       `json:"instructions,omitempty"`
-}
-
-// ServerInfo contains server identification information.
-type ServerInfo struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-}
-
-// Capabilities describes what the server supports.
-type Capabilities struct {
-	Tools map[string]any `json:"tools"`
-}
-
-// ToolsListResult represents the result of a tools/list request.
-type ToolsListResult struct {
-	Tools []Tool `json:"tools"`
 }
