@@ -59,8 +59,10 @@ func TestManageToolsDoNotClaimIdempotency(t *testing.T) {
 }
 
 // TestReadOnlyToolsAnnotation guards the success path for read-only tools.
-// They must keep ReadOnlyHint=true and IdempotentHint=true and must NOT carry
-// DestructiveHint.
+// They must keep ReadOnlyHint=true, must NOT carry DestructiveHint, and must
+// NOT claim IdempotentHint: like the manage_* case above, the hint carries
+// meaning only for tools that modify state, so asserting it on a trivially
+// repeatable read tells a retry-aware client nothing it can act on.
 func TestReadOnlyToolsAnnotation(t *testing.T) {
 	tools := BuildAllTools()
 
@@ -81,8 +83,8 @@ func TestReadOnlyToolsAnnotation(t *testing.T) {
 		if !tool.Annotations.ReadOnlyHint {
 			t.Errorf("read-only tool %q missing ReadOnlyHint=true", tool.Name)
 		}
-		if !tool.Annotations.IdempotentHint {
-			t.Errorf("read-only tool %q missing IdempotentHint=true", tool.Name)
+		if tool.Annotations.IdempotentHint {
+			t.Errorf("read-only tool %q has IdempotentHint=true; the hint is meaningful only for tools that modify state", tool.Name)
 		}
 		if tool.Annotations.DestructiveHint != nil && *tool.Annotations.DestructiveHint {
 			t.Errorf("read-only tool %q has DestructiveHint=true; should not be set", tool.Name)

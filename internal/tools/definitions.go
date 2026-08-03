@@ -74,7 +74,10 @@ func readOnlyToolName(name string) bool {
 //
 // Read-only (get_*, list_*, check_*, health_check):
 //
-//	ReadOnlyHint=true, IdempotentHint=true.
+//	ReadOnlyHint=true. IdempotentHint is NOT set: the hint carries
+//	meaning only for tools that modify state, so claiming idempotence
+//	on a trivially repeatable read says nothing and misleads a client
+//	reasoning about retry safety.
 //
 // manage_*:
 //
@@ -97,8 +100,7 @@ func annotateTool(tool *mcp.Tool) {
 	switch {
 	case readOnlyToolName(tool.Name):
 		tool.Annotations = &mcp.ToolAnnotations{
-			ReadOnlyHint:   true,
-			IdempotentHint: true,
+			ReadOnlyHint: true,
 		}
 		// Read tools return the uniform FormattedResponse wrapper, so
 		// they declare an OutputSchema and become Code Mode eligible.
