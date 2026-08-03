@@ -330,3 +330,27 @@ func TestSDKServerRunStopsOnContextCancel(t *testing.T) {
 		t.Fatal("Run did not return within 5s of the context being cancelled")
 	}
 }
+
+// SEP-2549 requires ttlMs and cacheScope on every cacheable result. The SDK
+// ships cacheScope but leaves ttlMs at 0, which the spec reads as "immediately
+// stale", so without the cache middleware this server would be spec-compliant
+// and useless to a caching client. Asserting a POSITIVE ttlMs is the point:
+// presence alone cannot distinguish a configured value from the SDK's default.
+func TestSDKServerStampsCacheHintsOnListTools(t *testing.T) {
+	session := connectSDKServer(t, testRegistry(t))
+
+	res, err := session.ListTools(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("tools/list: %v", err)
+	}
+
+	if res.TTLMs <= 0 {
+		t.Errorf("tools/list returned ttlMs = %d, want a positive value", res.TTLMs)
+	}
+	if want := int(30 * time.Minute / time.Millisecond); res.TTLMs != want {
+		t.Errorf("tools/list returned ttlMs = %d, want %d", res.TTLMs, want)
+	}
+	if res.CacheScope == "" {
+		t.Error("tools/list returned an empty cacheScope")
+	}
+}
