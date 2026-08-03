@@ -501,10 +501,11 @@ productplan-mcp-server/
 │   │   ├── client.go            # HTTP client with caching, retry, rate limiting
 │   │   ├── endpoints.go         # 40+ API endpoint methods
 │   │   └── formatters.go        # Response enrichment for AI
-│   ├── mcp/                     # MCP protocol implementation
-│   │   ├── server.go            # JSON-RPC server, stdio I/O
+│   ├── mcp/                     # MCP wiring over the official go-sdk
+│   │   ├── sdk_server.go        # Serves the registry via go-sdk (stdio)
+│   │   ├── sdk.go               # Converts local Tool -> SDK tool
 │   │   ├── handler.go           # Tool dispatch via registry
-│   │   └── types.go             # Protocol types
+│   │   └── types.go             # Tool-authoring types
 │   ├── tools/                   # Tool definitions and handlers
 │   │   ├── registry.go          # Tool registration and dispatch
 │   │   └── types.go             # Typed argument structs for handlers
@@ -632,7 +633,7 @@ The server uses a clean layered architecture:
         ▼                     ▼                     ▼
 ┌───────────────┐    ┌───────────────┐    ┌───────────────┐
 │  internal/cli │    │  internal/mcp │    │internal/tools │
-│  (CLI cmds)   │    │ (JSON-RPC IO) │    │  (handlers)   │
+│  (CLI cmds)   │    │  (MCP / SDK)  │    │  (handlers)   │
 └───────────────┘    └───────────────┘    └───────────────┘
                               │                     │
                               └──────────┬──────────┘

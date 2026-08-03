@@ -3,8 +3,12 @@ package mcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -245,4 +249,84 @@ func contentText(t *testing.T, res *mcp.CallToolResult) string {
 		t.Fatalf("expected TextContent, got %T", res.Content[0])
 	}
 	return text.Text
+}
+
+// Ported from the deleted integration_test.go, and strengthened. The old test
+// fed 10 requests through the hand-rolled loop, which processed them one line at
+// a time, so it never actually exercised concurrency and its unsynchronised
+// counter was safe by accident. The SDK dispatches each request in its own
+// goroutine, so this is the first test here that genuinely runs handlers in
+// parallel; the counter is atomic because under the SDK it has to be.
+func TestSDKServerHandlesConcurrentCalls(t *testing.T) {
+	const calls = 10
+
+	var invocations atomic.Int64
+	registry := NewRegistry()
+	registry.RegisterFunc(
+		Tool{Name: "counter", InputSchema: InputSchema{Type: "object"}},
+		func(_ context.Context, _ map[string]any) (json.RawMessage, error) {
+			invocations.Add(1)
+			return json.RawMessage(`{"ok":true}`), nil
+		},
+	)
+
+	session := connectSDKServer(t, registry)
+
+	var wg sync.WaitGroup
+	errs := make(chan error, calls)
+	for range calls {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			res, err := session.CallTool(context.Background(), &mcp.CallToolParams{Name: "counter"})
+			if err != nil {
+				errs <- err
+				return
+			}
+			if res.IsError {
+				errs <- fmt.Errorf("unexpected error result")
+			}
+		}()
+	}
+	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		t.Errorf("concurrent call failed: %v", err)
+	}
+	if got := invocations.Load(); got != calls {
+		t.Errorf("handler ran %d times, want %d", got, calls)
+	}
+}
+
+// Ported from the deleted integration_test.go. The old version asserted on a
+// scanner error string from the bufio loop, which no longer exists; what
+// matters now is that cancelling the context stops the server rather than
+// leaking the goroutine.
+func TestSDKServerRunStopsOnContextCancel(t *testing.T) {
+	registry := NewRegistry()
+	registry.RegisterFunc(
+		Tool{Name: "noop", InputSchema: InputSchema{Type: "object"}},
+		func(_ context.Context, _ map[string]any) (json.RawMessage, error) {
+			return json.RawMessage(`{}`), nil
+		},
+	)
+
+	server := NewSDKServer("productplan-test", "0.0.0", registry)
+	_, serverTransport := mcp.NewInMemoryTransports()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = server.run(ctx, serverTransport)
+	}()
+
+	cancel()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Run did not return within 5s of the context being cancelled")
+	}
 }
