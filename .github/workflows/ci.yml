@@ -103,3 +103,26 @@ jobs:
 
       - name: Verify binary exists
         run: ls -la productplan-mcp-server*
+
+  # Aggregator so the matrix build legs can be REQUIRED through one stable
+  # context: branch protection cannot name 'build (os, arch)' legs robustly,
+  # and before this job none of them gated a merge (bead claude-code-config-t68u).
+  # Pattern from mediawiki-mcp-server PR #117.
+  all-checks:
+    name: all-checks
+    if: always()
+    needs: [check, security, go-mod-tidy, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert every dependency succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          printf '%s\n' "$NEEDS"
+          bad=$(printf '%s' "$NEEDS" | jq -r 'to_entries[] | select(.value.result != "success") | "\(.key): \(.value.result)"')
+          if [ -n "$bad" ]; then
+            echo "::error::Aggregate failed; these jobs did not succeed:"
+            printf '%s\n' "$bad"
+            exit 1
+          fi
+          echo "All dependencies succeeded."
