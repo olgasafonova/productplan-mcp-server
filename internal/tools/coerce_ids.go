@@ -35,7 +35,7 @@ func coerceValue(key string, v any) any {
 		}
 		return items
 	case float64:
-		if isIDKey(key) && x == math.Trunc(x) && !math.IsInf(x, 0) {
+		if isIDKey(key) && isWholeNumber(x) {
 			return strconv.FormatFloat(x, 'f', 0, 64)
 		}
 	}
@@ -45,4 +45,9 @@ func coerceValue(key string, v any) any {
 // isIDKey reports whether key names an ID or a list of IDs.
 func isIDKey(key string) bool {
 	return strings.HasSuffix(key, "_id") || strings.HasSuffix(key, "_ids")
+}
+
+// isWholeNumber reports whether f is a finite integer value.
+func isWholeNumber(f float64) bool {
+	return f == math.Trunc(f) && !math.IsInf(f, 0)
 }
