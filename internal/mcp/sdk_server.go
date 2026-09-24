@@ -163,13 +163,22 @@ func (s *SDKServer) handlerFor(name string) mcp.ToolHandler {
 // handlers can index without a nil check.
 func decodeArguments(req *mcp.CallToolRequest) (map[string]any, error) {
 	args := map[string]any{}
-	if req == nil || req.Params == nil || len(req.Params.Arguments) == 0 {
+	raw := rawArguments(req)
+	if len(raw) == 0 {
 		return args, nil
 	}
-	if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
+	if err := json.Unmarshal(raw, &args); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 	return args, nil
+}
+
+// rawArguments returns the request's raw arguments, nil when absent.
+func rawArguments(req *mcp.CallToolRequest) json.RawMessage {
+	if req == nil || req.Params == nil {
+		return nil
+	}
+	return req.Params.Arguments
 }
 
 // toolResult shapes a successful handler payload, preserving the existing rule
