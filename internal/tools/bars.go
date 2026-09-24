@@ -148,7 +148,7 @@ func updateBar(ctx context.Context, pl *barPlanner, a ManageBarArgs) (json.RawMe
 // a bar, which support only create and delete. Unlike the other ops
 // bundles, unsupported actions are rejected with an error.
 type barSubresourceOps struct {
-	resource string
+	resource ItemType
 	create   func(ctx context.Context, barID string, payload map[string]any) (json.RawMessage, error)
 	delete   func(ctx context.Context, barID, id string) (json.RawMessage, error)
 }

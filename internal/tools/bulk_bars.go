@@ -95,9 +95,9 @@ func bulkResponse(results []bulkItemResult, verb, noun string, dryRun bool) (jso
 		}
 	}
 	n, failed := len(results), len(results)-succeeded
-	summary := fmt.Sprintf("%s %d of %d %s", verb, succeeded, n, pluralize(noun, n))
+	summary := fmt.Sprintf("%s %d of %d %s", verb, succeeded, n, ItemType(noun).plural(n))
 	if dryRun {
-		summary = fmt.Sprintf("Dry run: %d of %d %s valid; nothing was sent. Each payload is exactly what would be sent", succeeded, n, pluralize(noun, n))
+		summary = fmt.Sprintf("Dry run: %d of %d %s valid; nothing was sent. Each payload is exactly what would be sent", succeeded, n, ItemType(noun).plural(n))
 	}
 	if failed > 0 {
 		summary += fmt.Sprintf("; %d failed (see results[].error and retry only those items)", failed)

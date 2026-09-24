@@ -80,7 +80,7 @@ func TestFormatList_ProjectedPayload(t *testing.T) {
 
 func mustFormat(t *testing.T, in, itemType string) json.RawMessage {
 	t.Helper()
-	out, err := FormatList(json.RawMessage(in), itemType)
+	out, err := FormatList(json.RawMessage(in), ItemType(itemType))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestPluralize_IrregularItemTypes(t *testing.T) {
 		"day":         "days",
 		"bar":         "bars",
 	} {
-		if got := pluralize(word, 2); got != want {
+		if got := ItemType(word).plural(2); got != want {
 			t.Errorf("pluralize(%q) = %q, want %q", word, got, want)
 		}
 	}

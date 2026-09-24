@@ -70,7 +70,7 @@ type manageRequest struct {
 // action-dispatch tool. delete is optional; resources without it treat
 // "delete" like any other unsupported action.
 type topLevelOps struct {
-	resource string
+	resource ItemType
 	create   func(ctx context.Context, payload map[string]any) (json.RawMessage, error)
 	update   func(ctx context.Context, id string, payload map[string]any) (json.RawMessage, error)
 	delete   func(ctx context.Context, id string) (json.RawMessage, error)
@@ -97,7 +97,7 @@ func (o topLevelOps) dispatch(ctx context.Context, req manageRequest) (json.RawM
 }
 
 // formatManaged turns a manage-style client result into the tool response.
-func formatManaged(data json.RawMessage, err error, resource string, req manageRequest) (json.RawMessage, error) {
+func formatManaged(data json.RawMessage, err error, resource ItemType, req manageRequest) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func manageHandler[T Validatable](ops manageOps, build func(a T) manageRequest) 
 // parent (lanes and milestones under a roadmap) managed through a single
 // action-dispatch tool.
 type parentScopedOps struct {
-	resource string
+	resource ItemType
 	create   func(ctx context.Context, parentID string, payload map[string]any) (json.RawMessage, error)
 	update   func(ctx context.Context, parentID, id string, payload map[string]any) (json.RawMessage, error)
 	delete   func(ctx context.Context, parentID, id string) (json.RawMessage, error)
