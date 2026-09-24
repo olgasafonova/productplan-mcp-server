@@ -167,7 +167,7 @@ func ParseCreatedID(data json.RawMessage) (string, error) {
 	}
 	if loc := strings.TrimRight(body.Location, "/"); loc != "" {
 		id := loc[strings.LastIndex(loc, "/")+1:]
-		if err := productplan.RequireID("id", id); err == nil {
+		if err := productplan.Field("id").RequireID(id); err == nil {
 			return id, nil
 		}
 		return "", fmt.Errorf("create response location %q does not end in a valid ID", body.Location)

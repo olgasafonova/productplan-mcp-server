@@ -100,7 +100,7 @@ func validateBulkIDs(field, idName string, ids []string) error {
 	}
 	seen := make(map[string]int, len(ids))
 	for i, id := range ids {
-		if err := productplan.RequireID(fmt.Sprintf("%s[%d].%s", field, i, idName), id); err != nil {
+		if err := productplan.Field(fmt.Sprintf("%s[%d].%s", field, i, idName)).RequireID(id); err != nil {
 			return err
 		}
 		if j, dup := seen[id]; dup {

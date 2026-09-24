@@ -536,7 +536,7 @@ productplan-mcp-server/
 │   ├── batch.go                 # Batched operations
 │   ├── health.go                # Health reporting
 │   ├── requestid.go             # Request tracing
-│   ├── validation.go            # Input validators (IDs, dates, URLs)
+│   ├── validation.go            # ID validation (Field.RequireID)
 │   └── errors.go                # APIError and error suggestions
 └── evals/                       # LLM evaluation test suite
     ├── runner.go, types.go

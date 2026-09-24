@@ -17,7 +17,7 @@ import (
 // to URL-safe chars), but it stays as belt-and-braces against future regex
 // loosening.
 func safeSeg(field, value string) (string, error) {
-	if err := productplan.RequireID(field, value); err != nil {
+	if err := productplan.Field(field).RequireID(value); err != nil {
 		return "", err
 	}
 	return url.PathEscape(strings.TrimSpace(value)), nil
