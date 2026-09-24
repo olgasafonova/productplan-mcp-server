@@ -171,16 +171,10 @@ func ParseCreatedID(data json.RawMessage) (string, error) {
 	return "", fmt.Errorf("create response carried neither location nor id")
 }
 
-// IsNotFound reports whether err is a ProductPlan 404. handleResponse
-// flattens APIError into formatted text when it appends a suggestion, so
-// the status line in the message is checked as well as the typed error.
+// IsNotFound reports whether err is, or wraps, a ProductPlan 404.
+// handleResponse wraps *productplan.APIError with %w, so the typed error
+// survives the appended suggestion and no message text is parsed.
 func IsNotFound(err error) bool {
-	if err == nil {
-		return false
-	}
 	var apiErr *productplan.APIError
-	if errors.As(err, &apiErr) {
-		return apiErr.IsNotFound()
-	}
-	return strings.Contains(err.Error(), "ProductPlan API error 404")
+	return errors.As(err, &apiErr) && apiErr.IsNotFound()
 }
