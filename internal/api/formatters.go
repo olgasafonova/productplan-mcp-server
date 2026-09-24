@@ -163,14 +163,6 @@ func FormatMilestones(data json.RawMessage) json.RawMessage {
 		})
 }
 
-// FormatLegends formats legend list (bar colors).
-func FormatLegends(data json.RawMessage) json.RawMessage {
-	return formatList(data, "legends", "Use legend_id when creating or updating bars to set their color",
-		func(legend map[string]any) map[string]any {
-			return pickKeys(legend, "id", "label", "color")
-		})
-}
-
 // FormatObjectives formats objective list with hints.
 func FormatObjectives(data json.RawMessage) json.RawMessage {
 	return formatList(data, "objectives", "Use get_objective with an id for full details including key results",

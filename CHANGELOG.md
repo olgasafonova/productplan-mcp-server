@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`manage_bar` update with `legend_id` wiped the bar's color.** The payload builder forwarded `legend_id`, which the ProductPlan API reads as a request to clear the legend: `PATCH {legend_id:"1"}` answers 204 and sets the legend to null (probed live 24-09-2026). Every "change color" call through this server removed the color instead. Bars are colored by legend **name** via `legend`; `legend_id` is now rejected with the roadmap's valid legend names and is never forwarded.
+- **`manage_bar` sent four other fields the API ignores or refuses.** `parent_id` and `container` were silently ignored (the documented fields are `container_bar_id` and `is_container`), `effort` is not a bar field, and custom fields sent as `{name,value}` got 422 `label must be present`. `parent_id` and `container` now map to the documented fields, custom fields go out as `{label,value}` (`name` still accepted as an alias), and `effort` is rejected with a pointer to custom fields rather than dropped silently.
+- **`manage_bar` create returned the wrong thing.** ProductPlan answers `POST /bars` with `{"location":"/api/v2/bars/<id>"}`, not the bar. The ID is now parsed from `location` and the bar is read back.
+- **`get_roadmap_legends` described data that does not exist.** Its description promised "ID, name, and hex color" and its formatter picked `id`/`label`/`color` from objects; the API returns bare legend names. It now returns the names, says so, and tells the caller to pass one as `legend`.
+
+### Added
+
+- **`manage_bar` accepts the documented contract:** `legend` (name), `lane` (name, alongside `lane_id`), `is_container`, `container_bar_id`. `legend:""` or `clear_legend:true` clears the color (sent as JSON null); omitted fields are never sent.
+- **Names are validated before writing.** Legend, lane, custom text field labels, and dropdown values are checked against the roadmap (one `GET /roadmaps/{id}` per call) and matched case-insensitively; an invalid name fails with the list of valid ones, and nothing is sent.
+- **Dated bars land on the timeline.** ProductPlan parks new bars by default; a create with `starts_on` and `ends_on` and no `parked` now defaults to `parked:false`. A nested bar inherits its container's parked state, because the API requires them to match.
+- **Nesting pre-checks** for the API's 422 cases: `container_bar_id` on a bar without both dates, and a parked state that differs from the container's, fail early with the fix named.
+- `get_roadmap` description now points agents at the embedded `custom_text_fields` and `custom_dropdown_fields` (with `allowed_values`) that bar writes are validated against.
+
 ### Changed
 - **SEP-2549 cache hints now set through the SDK's own hook.** go-sdk v1.8.0 added `ServerOptions.SetCacheable`, which replaces the `mcpcache` receiving middleware used on v1.7.0 to work around the SDK leaving `ttlMs` at 0 ("immediately stale"). Wire behaviour is unchanged: `tools/list` and `server/discover` still advertise a 30-minute `ttlMs` with `cacheScope: "public"`. The `github.com/olgasafonova/mcp-cache-go` dependency is dropped.
 - **Minimum Go version is now 1.26.** `go.mod` declares `go 1.26.0`, the oldest supported release line; Go 1.25 is out of support.

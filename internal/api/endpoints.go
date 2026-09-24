@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 )
 
 // Every endpoint method that interpolates a user-supplied ID into a URL path
@@ -74,26 +73,16 @@ func (c *Client) GetRoadmapMilestones(ctx context.Context, id string) (json.RawM
 	return FormatMilestones(data), nil
 }
 
-// GetRoadmapLegends returns all legend entries (color codes) for a roadmap.
-// Legends are embedded in the roadmap response; there is no separate /legends endpoint.
+// GetRoadmapLegends returns the legend names (bar colors) for a roadmap as a
+// JSON array of strings. Legends are embedded in the roadmap response as bare
+// names; there is no separate /legends endpoint and no legend ID or hex color
+// in the API. A bar's color is set by sending one of these names as `legend`.
 func (c *Client) GetRoadmapLegends(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("roadmap_id", id)
+	schema, err := c.GetBarWriteSchema(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	data, err := c.Get(ctx, "/roadmaps/"+seg)
-	if err != nil {
-		return nil, err
-	}
-	var roadmap map[string]json.RawMessage
-	if err := json.Unmarshal(data, &roadmap); err != nil {
-		return nil, fmt.Errorf("failed to parse roadmap response: %w", err)
-	}
-	legends, ok := roadmap["legends"]
-	if !ok {
-		return FormatLegends(json.RawMessage("[]")), nil
-	}
-	return FormatLegends(legends), nil
+	return json.Marshal(schema.Legends)
 }
 
 // GetRoadmapComments returns all comments on a roadmap.

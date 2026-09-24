@@ -23,13 +23,6 @@ func setIfNotNil[T any](payload map[string]any, key string, value *T) {
 	}
 }
 
-// setIfNotEmptySlice adds a key-value pair to the payload if the slice is not empty.
-func setIfNotEmptySlice[T any](payload map[string]any, key string, value []T) {
-	if len(value) > 0 {
-		payload[key] = value
-	}
-}
-
 func getBarHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetBarArgs](func(ctx context.Context, a GetBarArgs) (json.RawMessage, error) {
 		data, err := client.GetBar(ctx, a.BarID)
@@ -80,55 +73,75 @@ func getBarLinksHandler(client *api.Client) mcp.Handler {
 	})
 }
 
+// manageBarHandler creates, updates, or deletes a bar. Writes go through
+// barPlanner, which translates the fields into the documented contract
+// and validates names against the roadmap before anything is sent.
 func manageBarHandler(client *api.Client) mcp.Handler {
 	return typedHandler[ManageBarArgs](func(ctx context.Context, a ManageBarArgs) (json.RawMessage, error) {
-		var data json.RawMessage
-		var err error
-
+		pl := newBarPlanner(client)
 		switch a.Action {
 		case "create":
-			payload := map[string]any{
-				"roadmap_id": a.RoadmapID,
-				"lane_id":    a.LaneID,
-				"name":       a.Name,
-			}
-			addBarOptionalFields(payload, a)
-			data, err = client.CreateBar(ctx, payload)
+			return createBar(ctx, pl, a)
 		case "update":
-			payload := make(map[string]any)
-			setIfNotEmpty(payload, "name", a.Name)
-			setIfNotEmpty(payload, "lane_id", a.LaneID)
-			addBarOptionalFields(payload, a)
-			data, err = client.UpdateBar(ctx, a.BarID, payload)
+			return updateBar(ctx, pl, a)
 		case "delete":
-			data, err = client.DeleteBar(ctx, a.BarID)
+			data, err := client.DeleteBar(ctx, a.BarID)
+			if err != nil {
+				return nil, err
+			}
+			return FormatAction(data, a.Action, "bar", a.BarID)
 		default:
 			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
-
-		if err != nil {
-			return nil, err
-		}
-		return FormatAction(data, a.Action, "bar", a.BarID)
 	})
 }
 
-// addBarOptionalFields adds optional bar fields to the payload.
-func addBarOptionalFields(payload map[string]any, a ManageBarArgs) {
-	setIfNotEmpty(payload, "starts_on", a.StartsOn)
-	setIfNotEmpty(payload, "ends_on", a.EndsOn)
-	setIfNotEmpty(payload, "description", a.Description)
-	setIfNotEmpty(payload, "legend_id", a.LegendID)
-	setIfNotEmpty(payload, "parent_id", a.ParentID)
-	setIfNotEmpty(payload, "strategic_value", a.StrategicValue)
-	setIfNotEmpty(payload, "notes", a.Notes)
-	setIfNotNil(payload, "percent_done", a.PercentDone)
-	setIfNotNil(payload, "container", a.Container)
-	setIfNotNil(payload, "parked", a.Parked)
-	setIfNotNil(payload, "effort", a.Effort)
-	setIfNotEmptySlice(payload, "tags", a.Tags)
-	setIfNotEmptySlice(payload, "custom_text_fields", a.CustomTextFields)
-	setIfNotEmptySlice(payload, "custom_dropdown_fields", a.CustomDropdownFields)
+// createBar posts a new bar, parses its ID from the Location-style
+// response, and reads it back so the caller sees what landed.
+func createBar(ctx context.Context, pl *barPlanner, a ManageBarArgs) (json.RawMessage, error) {
+	p, err := pl.prepare(ctx, barOp{create: true, roadmapID: a.RoadmapID, fields: a.BarFields})
+	if err != nil {
+		return nil, err
+	}
+	data, err := pl.client.CreateBar(ctx, p)
+	if err != nil {
+		return nil, explainWriteError(err, p)
+	}
+	id, err := api.ParseCreatedID(data)
+	if err != nil {
+		return nil, fmt.Errorf("bar was created but its ID could not be read (%w); find it with get_roadmap_bars before retrying, or a retry will create a duplicate", err)
+	}
+	result := map[string]any{"id": id, "sent": p}
+	if bar, rerr := pl.client.GetBar(ctx, id); rerr != nil {
+		result["read_back_error"] = rerr.Error()
+	} else {
+		result["bar"] = bar
+	}
+	out, err := json.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+	summary := fmt.Sprintf("Bar %s created on roadmap %s", id, a.RoadmapID)
+	if parked, _ := p["parked"].(bool); parked || p["parked"] == nil {
+		summary += " (parked: not on the timeline until given dates and parked:false)"
+	}
+	return json.Marshal(FormattedResponse{Summary: summary, Data: out})
+}
+
+// updateBar patches only the fields the caller set.
+func updateBar(ctx context.Context, pl *barPlanner, a ManageBarArgs) (json.RawMessage, error) {
+	p, err := pl.prepare(ctx, barOp{barID: a.BarID, roadmapID: a.RoadmapID, fields: a.BarFields})
+	if err != nil {
+		return nil, err
+	}
+	if _, err = pl.client.UpdateBar(ctx, a.BarID, p); err != nil {
+		return nil, explainWriteError(err, p)
+	}
+	out, err := json.Marshal(map[string]any{"bar_id": a.BarID, "sent": p})
+	if err != nil {
+		return nil, err
+	}
+	return FormatAction(out, "update", "bar", a.BarID)
 }
 
 // barSubresourceOps bundles the client calls for connections and links on

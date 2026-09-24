@@ -66,8 +66,34 @@ func getRoadmapLegendsHandler(client *api.Client) mcp.Handler {
 		if err != nil {
 			return nil, err
 		}
-		return FormatList(data, "legend")
+		out, err := FormatList(data, "legend")
+		if err != nil {
+			return nil, err
+		}
+		hint := legendHint
+		if string(data) == "[]" {
+			hint = noLegendHint
+		}
+		return appendSummary(out, hint)
 	})
+}
+
+// legendHint tells the caller how legend names are used, since the API
+// exposes names only (no legend IDs or hex colors).
+const legendHint = "Pass one of these names as `legend` on manage_bar, bulk_update_bars, or bulk_create_bars to color a bar; legend:\"\" clears it."
+
+// noLegendHint explains an empty legend list instead of pointing at names
+// that do not exist.
+const noLegendHint = "Bars on this roadmap cannot be colored until a legend is added in the ProductPlan UI"
+
+// appendSummary adds a sentence to a FormattedResponse summary.
+func appendSummary(resp json.RawMessage, sentence string) (json.RawMessage, error) {
+	var fr FormattedResponse
+	if err := json.Unmarshal(resp, &fr); err != nil {
+		return nil, fmt.Errorf("failed to decode formatted response: %w", err)
+	}
+	fr.Summary += ". " + sentence
+	return json.Marshal(fr)
 }
 
 func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
