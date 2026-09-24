@@ -164,53 +164,6 @@ func (a GetBarArgs) Validate() error {
 	return fieldCheck{a.BarID, "bar_id"}.require()
 }
 
-// CustomFieldValue represents a name-value pair for custom fields.
-type CustomFieldValue struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-// ManageBarArgs holds arguments for bar management operations.
-type ManageBarArgs struct {
-	Action               string             `json:"action"`
-	BarID                string             `json:"bar_id,omitempty"`
-	RoadmapID            string             `json:"roadmap_id,omitempty"`
-	LaneID               string             `json:"lane_id,omitempty"`
-	Name                 string             `json:"name,omitempty"`
-	StartsOn             string             `json:"starts_on,omitempty"`
-	EndsOn               string             `json:"ends_on,omitempty"`
-	Description          string             `json:"description,omitempty"`
-	LegendID             string             `json:"legend_id,omitempty"`
-	PercentDone          *int               `json:"percent_done,omitempty"`
-	Container            *bool              `json:"container,omitempty"`
-	Parked               *bool              `json:"parked,omitempty"`
-	ParentID             string             `json:"parent_id,omitempty"`
-	StrategicValue       string             `json:"strategic_value,omitempty"`
-	Notes                string             `json:"notes,omitempty"`
-	Effort               *int               `json:"effort,omitempty"`
-	Tags                 []string           `json:"tags,omitempty"`
-	CustomTextFields     []CustomFieldValue `json:"custom_text_fields,omitempty"`
-	CustomDropdownFields []CustomFieldValue `json:"custom_dropdown_fields,omitempty"`
-}
-
-// Validate checks required fields based on action.
-func (a ManageBarArgs) Validate() error {
-	if err := (fieldCheck{a.Action, "action"}).require(); err != nil {
-		return err
-	}
-	switch a.Action {
-	case "create":
-		return requireAllForAction("create",
-			fieldCheck{a.RoadmapID, "roadmap_id"},
-			fieldCheck{a.LaneID, "lane_id"},
-			fieldCheck{a.Name, "name"},
-		)
-	case "update", "delete":
-		return fieldCheck{a.BarID, "bar_id"}.requireFor(a.Action)
-	}
-	return nil
-}
-
 // ManageBarConnectionArgs holds arguments for bar connection operations.
 type ManageBarConnectionArgs struct {
 	Action       string `json:"action"`
