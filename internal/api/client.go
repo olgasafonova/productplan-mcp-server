@@ -109,7 +109,8 @@ func New(cfg Config) (*Client, error) {
 		baseURL: baseURL,
 		token:   cfg.Token,
 		httpClient: &http.Client{
-			Timeout: timeout,
+			Timeout:   timeout,
+			Transport: newTransport(),
 			// SECURITY: Refuse all redirects. The configured BaseURL
 			// (app.productplan.com/api/v2 by default) is the only legitimate
 			// target. Without CheckRedirect, Go follows up to 10 3xx responses;
