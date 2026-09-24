@@ -535,7 +535,6 @@ productplan-mcp-server/
 │   ├── ratelimit.go             # Adaptive rate limiting
 │   ├── batch.go                 # Batched operations
 │   ├── health.go                # Health reporting
-│   ├── registry.go              # ToolBuilder for schema generation
 │   ├── requestid.go             # Request tracing
 │   ├── validation.go            # Input validators (IDs, dates, URLs)
 │   └── errors.go                # APIError and error suggestions

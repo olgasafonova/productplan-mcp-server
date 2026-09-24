@@ -44,6 +44,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Unknown argument keys are rejected.** A tool call carrying a key its schema does not declare now fails before any API request, naming the key, suggesting the closest declared one (edit distance 2 or less) and listing the valid arguments. Previously such keys were silently ignored, so a caller relying on that will now get an error.
 - Internal refactors: CodeScene Code Health is 10.0 on every production file except eight whose remaining finding is string-typed arguments on ID, message or schema-builder APIs (9.38-9.68). Behaviour is unchanged and pinned by the existing tests.
 
+### Removed
+
+- **`pkg/productplan` tool registry** (`registry.go`): `ToolRegistry`, `NewToolRegistry`, `ToolDefinition`, `PropertyDef`, `ToolCategory` and its six `Category*` constants, `ToolBuilder` and `NewTool`. Nothing in the repository imported them outside their own tests; the server registers tools through `internal/tools` and `internal/mcp`. External importers of `pkg/productplan` (none known) lose these symbols.
+
 ### Infrastructure
 
 - CI runs race tests on a Go 1.26.x / 1.27.x matrix (new `test` job, gated through `all-checks`); `check`, `security` and `build` run on 1.27.x
