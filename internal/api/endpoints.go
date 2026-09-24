@@ -18,7 +18,12 @@ import (
 
 // ListRoadmaps returns all roadmaps.
 func (c *Client) ListRoadmaps(ctx context.Context) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/roadmaps")
+	return c.ListRoadmapsWhere(ctx, Query{})
+}
+
+// ListRoadmapsWhere returns the roadmaps matching q (filters and sort).
+func (c *Client) ListRoadmapsWhere(ctx context.Context, q Query) (json.RawMessage, error) {
+	data, err := c.GetList(ctx, "/roadmaps", q)
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +45,7 @@ func (c *Client) GetRoadmapBars(ctx context.Context, id string) (json.RawMessage
 	if err != nil {
 		return nil, err
 	}
-	bars, err := c.Get(ctx, "/roadmaps/"+seg+"/bars")
+	bars, err := c.GetList(ctx, "/roadmaps/"+seg+"/bars", Query{})
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +59,7 @@ func (c *Client) GetRoadmapLanes(ctx context.Context, id string) (json.RawMessag
 	if err != nil {
 		return nil, err
 	}
-	data, err := c.Get(ctx, "/roadmaps/"+seg+"/lanes")
+	data, err := c.GetList(ctx, "/roadmaps/"+seg+"/lanes", Query{})
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +72,7 @@ func (c *Client) GetRoadmapMilestones(ctx context.Context, id string) (json.RawM
 	if err != nil {
 		return nil, err
 	}
-	data, err := c.Get(ctx, "/roadmaps/"+seg+"/milestones")
+	data, err := c.GetList(ctx, "/roadmaps/"+seg+"/milestones", Query{})
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +107,7 @@ func (c *Client) GetRoadmapComments(ctx context.Context, id string) (json.RawMes
 	if err != nil {
 		return nil, err
 	}
-	return c.Get(ctx, "/roadmaps/"+seg+"/comments")
+	return c.GetList(ctx, "/roadmaps/"+seg+"/comments", Query{})
 }
 
 // ============================================================================
@@ -173,12 +178,12 @@ func (c *Client) DeleteMilestone(ctx context.Context, roadmapID, milestoneID str
 
 // ListUsers returns all users.
 func (c *Client) ListUsers(ctx context.Context) (json.RawMessage, error) {
-	return c.Get(ctx, "/users")
+	return c.GetList(ctx, "/users", Query{})
 }
 
 // ListTeams returns all teams.
 func (c *Client) ListTeams(ctx context.Context) (json.RawMessage, error) {
-	return c.Get(ctx, "/teams")
+	return c.GetList(ctx, "/teams", Query{})
 }
 
 // CheckStatus checks the API status.
