@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 )
 
 // Every endpoint method that interpolates a user-supplied ID into a URL path
@@ -163,5 +164,7 @@ func (c *Client) ListTeams(ctx context.Context) (json.RawMessage, error) {
 
 // CheckStatus checks the API status.
 func (c *Client) CheckStatus(ctx context.Context) (json.RawMessage, error) {
-	return c.Get(ctx, "/status")
+	// Bypass the read cache: a connectivity probe answered from memory
+	// would report "up" for up to a TTL after the API went down.
+	return c.Request(ctx, http.MethodGet, "/status", nil)
 }
