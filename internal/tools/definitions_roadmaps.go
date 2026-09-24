@@ -115,7 +115,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			Description: `Get legend entries (bar colors) for a roadmap.
 
 USE WHEN: "What colors are available?", "Show the legend"
-Returns array of legend entries with ID, name, and hex color. Use legend_id when creating/updating bars.
+Returns the roadmap's legend names; the roadmap payload lists legends as plain name strings with no ID or color. Bars reference their legend by this name (filter with get_roadmap_bars legend).
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",

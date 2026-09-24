@@ -112,11 +112,12 @@ func FormatLanes(data json.RawMessage) json.RawMessage {
 		})
 }
 
-// FormatMilestones formats milestone list.
+// FormatMilestones formats milestone list. Milestones are documented with
+// "title", not "name"; "name" is accepted as a fallback for older shapes.
 func FormatMilestones(data json.RawMessage) json.RawMessage {
 	return formatList(data, "milestones", "",
 		func(m map[string]any) map[string]any {
-			return pickKeys(m, "id", "name", "date")
+			return map[string]any{"id": m["id"], "title": firstPresent(m, "title", "name"), "date": m["date"]}
 		})
 }
 
@@ -128,11 +129,13 @@ func FormatLegends(data json.RawMessage) json.RawMessage {
 		})
 }
 
-// FormatObjectives formats objective list with hints.
+// FormatObjectives formats objective list with hints. The documented
+// objective carries risk_status, start_date, end_date and key_results_count;
+// it has no status or time_frame field, which the previous projection read.
 func FormatObjectives(data json.RawMessage) json.RawMessage {
 	return formatList(data, "objectives", "Use get_objective with an id for full details including key results",
 		func(obj map[string]any) map[string]any {
-			return pickKeys(obj, "id", "name", "status", "time_frame")
+			return pickKeys(obj, "id", "name", "risk_status", "start_date", "end_date", "key_results_count")
 		})
 }
 
@@ -152,10 +155,17 @@ func FormatOpportunities(data json.RawMessage) json.RawMessage {
 		})
 }
 
-// FormatLaunches formats launch list.
+// FormatLaunches formats launch list. Launches are documented with
+// launch_date, not date; "date" is accepted as a fallback for older shapes.
 func FormatLaunches(data json.RawMessage) json.RawMessage {
 	return formatList(data, "launches", "",
 		func(launch map[string]any) map[string]any {
-			return pickKeys(launch, "id", "name", "date", "status")
+			return map[string]any{
+				"id":          launch["id"],
+				"name":        launch["name"],
+				"launch_date": firstPresent(launch, "launch_date", "date"),
+				"status":      launch["status"],
+				"progress":    launch["progress"],
+			}
 		})
 }
