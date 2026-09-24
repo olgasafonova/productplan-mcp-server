@@ -495,32 +495,52 @@ productplan launches         # List all launches
 
 ```
 productplan-mcp-server/
-├── cmd/productplan/main.go      # Entry point (~100 lines)
+├── cmd/productplan/main.go      # Entry point: token check, then MCP server or CLI
 ├── internal/
 │   ├── api/                     # ProductPlan API client
-│   │   ├── client.go            # HTTP client with caching, retry, rate limiting
-│   │   ├── endpoints.go         # 40+ API endpoint methods
-│   │   └── formatters.go        # Response enrichment for AI
+│   │   ├── client.go            # HTTP client: auth, rate limiting, error wrapping
+│   │   ├── transport.go         # Tuned HTTP transport
+│   │   ├── cache.go             # In-process TTL read cache (singleflight, write invalidation)
+│   │   ├── list.go              # Paged collection GETs and Ransack query encoding
+│   │   ├── safeseg.go           # Path-segment validation for user-supplied IDs
+│   │   ├── endpoints*.go        # Endpoint methods (roadmaps, bars, ideas, launches, OKRs)
+│   │   ├── bars_read.go         # Roadmap bars with lane enrichment and client-side filters
+│   │   ├── bar_schema.go        # Roadmap legends/lanes/custom fields for bar writes
+│   │   └── formatters.go        # Response projection for AI
 │   ├── mcp/                     # MCP wiring over the official go-sdk
 │   │   ├── sdk_server.go        # Serves the registry via go-sdk (stdio)
 │   │   ├── sdk.go               # Converts local Tool -> SDK tool
-│   │   ├── handler.go           # Tool dispatch via registry
+│   │   ├── handler.go           # Registry: dispatch and panic recovery
+│   │   ├── argkeys.go           # Rejects undeclared argument keys (did-you-mean)
+│   │   ├── editdistance.go      # Levenshtein distance for suggestions
 │   │   └── types.go             # Tool-authoring types
 │   ├── tools/                   # Tool definitions and handlers
-│   │   ├── registry.go          # Tool registration and dispatch
-│   │   └── types.go             # Typed argument structs for handlers
+│   │   ├── registry.go          # Tool registration (name -> handler)
+│   │   ├── definitions*.go      # Tool schemas and descriptions
+│   │   ├── helpers.go           # typedHandler, manage-action dispatch
+│   │   ├── filters.go           # List-tool filters -> Ransack predicates
+│   │   ├── formatter.go         # List/item/action response summaries
+│   │   ├── item_type.go         # Item nouns for summaries
+│   │   ├── bar_planner.go       # Validates bar writes against the roadmap
+│   │   ├── bar_names.go         # Legend/lane/custom field name resolution
+│   │   ├── bulk_bars.go         # bulk_update/create/delete_bars
+│   │   ├── roadmaps.go, bars.go, ideas.go, objectives.go, launches.go, utility.go  # handlers
+│   │   └── types*.go            # Typed argument structs for handlers
 │   ├── cli/                     # CLI commands (status, roadmaps, etc.)
 │   │   └── cli.go
 │   └── logging/                 # Structured JSON logging
 │       └── logger.go
 ├── pkg/productplan/             # Reusable utilities
-│   ├── cache.go                 # LRU cache with TTL
 │   ├── retry.go                 # Exponential backoff with jitter
 │   ├── ratelimit.go             # Adaptive rate limiting
+│   ├── batch.go                 # Batched operations
+│   ├── health.go                # Health reporting
 │   ├── registry.go              # ToolBuilder for schema generation
 │   ├── requestid.go             # Request tracing
-│   └── errors.go                # Error suggestions
+│   ├── validation.go            # Input validators (IDs, dates, URLs)
+│   └── errors.go                # APIError and error suggestions
 └── evals/                       # LLM evaluation test suite
+    ├── runner.go, types.go
     ├── tool_selection.json
     ├── confusion_pairs.json
     └── argument_correctness.json
