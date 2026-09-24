@@ -118,38 +118,55 @@ func mergeBarFields(set *BarFields, item BarFields) BarFields {
 		return item
 	}
 	m := item
-	m.Name = firstString(item.Name, set.Name)
-	m.Description = firstString(item.Description, set.Description)
-	m.StartsOn = firstString(item.StartsOn, set.StartsOn)
-	m.EndsOn = firstString(item.EndsOn, set.EndsOn)
-	m.StrategicValue = firstString(item.StrategicValue, set.StrategicValue)
-	m.Notes = firstString(item.Notes, set.Notes)
-	m.ContainerBarID = firstString(item.ContainerBarID, set.ContainerBarID)
-	m.LegendID = firstString(item.LegendID, set.LegendID)
-	m.ParentID = firstString(item.ParentID, set.ParentID)
-	m.PercentDone = firstPtr(item.PercentDone, set.PercentDone)
-	m.Effort = firstPtr(item.Effort, set.Effort)
-	m.IsContainer = firstBool(item.IsContainer, set.IsContainer)
-	m.Container = firstBool(item.Container, set.Container)
-	m.Parked = firstBool(item.Parked, set.Parked)
-	if item.Tags == nil {
-		m.Tags = set.Tags
-	}
-	if item.CustomTextFields == nil {
-		m.CustomTextFields = set.CustomTextFields
-	}
-	if item.CustomDropdownFields == nil {
-		m.CustomDropdownFields = set.CustomDropdownFields
-	}
-	// Lane and legend are each one choice: an item that picks either form
-	// replaces the shared choice entirely.
-	if item.Lane == "" && item.LaneID == "" {
-		m.Lane, m.LaneID = set.Lane, set.LaneID
-	}
-	if item.Legend == nil && !item.ClearLegend {
-		m.Legend, m.ClearLegend = set.Legend, set.ClearLegend
-	}
+	m.inheritScalars(set)
+	m.inheritLists(set)
+	m.inheritChoices(set)
 	return m
+}
+
+// inheritScalars fills each unset string and pointer field from set.
+func (f *BarFields) inheritScalars(set *BarFields) {
+	f.Name = firstString(f.Name, set.Name)
+	f.Description = firstString(f.Description, set.Description)
+	f.StartsOn = firstString(f.StartsOn, set.StartsOn)
+	f.EndsOn = firstString(f.EndsOn, set.EndsOn)
+	f.StrategicValue = firstString(f.StrategicValue, set.StrategicValue)
+	f.Notes = firstString(f.Notes, set.Notes)
+	f.ContainerBarID = firstString(f.ContainerBarID, set.ContainerBarID)
+	f.LegendID = firstString(f.LegendID, set.LegendID)
+	f.ParentID = firstString(f.ParentID, set.ParentID)
+	f.PercentDone = firstPtr(f.PercentDone, set.PercentDone)
+	f.Effort = firstPtr(f.Effort, set.Effort)
+	f.IsContainer = firstBool(f.IsContainer, set.IsContainer)
+	f.Container = firstBool(f.Container, set.Container)
+	f.Parked = firstBool(f.Parked, set.Parked)
+}
+
+// inheritLists takes set's list when the item's is nil; an item's explicit
+// [] still wins, so it can clear a shared list.
+func (f *BarFields) inheritLists(set *BarFields) {
+	f.Tags = firstNonNil(f.Tags, set.Tags)
+	f.CustomTextFields = firstNonNil(f.CustomTextFields, set.CustomTextFields)
+	f.CustomDropdownFields = firstNonNil(f.CustomDropdownFields, set.CustomDropdownFields)
+}
+
+// inheritChoices handles lane and legend, which are each one choice: an
+// item that picks either form replaces the shared choice entirely.
+func (f *BarFields) inheritChoices(set *BarFields) {
+	if f.Lane == "" && f.LaneID == "" {
+		f.Lane, f.LaneID = set.Lane, set.LaneID
+	}
+	if f.Legend == nil && !f.ClearLegend {
+		f.Legend, f.ClearLegend = set.Legend, set.ClearLegend
+	}
+}
+
+// firstNonNil returns item unless it is nil, then fallback.
+func firstNonNil[T any](item, fallback []T) []T {
+	if item == nil {
+		return fallback
+	}
+	return item
 }
 
 func firstPtr[T any](values ...*T) *T {

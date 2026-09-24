@@ -111,21 +111,32 @@ func createBar(ctx context.Context, pl *barPlanner, a ManageBarArgs) (json.RawMe
 	if err != nil {
 		return nil, fmt.Errorf("bar was created but its ID could not be read (%w); find it with get_roadmap_bars before retrying, or a retry will create a duplicate", err)
 	}
-	result := map[string]any{"id": id, "sent": p}
-	if bar, rerr := pl.client.GetBar(ctx, id); rerr != nil {
-		result["read_back_error"] = rerr.Error()
-	} else {
-		result["bar"] = bar
-	}
-	out, err := json.Marshal(result)
+	out, err := json.Marshal(readBackCreated(ctx, pl, id, p))
 	if err != nil {
 		return nil, err
 	}
-	summary := fmt.Sprintf("Bar %s created on roadmap %s", id, a.RoadmapID)
+	return json.Marshal(FormattedResponse{Summary: createdSummary(id, a.RoadmapID, p), Data: out})
+}
+
+// readBackCreated reports the new bar's ID and sent payload, plus the bar
+// as the API now returns it (or why it could not be read).
+func readBackCreated(ctx context.Context, pl *barPlanner, id string, p map[string]any) map[string]any {
+	result := map[string]any{"id": id, "sent": p}
+	if bar, err := pl.client.GetBar(ctx, id); err != nil {
+		result["read_back_error"] = err.Error()
+	} else {
+		result["bar"] = bar
+	}
+	return result
+}
+
+// createdSummary says where the bar landed and warns when it is parked.
+func createdSummary(id, roadmapID string, p map[string]any) string {
+	summary := fmt.Sprintf("Bar %s created on roadmap %s", id, roadmapID)
 	if parked, _ := p["parked"].(bool); parked || p["parked"] == nil {
 		summary += " (parked: not on the timeline until given dates and parked:false)"
 	}
-	return json.Marshal(FormattedResponse{Summary: summary, Data: out})
+	return summary
 }
 
 // updateBar patches only the fields the caller set.

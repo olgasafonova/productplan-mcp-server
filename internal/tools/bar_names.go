@@ -3,6 +3,7 @@ package tools
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/api"
@@ -14,30 +15,47 @@ import (
 // so the caller can fix a whole payload in one retry.
 func resolveAgainstSchema(p map[string]any, s *api.BarWriteSchema) error {
 	var problems []string
-	if name, ok := p["legend"].(string); ok {
-		if canon, found := matchName(s.Legends, name); found {
-			p["legend"] = canon
-		} else {
-			problems = append(problems, fmt.Sprintf("legend %q is not on roadmap %s. Valid legends: %s", name, s.RoadmapID, quoteList(s.Legends)))
-		}
+	for _, c := range []nameCheck{{"legend", "legends", s.Legends}, {"lane", "lanes", s.Lanes}} {
+		problems = append(problems, c.resolve(p, s)...)
 	}
-	if name, ok := p["lane"].(string); ok {
-		if canon, found := matchName(s.Lanes, name); found {
-			p["lane"] = canon
-		} else {
-			problems = append(problems, fmt.Sprintf("lane %q is not on roadmap %s. Valid lanes: %s", name, s.RoadmapID, quoteList(s.Lanes)))
-		}
+	problems = append(problems, resolveCustomFields(p, s)...)
+	if len(problems) > 0 {
+		return errors.New(strings.Join(problems, "; "))
 	}
+	return nil
+}
+
+// nameCheck is one payload key whose string value must name one of valid.
+type nameCheck struct {
+	key    string
+	plural string
+	valid  []string
+}
+
+// resolve canonicalises p[key] in place, or reports it as unknown.
+func (c nameCheck) resolve(p map[string]any, s *api.BarWriteSchema) []string {
+	name, ok := p[c.key].(string)
+	if !ok {
+		return nil
+	}
+	canon, found := matchName(c.valid, name)
+	if !found {
+		return []string{fmt.Sprintf("%s %q is not on roadmap %s. Valid %s: %s", c.key, name, s.RoadmapID, c.plural, quoteList(c.valid))}
+	}
+	p[c.key] = canon
+	return nil
+}
+
+// resolveCustomFields checks custom text and dropdown field entries.
+func resolveCustomFields(p map[string]any, s *api.BarWriteSchema) []string {
+	var problems []string
 	if fields, ok := p["custom_text_fields"].([]map[string]any); ok {
 		problems = append(problems, resolveTextFields(fields, s)...)
 	}
 	if fields, ok := p["custom_dropdown_fields"].([]map[string]any); ok {
 		problems = append(problems, resolveDropdownFields(fields, s)...)
 	}
-	if len(problems) > 0 {
-		return errors.New(strings.Join(problems, "; "))
-	}
-	return nil
+	return problems
 }
 
 func resolveTextFields(fields []map[string]any, s *api.BarWriteSchema) []string {
@@ -90,17 +108,11 @@ func matchName(names []string, name string) (string, bool) {
 	return "", false
 }
 
+// indexOfName finds name exactly, then case-insensitively after trimming.
 func indexOfName(names []string, name string) int {
-	for i, n := range names {
-		if n == name {
-			return i
-		}
+	if i := slices.Index(names, name); i >= 0 {
+		return i
 	}
 	trimmed := strings.TrimSpace(name)
-	for i, n := range names {
-		if strings.EqualFold(n, trimmed) {
-			return i
-		}
-	}
-	return -1
+	return slices.IndexFunc(names, func(n string) bool { return strings.EqualFold(n, trimmed) })
 }
