@@ -11,7 +11,7 @@ import (
 
 // ListObjectives returns all objectives.
 func (c *Client) ListObjectives(ctx context.Context) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/strategy/objectives")
+	data, err := c.GetList(ctx, "/strategy/objectives", Query{})
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (c *Client) ListKeyResults(ctx context.Context, objectiveID string) (json.R
 	if err != nil {
 		return nil, err
 	}
-	return c.Get(ctx, "/strategy/objectives/"+seg+"/key_results")
+	return c.GetList(ctx, "/strategy/objectives/"+seg+"/key_results", Query{})
 }
 
 // GetKeyResult returns a single key result by ID.

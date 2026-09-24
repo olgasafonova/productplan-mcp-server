@@ -11,7 +11,12 @@ import (
 
 // ListLaunches returns all launches.
 func (c *Client) ListLaunches(ctx context.Context) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/launches")
+	return c.ListLaunchesWhere(ctx, Query{})
+}
+
+// ListLaunchesWhere returns the launches matching q (filters and sort).
+func (c *Client) ListLaunchesWhere(ctx context.Context, q Query) (json.RawMessage, error) {
+	data, err := c.GetList(ctx, "/launches", q)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +65,7 @@ func (c *Client) GetLaunchSections(ctx context.Context, launchID string) (json.R
 	if err != nil {
 		return nil, err
 	}
-	return c.Get(ctx, "/launches/"+seg+"/checklist_sections")
+	return c.GetList(ctx, "/launches/"+seg+"/checklist_sections", Query{})
 }
 
 // GetLaunchSection returns a single checklist section by ID.
@@ -109,7 +114,7 @@ func (c *Client) GetLaunchTasks(ctx context.Context, launchID string) (json.RawM
 	if err != nil {
 		return nil, err
 	}
-	return c.Get(ctx, "/launches/"+seg+"/tasks")
+	return c.GetList(ctx, "/launches/"+seg+"/tasks", Query{})
 }
 
 // GetLaunchTask returns a single task by ID.

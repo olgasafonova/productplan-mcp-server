@@ -47,7 +47,7 @@ func (c *Client) GetBarChildren(ctx context.Context, barID string) (json.RawMess
 	if err != nil {
 		return nil, err
 	}
-	return c.Get(ctx, "/bars/"+seg+"/child_bars")
+	return c.GetList(ctx, "/bars/"+seg+"/child_bars", Query{})
 }
 
 // ============================================================================
@@ -60,7 +60,7 @@ func (c *Client) GetBarComments(ctx context.Context, barID string) (json.RawMess
 	if err != nil {
 		return nil, err
 	}
-	return c.Get(ctx, "/bars/"+seg+"/comments")
+	return c.GetList(ctx, "/bars/"+seg+"/comments", Query{})
 }
 
 // ============================================================================
@@ -104,7 +104,7 @@ func (c *Client) GetBarLinks(ctx context.Context, barID string) (json.RawMessage
 	if err != nil {
 		return nil, err
 	}
-	return c.Get(ctx, "/bars/"+seg+"/links")
+	return c.GetList(ctx, "/bars/"+seg+"/links", Query{})
 }
 
 // CreateBarLink creates a link on a bar.

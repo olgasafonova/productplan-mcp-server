@@ -1,6 +1,9 @@
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // defaultListCap bounds the number of items any list tool returns by default,
 // so a large collection does not blow the caller's context (HG-2 cost-lens).
@@ -28,26 +31,42 @@ func pickKeys(src map[string]any, keys ...string) map[string]any {
 	return out
 }
 
-// unmarshalList handles both bare-array and {"results": [...]} envelopes.
+// unmarshalList handles both bare-array and {"results": [...], "paging": {...}}
+// envelopes. The paging block is returned (nil for bare arrays) so callers can
+// report a merge that GetList stopped short at maxListPages.
 // Returns nil and ok=false if neither shape decodes.
-func unmarshalList(data json.RawMessage) ([]map[string]any, bool) {
+func unmarshalList(data json.RawMessage) ([]map[string]any, *paging, bool) {
 	var list []map[string]any
 	if err := json.Unmarshal(data, &list); err == nil {
-		return list, true
+		return list, nil, true
 	}
 	var wrapper struct {
 		Results []map[string]any `json:"results"`
+		Paging  *paging          `json:"paging"`
 	}
 	if err := json.Unmarshal(data, &wrapper); err == nil {
-		return wrapper.Results, true
+		return wrapper.Results, wrapper.Paging, true
 	}
-	return nil, false
+	return nil, nil, false
+}
+
+// markIncomplete records on payload that the upstream collection holds more
+// records than were fetched, so neither the count nor the total is the whole
+// story. Formatters in internal/tools lift the note into the summary.
+func markIncomplete(payload map[string]any, pg *paging) {
+	if !pg.incomplete() {
+		return
+	}
+	payload["incomplete"] = true
+	payload["record_count"] = pg.RecordCount
+	payload["note"] = fmt.Sprintf("Only the first %d of %d pages were fetched (%d records upstream); narrow with filters to see the rest",
+		pg.PagesFetched, pg.PageCount, pg.RecordCount)
 }
 
 // formatList projects each item via project, wraps the slice under collectionKey,
 // adds count, and optionally a hint. Returns the original bytes if unmarshalling fails.
 func formatList(data json.RawMessage, collectionKey string, hint string, project func(map[string]any) map[string]any) json.RawMessage {
-	items, ok := unmarshalList(data)
+	items, pg, ok := unmarshalList(data)
 	if !ok {
 		return data
 	}
@@ -69,6 +88,7 @@ func formatList(data json.RawMessage, collectionKey string, hint string, project
 	if hint != "" {
 		payload["hint"] = hint
 	}
+	markIncomplete(payload, pg)
 
 	output, _ := json.Marshal(payload)
 	return output

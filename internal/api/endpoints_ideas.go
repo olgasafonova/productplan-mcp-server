@@ -11,7 +11,12 @@ import (
 
 // ListIdeas returns all ideas.
 func (c *Client) ListIdeas(ctx context.Context) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/discovery/ideas")
+	return c.ListIdeasWhere(ctx, Query{})
+}
+
+// ListIdeasWhere returns the ideas matching q (filters and sort).
+func (c *Client) ListIdeasWhere(ctx context.Context, q Query) (json.RawMessage, error) {
+	data, err := c.GetList(ctx, "/discovery/ideas", q)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +70,12 @@ func (c *Client) ListAllTags(ctx context.Context) (json.RawMessage, error) {
 
 // ListOpportunities returns all opportunities.
 func (c *Client) ListOpportunities(ctx context.Context) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/discovery/opportunities")
+	return c.ListOpportunitiesWhere(ctx, Query{})
+}
+
+// ListOpportunitiesWhere returns the opportunities matching q (filters and sort).
+func (c *Client) ListOpportunitiesWhere(ctx context.Context, q Query) (json.RawMessage, error) {
+	data, err := c.GetList(ctx, "/discovery/opportunities", q)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +111,7 @@ func (c *Client) UpdateOpportunity(ctx context.Context, id string, data map[stri
 
 // ListIdeaForms returns all idea forms.
 func (c *Client) ListIdeaForms(ctx context.Context) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/idea_forms")
+	return c.GetList(ctx, "/discovery/idea_forms", Query{})
 }
 
 // GetIdeaForm returns a single idea form by ID.
