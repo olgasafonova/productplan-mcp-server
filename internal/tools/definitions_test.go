@@ -11,8 +11,8 @@ func TestBuildAllTools(t *testing.T) {
 		t.Fatal("expected tools to be registered")
 	}
 
-	if len(tools) != 47 {
-		t.Errorf("expected 47 tools, got %d", len(tools))
+	if len(tools) != 50 {
+		t.Errorf("expected 50 tools, got %d", len(tools))
 	}
 }
 
@@ -40,6 +40,9 @@ func TestBuildAllToolsNames(t *testing.T) {
 		"manage_bar",
 		"manage_bar_connection",
 		"manage_bar_link",
+		"bulk_update_bars",
+		"bulk_create_bars",
+		"bulk_delete_bars",
 		// Objectives
 		"list_objectives",
 		"get_objective",
@@ -132,8 +135,8 @@ func TestRoadmapTools(t *testing.T) {
 func TestBarTools(t *testing.T) {
 	tools := barTools()
 
-	if len(tools) != 8 {
-		t.Errorf("expected 8 bar tools, got %d", len(tools))
+	if len(tools) != 11 {
+		t.Errorf("expected 11 bar tools, got %d", len(tools))
 	}
 }
 

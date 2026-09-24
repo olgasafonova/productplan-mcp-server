@@ -211,7 +211,8 @@ FAILS WHEN: create without title or date, update/delete without milestone_id (ge
 // barTools returns bar-related tool definitions.
 func barTools() []mcp.Tool {
 	tools := barReadTools()
-	return append(tools, barManageTools()...)
+	tools = append(tools, barManageTools()...)
+	return append(tools, bulkBarTools()...)
 }
 
 // barReadTools returns read-only bar tool definitions.
