@@ -87,7 +87,10 @@ func (r *Registry) HasOutputSchema(name string) bool {
 	return ok && e.tool.OutputSchema != nil
 }
 
-// Call executes a tool by name with the given arguments.
+// Call executes a tool by name with the given arguments. Argument keys the
+// tool's InputSchema does not declare are rejected before the handler runs
+// (see Tool.CheckArgumentKeys), so a misspelled argument is an error rather
+// than silently ignored.
 //
 // A panicking handler is recovered here, for every tool, by construction
 // (HG-1). The panic value and stack are logged with a random reference; the
@@ -97,6 +100,9 @@ func (r *Registry) Call(ctx context.Context, name string, args map[string]any) (
 	e, ok := r.lookup(name)
 	if !ok {
 		return nil, fmt.Errorf("unknown tool: %s", name)
+	}
+	if argErr := e.tool.CheckArgumentKeys(args); argErr != nil {
+		return nil, argErr
 	}
 
 	defer func() {

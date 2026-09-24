@@ -67,7 +67,13 @@ func testRegistry(t *testing.T) *Registry {
 		},
 	)
 	r.RegisterFunc(
-		Tool{Name: "echo_args", Description: "returns its arguments", InputSchema: InputSchema{Type: "object"}},
+		Tool{Name: "echo_args", Description: "returns its arguments", InputSchema: InputSchema{
+			Type: "object",
+			Properties: map[string]Property{
+				"id":    {Type: "string"},
+				"limit": {Type: "number"},
+			},
+		}},
 		func(_ context.Context, args map[string]any) (json.RawMessage, error) {
 			return json.Marshal(args)
 		},
@@ -239,6 +245,23 @@ func TestSDKServerRecoversHandlerPanic(t *testing.T) {
 	// The session must still be usable afterwards.
 	if after := callTool(t, session, "plain", nil); after.IsError {
 		t.Error("server unusable after a handler panic")
+	}
+}
+
+// An argument the tool does not declare is refused through the real SDK
+// session, not only in Registry.Call.
+func TestSDKServerRejectsUnknownArgument(t *testing.T) {
+	session := connectSDKServer(t, testRegistry(t))
+
+	res := callTool(t, session, "echo_args", map[string]any{"idd": "123"})
+	if !res.IsError {
+		t.Fatal("unknown argument accepted")
+	}
+	got := contentText(t, res)
+	for _, want := range []string{`"idd"`, `did you mean "id"?`, "Valid arguments: id, limit"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("error %q lacks %q", got, want)
+		}
 	}
 }
 

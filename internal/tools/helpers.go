@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -17,16 +18,55 @@ type Validatable interface {
 // typedHandler eliminates the ParseArgs + Validate boilerplate.
 // It parses raw args into T, validates, then delegates to fn.
 func typedHandler[T Validatable](fn func(ctx context.Context, a T) (json.RawMessage, error)) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[T](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typed[T]{fn: func(ctx context.Context, a T, _ map[string]any) (json.RawMessage, error) {
 		return fn(ctx, a)
-	})
+	}}
+}
+
+// typed is the handler typedHandler and queryHandler build. fn also gets
+// the raw args, for arguments (list filters) that live only in the schema.
+type typed[T Validatable] struct {
+	fn func(ctx context.Context, a T, args map[string]any) (json.RawMessage, error)
+}
+
+// Handle parses args into T, validates, and runs fn.
+func (h typed[T]) Handle(ctx context.Context, args map[string]any) (json.RawMessage, error) {
+	a, err := ParseArgs[T](args)
+	if err != nil {
+		return nil, err
+	}
+	if err = a.Validate(); err != nil {
+		return nil, err
+	}
+	return h.fn(ctx, a, args)
+}
+
+// argNames lists the JSON argument names T reads, including those of
+// embedded structs. Tests use it to prove each tool's InputSchema declares
+// every argument its handler reads, since unknown keys are rejected at
+// dispatch (mcp.Tool.CheckArgumentKeys).
+func (typed[T]) argNames() []string {
+	return jsonFieldNames(reflect.TypeFor[T]())
+}
+
+// jsonFieldNames returns the JSON names of t's exported fields, flattening
+// anonymous embedded structs the way encoding/json does.
+func jsonFieldNames(t reflect.Type) []string {
+	var names []string
+	for f := range t.Fields() {
+		tag, _, _ := strings.Cut(f.Tag.Get("json"), ",")
+		switch {
+		case tag == "-" || !f.IsExported():
+			continue
+		case f.Anonymous && tag == "" && f.Type.Kind() == reflect.Struct:
+			names = append(names, jsonFieldNames(f.Type)...)
+		case tag == "":
+			names = append(names, f.Name)
+		default:
+			names = append(names, tag)
+		}
+	}
+	return names
 }
 
 // firstError runs checks in order and returns the first error, or nil.

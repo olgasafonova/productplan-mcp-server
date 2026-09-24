@@ -296,20 +296,13 @@ func (v argValue) boolean() (bool, error) {
 
 // queryHandler is typedHandler plus the tool's validated filter query.
 func queryHandler[T Validatable](tool string, fn func(ctx context.Context, a T, q api.Query) (json.RawMessage, error)) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		a, err := ParseArgs[T](args)
-		if err != nil {
-			return nil, err
-		}
-		if err = a.Validate(); err != nil {
-			return nil, err
-		}
+	return typed[T]{fn: func(ctx context.Context, a T, args map[string]any) (json.RawMessage, error) {
 		q, err := buildQuery(tool, args)
 		if err != nil {
 			return nil, err
 		}
 		return fn(ctx, a, q)
-	})
+	}}
 }
 
 // NoArgs is the arg struct for list tools whose only arguments are filters.
