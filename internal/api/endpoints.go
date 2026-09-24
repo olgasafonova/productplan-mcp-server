@@ -38,20 +38,6 @@ func (c *Client) GetRoadmap(ctx context.Context, id string) (json.RawMessage, er
 	return c.Get(ctx, "/roadmaps/"+seg)
 }
 
-// GetRoadmapBars returns all bars for a roadmap, enriched with lane names.
-func (c *Client) GetRoadmapBars(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("roadmap_id", id)
-	if err != nil {
-		return nil, err
-	}
-	bars, err := c.GetList(ctx, "/roadmaps/"+seg+"/bars", Query{})
-	if err != nil {
-		return nil, err
-	}
-	lanes, _ := c.Get(ctx, "/roadmaps/"+seg+"/lanes")
-	return FormatBarsWithContext(bars, lanes), nil
-}
-
 // GetRoadmapLanes returns all lanes for a roadmap.
 func (c *Client) GetRoadmapLanes(ctx context.Context, id string) (json.RawMessage, error) {
 	seg, err := safeSeg("roadmap_id", id)
