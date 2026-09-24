@@ -86,3 +86,27 @@ func mustFormat(t *testing.T, in, itemType string) json.RawMessage {
 	}
 	return out
 }
+
+func TestFormatFilteredList_EmptySaysFiltersExcludedEverything(t *testing.T) {
+	out, err := FormatFilteredList(json.RawMessage(`[]`), "launch", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp := decodeFormatted(t, out); resp.Summary != "No launches matched the filters" {
+		t.Errorf("summary = %q", resp.Summary)
+	}
+}
+
+func TestPluralize_IrregularItemTypes(t *testing.T) {
+	for word, want := range map[string]string{
+		"opportunity": "opportunities",
+		"launch":      "launches",
+		"key result":  "key results",
+		"day":         "days",
+		"bar":         "bars",
+	} {
+		if got := pluralize(word, 2); got != want {
+			t.Errorf("pluralize(%q) = %q, want %q", word, got, want)
+		}
+	}
+}

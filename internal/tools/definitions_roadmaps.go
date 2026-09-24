@@ -23,12 +23,13 @@ func roadmapMetaTools() []mcp.Tool {
 			Name: "list_roadmaps",
 			Description: `List all roadmaps. START HERE to get roadmap IDs.
 
-USE WHEN: "Show my roadmaps", "What roadmaps do I have?"
-Returns array of roadmaps with ID, name, and creation date.
-FAILS WHEN: API token invalid or expired (check PRODUCTPLAN_API_TOKEN env var).`,
+USE WHEN: "Show my roadmaps", "What roadmaps do I have?", "Find the Mobile roadmap"
+Optional server-side filters: name_contains (case-insensitive); sort ("name asc", "updated_at desc").
+Returns roadmaps with ID, name, and updated_at.
+FAILS WHEN: API token invalid or expired (check PRODUCTPLAN_API_TOKEN env var); sort names a field outside the allowed list (the error lists them).`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
-				Properties: map[string]mcp.Property{},
+				Properties: filterProperties("list_roadmaps", map[string]mcp.Property{}),
 			},
 		},
 		{
@@ -61,16 +62,21 @@ func roadmapComponentTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
 			Name: "get_roadmap_bars",
-			Description: `Get all bars (features/items) on a roadmap.
+			Description: `Get bars (features/items) on a roadmap, optionally filtered.
 
-USE WHEN: "What's on the roadmap?", "Show planned features", "What's in Q2?"
+USE WHEN: "What's on the roadmap?", "Show planned features", "What's starting in Q2?", "Bars in the Mobile lane tagged urgent"
+Server-side filters (sent to ProductPlan): name_contains, starts_after/starts_before, ends_after/ends_before (YYYY-MM-DD, inclusive), is_container, sort ("starts_on asc").
+Client-side filters (applied here to every fetched bar, before the 50-item cap): lane (name or ID), legend (name), tag. Exact, case-insensitive.
 Returns bars with ID, name, starts_on/ends_on, lane_name and lane_id, legend, tags, percent_done, is_container, and parked. For a bar's description and custom fields, use get_bar.
-FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if roadmap has no bars.`,
+FAILS WHEN: roadmap_id not found (use list_roadmaps); a date is not YYYY-MM-DD; sort names a field outside the allowed list (the error lists them). Says "No bars matched the filters" when filters exclude everything.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
-				Properties: map[string]mcp.Property{
+				Properties: filterProperties("get_roadmap_bars", map[string]mcp.Property{
 					"roadmap_id": {Type: "string", Description: "Roadmap ID"},
-				},
+					"lane":       {Type: "string", Description: "Only bars in this lane, by name or lane ID (client-side, case-insensitive)"},
+					"legend":     {Type: "string", Description: "Only bars with this legend name (client-side, case-insensitive; names from get_roadmap_legends)"},
+					"tag":        {Type: "string", Description: "Only bars carrying this tag (client-side, case-insensitive)"},
+				}),
 				Required: []string{"roadmap_id"},
 			},
 		},

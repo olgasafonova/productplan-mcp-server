@@ -4,6 +4,7 @@ package tools
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // FormattedResponse wraps API responses with AI-friendly summaries.
@@ -31,9 +32,16 @@ const defaultListCap = 50
 //
 // Anything else (a single object) is returned unchanged.
 func FormatList(data json.RawMessage, itemType string) (json.RawMessage, error) {
+	return FormatFilteredList(data, itemType, false)
+}
+
+// FormatFilteredList is FormatList for a list the caller narrowed with
+// filters: an empty result then reads "No <items> matched the filters", so
+// the agent can tell "nothing exists" from "my filter excluded everything".
+func FormatFilteredList(data json.RawMessage, itemType string, filtered bool) (json.RawMessage, error) {
 	var items []any
 	if err := json.Unmarshal(data, &items); err == nil {
-		return formatArray(data, items, itemType, nil)
+		return formatArray(data, items, itemType, filtered, nil)
 	}
 	var obj map[string]json.RawMessage
 	if err := json.Unmarshal(data, &obj); err != nil {
@@ -41,12 +49,12 @@ func FormatList(data json.RawMessage, itemType string) (json.RawMessage, error) 
 	}
 	if raw, ok := obj["results"]; ok {
 		if err := json.Unmarshal(raw, &items); err == nil {
-			return formatArray(raw, items, itemType, envelopeNotes(obj["paging"]))
+			return formatArray(raw, items, itemType, filtered, envelopeNotes(obj["paging"]))
 		}
 	}
 	if _, hasCount := obj["count"]; hasCount {
 		if _, hasTotal := obj["total"]; hasTotal {
-			return formatProjected(data, itemType)
+			return formatProjected(data, itemType, filtered)
 		}
 	}
 	return data, nil
@@ -84,7 +92,7 @@ type projectedList struct {
 // formatProjected wraps an already-projected payload, deriving the summary
 // from its own fields. The payload itself is not re-capped: the api layer
 // capped it at the same defaultListCap and reports truncated/total.
-func formatProjected(data json.RawMessage, itemType string) (json.RawMessage, error) {
+func formatProjected(data json.RawMessage, itemType string, filtered bool) (json.RawMessage, error) {
 	var p projectedList
 	if err := json.Unmarshal(data, &p); err != nil {
 		return data, nil
@@ -93,7 +101,7 @@ func formatProjected(data json.RawMessage, itemType string) (json.RawMessage, er
 	switch {
 	case p.Truncated:
 		summary = fmt.Sprintf("Showing first %d of %d %s (refine to narrow)", p.Count, p.Total, pluralize(itemType, p.Total))
-	case p.Count == 0 && p.Filtered:
+	case p.Count == 0 && (p.Filtered || filtered):
 		summary = fmt.Sprintf("No %s matched the filters", pluralize(itemType, 0))
 	case p.Count == 0:
 		summary = fmt.Sprintf("No %s found", pluralize(itemType, 0))
@@ -119,7 +127,7 @@ func appendNotes(summary string, notes []string) string {
 }
 
 // formatArray caps a decoded array and builds its summary.
-func formatArray(data json.RawMessage, items []any, itemType string, notes []string) (json.RawMessage, error) {
+func formatArray(data json.RawMessage, items []any, itemType string, filtered bool, notes []string) (json.RawMessage, error) {
 	total := len(items)
 	truncated := false
 	if total > defaultListCap {
@@ -136,6 +144,8 @@ func formatArray(data json.RawMessage, items []any, itemType string, notes []str
 	switch {
 	case truncated:
 		summary = fmt.Sprintf("Showing first %d of %d %s (refine to narrow)", count, total, pluralize(itemType, total))
+	case count == 0 && filtered:
+		summary = fmt.Sprintf("No %s matched the filters", pluralize(itemType, 0))
 	case count == 0:
 		summary = fmt.Sprintf("No %s found", pluralize(itemType, 0))
 	}
@@ -176,10 +186,19 @@ func FormatAction(data json.RawMessage, action, itemType, id string) (json.RawMe
 	})
 }
 
-// pluralize adds 's' for count != 1.
+// pluralize returns the plural of word for count != 1. It covers the
+// English rules the item types here need: "opportunity" -> "opportunities",
+// "launch" -> "launches"; everything else takes "s".
 func pluralize(word string, count int) string {
 	if count == 1 {
 		return word
+	}
+	switch {
+	case strings.HasSuffix(word, "y") && len(word) > 1 && !strings.ContainsRune("aeiou", rune(word[len(word)-2])):
+		return word[:len(word)-1] + "ies"
+	case strings.HasSuffix(word, "ch"), strings.HasSuffix(word, "sh"),
+		strings.HasSuffix(word, "s"), strings.HasSuffix(word, "x"):
+		return word + "es"
 	}
 	return word + "s"
 }
