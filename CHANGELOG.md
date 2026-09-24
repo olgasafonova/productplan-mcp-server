@@ -5,6 +5,27 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **List calls no longer stop at the first page.** Every collection endpoint returns `{results, paging}` and the API documents a default `page_size` of 200. All list tools issued one bare GET, so a roadmap with more than 200 bars (or an account with more than 200 ideas, users, ...) was silently truncated. `GetList` (`internal/api/list.go`) now requests `page_size=500`, follows `paging.page_count` with bounded concurrency, and fails the whole call if any page fails. It stops at 50 pages and says so: the payload carries `incomplete`, the upstream `record_count`, and a note that the summary repeats.
+- **`get_roadmap_bars` discarded the lanes error** (`lanes, _ :=` at `internal/api/endpoints.go:47`, an Article IV violation). A lanes failure is now logged and reported as a warning in the summary while the bars still return; a bars failure fails the call.
+- **Bar projection matched a shape the API does not send.** It unmarshalled a bare array where the API returns an envelope, so projection failed and the raw, uncapped bars leaked through; it also read `start_date`/`end_date`/`lane_id`. Bars now project the documented fields: `starts_on`, `ends_on`, `lane_name` (from the bar), `lane_id` (joined from the lane list, never guessed when two lanes share a name), `legend`, `tags`, `percent_done`, `is_container`, `parked`. Description and custom fields stay behind `get_bar`.
+- **List summaries were missing for most list tools.** `FormatList` only understood bare arrays, so enveloped and api-projected payloads passed through with no summary, no `No <items> found` message and, for raw envelopes, no 50-item cap (Article V). Both shapes are now summarised and capped. Plurals are fixed (`opportunities`, `launches`).
+- **Projections picked fields that do not exist.** Lanes: `color` replaced by `description` and `position`. Milestones: `title` (was `name`). Launches: `launch_date` (was `date`) plus `progress`. Objectives: `risk_status`, `start_date`, `end_date`, `key_results_count` (was `status`, `time_frame`). Tool descriptions for `get_roadmap_lanes`, `get_roadmap_legends`, `list_ideas`, `list_launches` and `list_objectives` now name what is returned.
+
+### Added
+
+- **Filters on list tools, no new tools.** One table in `internal/tools/filters.go` maps friendly args to ProductPlan `q[...]` predicates and generates the schema and sort allowlist. Server-side: `get_roadmap_bars` (`name_contains`, `starts_after`, `starts_before`, `ends_after`, `ends_before`, `is_container`, `sort`), `list_roadmaps` (`name_contains`, `sort`), `list_ideas` (`name_contains`, `channel`, `sort`), `list_opportunities` (`problem_contains`, `workflow_status`, `sort`), `list_launches` (`name_contains`, `status`, `launch_after`, `launch_before`, `sort`). Client-side on `get_roadmap_bars`, applied before the 50-item cap: `lane` (name or ID), `legend`, `tag`. Dates must be real `YYYY-MM-DD` dates; an unknown sort field errors with the allowed list; an empty filtered result reads `No <items> matched the filters`.
+- **In-process read cache.** GETs are cached per path+query for 60s (`PRODUCTPLAN_CACHE_TTL`: `90s`, `2m`, or seconds; `0` disables; a malformed value is refused at startup). Concurrent identical GETs share one upstream call. Any POST, PATCH or DELETE clears the whole cache, success or not, and an in-flight read that straddles a write is never stored. `check_status` bypasses the cache. `health_check` reports `cache.{enabled, ttl_seconds, entries, hits, misses, coalesced, invalidations}`.
+
+### Changed
+
+- **Bars and lanes are fetched concurrently**, and `get_roadmap_complete`'s duplicate lanes fetch collapses to one call. Against a server sleeping 20ms per request, `BenchmarkGetRoadmapComplete` measures about 22ms/op for the handler against 108ms/op for the same calls made sequentially.
+- **Tuned HTTP transport.** One transport per client, cloned from `http.DefaultTransport`, with HTTP/2 forced, 16 idle connections per host (stdlib default: 2), 90s idle timeout and a 10s TLS handshake timeout. Redirect refusal is unchanged.
+- `golang.org/x/sync` is now a direct dependency (`errgroup`, `singleflight`); it was already in `go.sum` as indirect.
+
 ## [5.1.0] - 2026-05-03
 
 ### Security
