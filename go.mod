@@ -2,10 +2,7 @@ module github.com/olgasafonova/productplan-mcp-server
 
 go 1.26.0
 
-require (
-	github.com/modelcontextprotocol/go-sdk v1.8.0
-	github.com/olgasafonova/mcp-cache-go v0.1.0
-)
+require github.com/modelcontextprotocol/go-sdk v1.8.0
 
 require (
 	github.com/google/jsonschema-go v0.4.3 // indirect

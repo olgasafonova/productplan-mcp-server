@@ -333,7 +333,7 @@ func TestSDKServerRunStopsOnContextCancel(t *testing.T) {
 
 // SEP-2549 requires ttlMs and cacheScope on every cacheable result. The SDK
 // ships cacheScope but leaves ttlMs at 0, which the spec reads as "immediately
-// stale", so without the cache middleware this server would be spec-compliant
+// stale", so without the SetCacheable policy this server would be spec-compliant
 // and useless to a caching client. Asserting a POSITIVE ttlMs is the point:
 // presence alone cannot distinguish a configured value from the SDK's default.
 func TestSDKServerStampsCacheHintsOnListTools(t *testing.T) {
@@ -353,4 +353,36 @@ func TestSDKServerStampsCacheHintsOnListTools(t *testing.T) {
 	if res.CacheScope == "" {
 		t.Error("tools/list returned an empty cacheScope")
 	}
+}
+
+// server/discover cannot be driven from the public client API (the SDK client
+// sends it internally during connect), so the policy is checked directly. The
+// three cases pin what the mcpcache middleware did on v1.7.0: a TTL on
+// tools/list and server/discover only, and a TTL already set left alone.
+func TestSetCacheHintsPolicy(t *testing.T) {
+	want := int(30 * time.Minute / time.Millisecond)
+
+	t.Run("discover gets the list TTL", func(t *testing.T) {
+		var c mcp.Cacheable
+		setCacheHints(context.Background(), &mcp.ServerRequest[*mcp.DiscoverParams]{}, &c)
+		if c.TTLMs != want {
+			t.Errorf("server/discover ttlMs = %d, want %d", c.TTLMs, want)
+		}
+	})
+
+	t.Run("other cacheable results are untouched", func(t *testing.T) {
+		var c mcp.Cacheable
+		setCacheHints(context.Background(), &mcp.ListPromptsRequest{}, &c)
+		if c.TTLMs != 0 || c.CacheScope != "" {
+			t.Errorf("prompts/list cacheable = %+v, want zero value", c)
+		}
+	})
+
+	t.Run("a TTL already set is kept", func(t *testing.T) {
+		c := mcp.Cacheable{TTLMs: 5_000}
+		setCacheHints(context.Background(), &mcp.ListToolsRequest{}, &c)
+		if c.TTLMs != 5_000 {
+			t.Errorf("tools/list ttlMs = %d, want 5000 (preserved)", c.TTLMs)
+		}
+	})
 }

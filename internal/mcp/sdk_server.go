@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/olgasafonova/mcp-cache-go/mcpcache"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/logging"
 )
@@ -60,27 +59,10 @@ func NewSDKServer(name, version string, registry *Registry, opts ...SDKServerOpt
 
 	s.server = mcp.NewServer(
 		&mcp.Implementation{Name: name, Version: version},
-		&mcp.ServerOptions{Instructions: s.instructions},
-	)
-
-	// SEP-2549 requires ttlMs and cacheScope on every cacheable result, but the
-	// SDK's setDefaultCacheableValues() sets cacheScope only and leaves TTLMs at
-	// its zero value, which the spec reads as "immediately stale". There is no
-	// ServerOptions knob for it, so a receiving middleware is the supported way
-	// to stamp a real TTL. Without this the server is spec-compliant and useless
-	// to a caching client: it advertises every list result as already stale.
-	//
-	// Thirty minutes matches the other large surfaces in this portfolio
-	// (mediawiki, public360, miro); the small ones use an hour. The tool set is
-	// compiled in and only changes when a release ships, so the number is a
-	// judgement about release cadence rather than about correctness.
-	s.server.AddReceivingMiddleware(
-		mcpcache.Middleware(mcpcache.Config{
-			TTLs: map[string]time.Duration{
-				mcpcache.MethodListTools: 30 * time.Minute,
-				mcpcache.MethodDiscover:  30 * time.Minute,
-			},
-		}),
+		&mcp.ServerOptions{
+			Instructions: s.instructions,
+			SetCacheable: setCacheHints,
+		},
 	)
 
 	for _, tool := range registry.Tools() {
@@ -90,7 +72,42 @@ func NewSDKServer(name, version string, registry *Registry, opts ...SDKServerOpt
 	return s
 }
 
+// listCacheTTL is the freshness hint stamped on tools/list and server/discover.
+//
+// Thirty minutes matches the other large surfaces in this portfolio
+// (mediawiki, public360, miro); the small ones use an hour. The tool set is
+// compiled in and only changes when a release ships, so the number is a
+// judgement about release cadence rather than about correctness.
+const listCacheTTL = 30 * time.Minute
+
+// setCacheHints is the ServerOptions.SetCacheable policy.
+//
+// SEP-2549 requires ttlMs and cacheScope on every cacheable result. The SDK
+// builds the tools/list and server/discover results itself with TTLMs = 0,
+// which the spec reads as "immediately stale", and fills only cacheScope
+// ("public") by default. Without a policy the server is spec-compliant and
+// useless to a caching client: it advertises every list result as already
+// stale. go-sdk v1.8.0 added SetCacheable as the supported hook for this; it
+// replaces the mcpcache receiving middleware used on v1.7.0.
+//
+// Only the two results this server actually produces get a TTL. A value a
+// handler already set is kept, and cacheScope is left for the SDK to default.
+// The SDK may call this with its server lock held, so it must not call back
+// into the Server.
+func setCacheHints(_ context.Context, req mcp.Request, c *mcp.Cacheable) {
+	switch req.(type) {
+	case *mcp.ListToolsRequest, *mcp.ServerRequest[*mcp.DiscoverParams]:
+		if c.TTLMs == 0 {
+			c.TTLMs = int(listCacheTTL / time.Millisecond)
+		}
+	}
+}
+
 // Run serves over stdio until the client disconnects or ctx is cancelled.
+//
+// StdioTransport.MaxLineLength is left at zero, which selects the SDK's
+// DefaultMaxLineLength (16 MiB) cap on a single inbound JSON-RPC frame. Tool
+// arguments here are small, so the default bound is already generous.
 func (s *SDKServer) Run(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "ProductPlan MCP Server running on stdio\n")
 	return s.run(ctx, &mcp.StdioTransport{})
