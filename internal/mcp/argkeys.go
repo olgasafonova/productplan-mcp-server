@@ -15,30 +15,40 @@ const maxSuggestDistance = 2
 // key when one is within maxSuggestDistance edits, and lists the valid keys,
 // so an agent can correct the call in one retry.
 func (t Tool) CheckArgumentKeys(args map[string]any) error {
+	unknown := t.unknownKeys(args)
+	if len(unknown) == 0 {
+		return nil
+	}
+	valid := t.argumentNames()
+	described := make([]string, len(unknown))
+	for i, k := range unknown {
+		described[i] = describeUnknown(k, valid)
+	}
+	noun := "argument"
+	if len(unknown) > 1 {
+		noun = "arguments"
+	}
+	return fmt.Errorf("unknown %s for %s: %s. %s", noun, t.Name, strings.Join(described, ", "), t.validArgumentsHint(valid))
+}
+
+// unknownKeys returns the keys of args the schema does not declare, sorted.
+func (t Tool) unknownKeys(args map[string]any) []string {
 	var unknown []string
 	for k := range args {
 		if _, ok := t.InputSchema.Properties[k]; !ok {
 			unknown = append(unknown, k)
 		}
 	}
-	if len(unknown) == 0 {
-		return nil
-	}
 	slices.Sort(unknown)
-	valid := t.argumentNames()
+	return unknown
+}
 
-	described := make([]string, len(unknown))
-	for i, k := range unknown {
-		described[i] = fmt.Sprintf("%q", k)
-		if s, ok := closestName(k, valid); ok {
-			described[i] += fmt.Sprintf(" (did you mean %q?)", s)
-		}
+// describeUnknown quotes an unknown key, with a suggestion when one is close.
+func describeUnknown(key string, valid []string) string {
+	if s, ok := closestName(key, valid); ok {
+		return fmt.Sprintf("%q (did you mean %q?)", key, s)
 	}
-	noun := "argument"
-	if len(unknown) > 1 {
-		noun = "arguments"
-	}
-	return fmt.Errorf("unknown %s for %s: %s. %s", noun, t.Name, strings.Join(described, ", "), validArgumentsHint(t.Name, valid))
+	return fmt.Sprintf("%q", key)
 }
 
 // argumentNames returns the declared argument keys, sorted.
@@ -52,9 +62,9 @@ func (t Tool) argumentNames() []string {
 }
 
 // validArgumentsHint lists the valid keys, or says the tool takes none.
-func validArgumentsHint(tool string, valid []string) string {
+func (t Tool) validArgumentsHint(valid []string) string {
 	if len(valid) == 0 {
-		return tool + " takes no arguments"
+		return t.Name + " takes no arguments"
 	}
 	return "Valid arguments: " + strings.Join(valid, ", ")
 }
@@ -69,29 +79,4 @@ func closestName(key string, candidates []string) (string, bool) {
 		}
 	}
 	return best, bestDist <= maxSuggestDistance
-}
-
-// editDistance is the Levenshtein distance between a and b, by byte (tool
-// argument keys are ASCII snake_case).
-func editDistance(a, b string) int {
-	prev := make([]int, len(b)+1)
-	cur := make([]int, len(b)+1)
-	for j := range prev {
-		prev[j] = j
-	}
-	for i := 1; i <= len(a); i++ {
-		cur[0] = i
-		for j := 1; j <= len(b); j++ {
-			cur[j] = min(prev[j]+1, cur[j-1]+1, prev[j-1]+substitutionCost(a[i-1], b[j-1]))
-		}
-		prev, cur = cur, prev
-	}
-	return prev[len(b)]
-}
-
-func substitutionCost(x, y byte) int {
-	if x == y {
-		return 0
-	}
-	return 1
 }
