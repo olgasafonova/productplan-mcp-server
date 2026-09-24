@@ -3,6 +3,8 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"strconv"
+	"strings"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/mcp"
 )
@@ -25,6 +27,16 @@ func typedHandler[T Validatable](fn func(ctx context.Context, a T) (json.RawMess
 		}
 		return fn(ctx, a)
 	})
+}
+
+// firstError runs checks in order and returns the first error, or nil.
+func firstError(checks ...func() error) error {
+	for _, check := range checks {
+		if err := check(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // buildPayload assembles an API payload: entries in always are included
@@ -67,20 +79,29 @@ type topLevelOps struct {
 // run dispatches the requested action to the matching client call and
 // formats the result. Unknown actions fall through with empty data.
 func (o topLevelOps) run(ctx context.Context, req manageRequest) (json.RawMessage, error) {
-	var data json.RawMessage
-	var err error
+	data, err := o.dispatch(ctx, req)
+	return formatManaged(data, err, o.resource, req)
+}
+
+// dispatch performs the client call for the requested action.
+func (o topLevelOps) dispatch(ctx context.Context, req manageRequest) (json.RawMessage, error) {
 	switch {
 	case req.action == "create":
-		data, err = o.create(ctx, req.createPayload)
+		return o.create(ctx, req.createPayload)
 	case req.action == "update":
-		data, err = o.update(ctx, req.id, req.updatePayload)
+		return o.update(ctx, req.id, req.updatePayload)
 	case req.action == "delete" && o.delete != nil:
-		data, err = o.delete(ctx, req.id)
+		return o.delete(ctx, req.id)
 	}
+	return nil, nil
+}
+
+// formatManaged turns a manage-style client result into the tool response.
+func formatManaged(data json.RawMessage, err error, resource string, req manageRequest) (json.RawMessage, error) {
 	if err != nil {
 		return nil, err
 	}
-	return FormatAction(data, req.action, o.resource, req.id)
+	return FormatAction(data, req.action, resource, req.id)
 }
 
 // manageOps is implemented by the ops bundles that dispatch a manageRequest
@@ -111,18 +132,56 @@ type parentScopedOps struct {
 // run dispatches the requested action to the matching client call and
 // formats the result. Unknown actions fall through with empty data.
 func (o parentScopedOps) run(ctx context.Context, req manageRequest) (json.RawMessage, error) {
-	var data json.RawMessage
-	var err error
+	data, err := o.dispatch(ctx, req)
+	return formatManaged(data, err, o.resource, req)
+}
+
+// dispatch performs the client call for the requested action.
+func (o parentScopedOps) dispatch(ctx context.Context, req manageRequest) (json.RawMessage, error) {
 	switch req.action {
 	case "create":
-		data, err = o.create(ctx, req.parentID, req.createPayload)
+		return o.create(ctx, req.parentID, req.createPayload)
 	case "update":
-		data, err = o.update(ctx, req.parentID, req.id, req.updatePayload)
+		return o.update(ctx, req.parentID, req.id, req.updatePayload)
 	case "delete":
-		data, err = o.delete(ctx, req.parentID, req.id)
+		return o.delete(ctx, req.parentID, req.id)
 	}
-	if err != nil {
-		return nil, err
+	return nil, nil
+}
+
+// numericID sends a numeric ID as a JSON integer (the documented type) and
+// leaves anything else as the string the caller gave.
+func numericID(id string) any {
+	if n, err := strconv.ParseInt(strings.TrimSpace(id), 10, 64); err == nil {
+		return n
 	}
-	return FormatAction(data, req.action, o.resource, req.id)
+	return id
+}
+
+// firstString returns the first non-empty string.
+func firstString(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// firstBool returns the first non-nil bool pointer.
+func firstBool(values ...*bool) *bool {
+	for _, v := range values {
+		if v != nil {
+			return v
+		}
+	}
+	return nil
+}
+
+// derefString returns the pointed-to string, or "" for nil.
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
