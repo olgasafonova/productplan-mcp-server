@@ -592,7 +592,7 @@ Run evaluation suite:
 <details>
 <summary>MCP tool reference</summary>
 
-47 tools available: 35 READ tools and 12 WRITE tools (action-based):
+50 tools available: 35 READ tools and 15 WRITE tools (12 action-based `manage_*` plus 3 `bulk_*` bar tools):
 
 **Read tools:**
 - Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_legends`, `get_roadmap_comments`, `get_roadmap_complete`
@@ -605,6 +605,7 @@ Run evaluation suite:
 **Write tools:**
 - Roadmaps: `manage_bar`, `manage_lane`, `manage_milestone`
 - Bar relationships: `manage_bar_connection`, `manage_bar_link`
+- Bulk bars: `bulk_update_bars`, `bulk_create_bars`, `bulk_delete_bars` (up to 100 bars per call, validated up front, `dry_run` supported)
 - OKRs: `manage_objective`, `manage_key_result`
 - Discovery: `manage_idea`, `manage_opportunity`
 - Launches: `manage_launch`, `manage_launch_section`, `manage_launch_task`
@@ -612,7 +613,8 @@ Run evaluation suite:
 Example:
 ```json
 {"tool": "list_roadmaps", "arguments": {}}
-{"tool": "manage_bar", "arguments": {"action": "create", "roadmap_id": "123", "lane_id": "456", "name": "New feature"}}
+{"tool": "manage_bar", "arguments": {"action": "create", "roadmap_id": "123", "lane": "Backend", "name": "New feature", "legend": "Committed"}}
+{"tool": "bulk_update_bars", "arguments": {"set": {"legend": "Committed"}, "items": [{"bar_id": "901"}, {"bar_id": "902"}], "dry_run": true}}
 {"tool": "manage_idea", "arguments": {"action": "create", "name": "Mobile app improvements"}}
 ```
 

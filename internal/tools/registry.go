@@ -55,6 +55,9 @@ var handlerConstructors = map[string]func(*api.Client) mcp.Handler{
 	"manage_bar":            manageBarHandler,
 	"manage_bar_connection": manageBarConnectionHandler,
 	"manage_bar_link":       manageBarLinkHandler,
+	"bulk_update_bars":      bulkUpdateBarsHandler,
+	"bulk_create_bars":      bulkCreateBarsHandler,
+	"bulk_delete_bars":      bulkDeleteBarsHandler,
 
 	// Objective handlers
 	"list_objectives":   listObjectivesHandler,
