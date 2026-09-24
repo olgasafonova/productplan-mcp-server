@@ -5,6 +5,14 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Release binaries reported their version as `vv6.0.0`: the build step passed the whole tag as the version and the help text adds its own `v`. The build now strips the leading `v`, as the bundle step already did. Present since before 6.0.0; the 6.0.0 binaries are otherwise unaffected.
+
+### Infrastructure
+- Committed `server.json` snapshot refreshed to 6.0.0, with every bundle checksum verified by downloading the v6.0.0 release assets.
+
 ## [6.0.0] - 2026-09-24
 
 A major release. The headline is a fix: every "change color" call through earlier versions **removed** the bar's color instead (see Fixed). It also adds bulk bar editing, list filters and a read cache, moves to go-sdk 1.8.0 and Go 1.26, and brings every scorable production file to CodeScene Code Health 10.0.
