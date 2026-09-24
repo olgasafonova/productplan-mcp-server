@@ -76,6 +76,24 @@ type barOp struct {
 // the roadmap only when names need checking, and the bar or its container
 // only when a nesting pre-check needs them.
 func (pl *barPlanner) prepare(ctx context.Context, op barOp) (map[string]any, error) {
+	p, err := pl.basePayload(ctx, op)
+	if err != nil {
+		return nil, err
+	}
+	err = firstError(
+		func() error { return pl.resolveNames(ctx, op, p) },
+		func() error { return pl.checkNesting(ctx, op, p) },
+		func() error { return pl.completeCreate(ctx, op, p) },
+	)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// basePayload translates op's fields, explaining a legend_id rejection with
+// the roadmap's legends and refusing an update that changes nothing.
+func (pl *barPlanner) basePayload(ctx context.Context, op barOp) (map[string]any, error) {
 	p, err := op.fields.payload()
 	if errors.Is(err, errLegendID) {
 		return nil, pl.legendIDError(ctx, op)
@@ -86,21 +104,16 @@ func (pl *barPlanner) prepare(ctx context.Context, op barOp) (map[string]any, er
 	if !op.create && len(p) == 0 {
 		return nil, errors.New("nothing to update: pass at least one bar field")
 	}
-	if needsSchema(p) {
-		if err := pl.resolveNames(ctx, op, p); err != nil {
-			return nil, err
-		}
-	}
-	if err := pl.checkNesting(ctx, op, p); err != nil {
-		return nil, err
-	}
-	if op.create {
-		p["roadmap_id"] = numericID(op.roadmapID)
-		if err := pl.defaultParked(ctx, op, p); err != nil {
-			return nil, err
-		}
-	}
 	return p, nil
+}
+
+// completeCreate adds the create-only roadmap_id and parked default.
+func (pl *barPlanner) completeCreate(ctx context.Context, op barOp, p map[string]any) error {
+	if !op.create {
+		return nil
+	}
+	p["roadmap_id"] = numericID(op.roadmapID)
+	return pl.defaultParked(ctx, op, p)
 }
 
 // roadmapFor returns the roadmap a write targets: the caller's roadmap_id,
@@ -119,7 +132,12 @@ func (pl *barPlanner) roadmapFor(ctx context.Context, op barOp) (string, error) 
 	return bar.RoadmapID, nil
 }
 
+// resolveNames checks legend, lane, and custom field names against the
+// roadmap, when the payload carries any.
 func (pl *barPlanner) resolveNames(ctx context.Context, op barOp, p map[string]any) error {
+	if !needsSchema(p) {
+		return nil
+	}
 	roadmapID, err := pl.roadmapFor(ctx, op)
 	if err != nil {
 		return err
@@ -148,31 +166,54 @@ func (pl *barPlanner) legendIDError(ctx context.Context, op barOp) error {
 // enforces with 422s: the child needs both dates, cannot nest in itself,
 // and its parked state must equal the container's.
 func (pl *barPlanner) checkNesting(ctx context.Context, op barOp, p map[string]any) error {
-	raw, ok := p["container_bar_id"]
+	parentID, ok := containerID(p)
 	if !ok {
 		return nil
 	}
-	parentID := fmt.Sprint(raw)
 	if !op.create && parentID == op.barID {
 		return fmt.Errorf("bar %s cannot be its own container", op.barID)
 	}
-	starts, ends := p["starts_on"] != nil, p["ends_on"] != nil
-	if !starts || !ends {
-		if op.create {
-			return errors.New("container_bar_id requires starts_on and ends_on: ProductPlan rejects nesting an undated bar (422)")
-		}
-		bar, err := pl.bar(ctx, op.barID)
-		if err != nil {
-			return fmt.Errorf("could not look up bar %s to check its dates for nesting: %w", op.barID, err)
-		}
-		if (!starts && bar.StartsOn == "") || (!ends && bar.EndsOn == "") {
-			return fmt.Errorf("container_bar_id requires bar %s to have starts_on and ends_on; it has none, so pass both dates in the same call", op.barID)
-		}
+	if err := pl.checkNestingDates(ctx, op, p); err != nil {
+		return err
 	}
 	if op.create || p["parked"] != nil {
 		return nil // create inherits the container's parked state in defaultParked
 	}
 	return pl.checkParkedMatches(ctx, op.barID, parentID)
+}
+
+// containerID returns the payload's container_bar_id as a string.
+func containerID(p map[string]any) (string, bool) {
+	raw, ok := p["container_bar_id"]
+	if !ok {
+		return "", false
+	}
+	return fmt.Sprint(raw), true
+}
+
+// checkNestingDates requires a nested bar to end up with both dates, from
+// the payload or, for an update, from the bar as it stands.
+func (pl *barPlanner) checkNestingDates(ctx context.Context, op barOp, p map[string]any) error {
+	starts, ends := p["starts_on"] != nil, p["ends_on"] != nil
+	if starts && ends {
+		return nil
+	}
+	if op.create {
+		return errors.New("container_bar_id requires starts_on and ends_on: ProductPlan rejects nesting an undated bar (422)")
+	}
+	bar, err := pl.bar(ctx, op.barID)
+	if err != nil {
+		return fmt.Errorf("could not look up bar %s to check its dates for nesting: %w", op.barID, err)
+	}
+	if lacksDate(starts, bar.StartsOn) || lacksDate(ends, bar.EndsOn) {
+		return fmt.Errorf("container_bar_id requires bar %s to have starts_on and ends_on; it has none, so pass both dates in the same call", op.barID)
+	}
+	return nil
+}
+
+// lacksDate reports a date the payload does not set and the bar lacks.
+func lacksDate(inPayload bool, existing string) bool {
+	return !inPayload && existing == ""
 }
 
 // checkParkedMatches fails early when an update would nest a bar under a
@@ -187,7 +228,7 @@ func (pl *barPlanner) checkParkedMatches(ctx context.Context, barID, parentID st
 	if err != nil {
 		return fmt.Errorf("could not look up bar %s: %w", barID, err)
 	}
-	if parent.Parked != nil && child.Parked != nil && *parent.Parked != *child.Parked {
+	if boolsConflict(parent.Parked, child.Parked) {
 		return fmt.Errorf("bar %s is parked=%t but container %s is parked=%t, and ProductPlan requires them to match; pass parked:%t in the same call",
 			barID, *child.Parked, parentID, *parent.Parked, *parent.Parked)
 	}
@@ -202,8 +243,7 @@ func (pl *barPlanner) defaultParked(ctx context.Context, op barOp, p map[string]
 	if op.fields.Parked != nil {
 		return nil
 	}
-	if raw, ok := p["container_bar_id"]; ok {
-		parentID := fmt.Sprint(raw)
+	if parentID, ok := containerID(p); ok {
 		parent, err := pl.bar(ctx, parentID)
 		if err != nil {
 			return fmt.Errorf("could not look up container bar %s: %w", parentID, err)
