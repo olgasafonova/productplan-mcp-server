@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bar projection matched a shape the API does not send.** It unmarshalled a bare array where the API returns an envelope, so projection failed and the raw, uncapped bars leaked through; it also read `start_date`/`end_date`/`lane_id`. Bars now project the documented fields: `starts_on`, `ends_on`, `lane_name` (from the bar), `lane_id` (joined from the lane list, never guessed when two lanes share a name), `legend`, `tags`, `percent_done`, `is_container`, `parked`. Description and custom fields stay behind `get_bar`.
 - **List summaries were missing for most list tools.** `FormatList` only understood bare arrays, so enveloped and api-projected payloads passed through with no summary, no `No <items> found` message and, for raw envelopes, no 50-item cap (Article V). Both shapes are now summarised and capped. Plurals are fixed (`opportunities`, `launches`).
 - **Projections picked fields that do not exist.** Lanes: `color` replaced by `description` and `position`. Milestones: `title` (was `name`). Launches: `launch_date` (was `date`) plus `progress`. Objectives: `risk_status`, `start_date`, `end_date`, `key_results_count` (was `status`, `time_frame`). Tool descriptions for `get_roadmap_lanes`, `get_roadmap_legends`, `list_ideas`, `list_launches` and `list_objectives` now name what is returned.
+- **`manage_lane` sent `color`, which the lane endpoints do not accept.** `POST`/`PATCH /roadmaps/{id}/lanes` take `name`, `description` and `position` only. `manage_lane` now sends those three (`description` and `position` are new arguments); `color` stays declared but is rejected with an explanation instead of being sent and ignored.
+- **`api.IsNotFound` matched message text.** `handleResponse` flattened `*productplan.APIError` with `%s` when appending a suggestion; it now wraps with `%w` (same message) and `IsNotFound` uses `errors.As` only.
 
 ### Added
 
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get_roadmap` description now points agents at the embedded `custom_text_fields` and `custom_dropdown_fields` (with `allowed_values`) that bar writes are validated against.
 - **Filters on list tools, no new tools.** One table in `internal/tools/filters.go` maps friendly args to ProductPlan `q[...]` predicates and generates the schema and sort allowlist. Server-side: `get_roadmap_bars` (`name_contains`, `starts_after`, `starts_before`, `ends_after`, `ends_before`, `is_container`, `sort`), `list_roadmaps` (`name_contains`, `sort`), `list_ideas` (`name_contains`, `channel`, `sort`), `list_opportunities` (`problem_contains`, `workflow_status`, `sort`), `list_launches` (`name_contains`, `status`, `launch_after`, `launch_before`, `sort`). Client-side on `get_roadmap_bars`, applied before the 50-item cap: `lane` (name or ID), `legend`, `tag`. Dates must be real `YYYY-MM-DD` dates; an unknown sort field errors with the allowed list; an empty filtered result reads `No <items> matched the filters`.
 - **In-process read cache.** GETs are cached per path+query for 60s (`PRODUCTPLAN_CACHE_TTL`: `90s`, `2m`, or seconds; `0` disables; a malformed value is refused at startup). Concurrent identical GETs share one upstream call. Any POST, PATCH or DELETE clears the whole cache, success or not, and an in-flight read that straddles a write is never stored. `check_status` bypasses the cache. `health_check` reports `cache.{enabled, ttl_seconds, entries, hits, misses, coalesced, invalidations}`.
+- **Recovered panics carry a reference.** A panicking tool now returns `internal error in <tool> (ref <16 hex>)`, and the same ref is logged with the panic value and stack. The panic value still never reaches the caller.
 
 ### Changed
 
@@ -37,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Bars and lanes are fetched concurrently**, and `get_roadmap_complete`'s duplicate lanes fetch collapses to one call. Against a server sleeping 20ms per request, `BenchmarkGetRoadmapComplete` measures about 22ms/op for the handler against 108ms/op for the same calls made sequentially.
 - **Tuned HTTP transport.** One transport per client, cloned from `http.DefaultTransport`, with HTTP/2 forced, 16 idle connections per host (stdlib default: 2), 90s idle timeout and a 10s TLS handshake timeout. Redirect refusal is unchanged.
 - `golang.org/x/sync` is now a direct dependency (`errgroup`, `singleflight`); it was already in `go.sum` as indirect.
+- **Unknown argument keys are rejected.** A tool call carrying a key its schema does not declare now fails before any API request, naming the key, suggesting the closest declared one (edit distance 2 or less) and listing the valid arguments. Previously such keys were silently ignored, so a caller relying on that will now get an error.
+- Internal refactors: CodeScene Code Health is 10.0 on every production file except eight whose remaining finding is string-typed arguments on ID, message or schema-builder APIs (9.38-9.68). Behaviour is unchanged and pinned by the existing tests.
 
 ### Infrastructure
 
@@ -45,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - golangci-lint v2.7.2 → v2.13.2
 - Release builds on Go 1.27.x; Docker builder image `golang:1.25-alpine` → `golang:1.27-alpine`
 - Committed `server.json` snapshot refreshed from 4.8.2 to 5.1.0, with checksums verified against the v5.1.0 release assets
+- Docker runtime image `alpine:3.20` (out of security support since 01-04-2026) → `alpine:3.24`
+- New tests: every advertised tool has a handler and no constructor is orphaned; every tool schema declares every argument its handler reads; the missing-token startup exit; the README tool reference against `BuildAllTools`
 
 ### Dependencies
 
