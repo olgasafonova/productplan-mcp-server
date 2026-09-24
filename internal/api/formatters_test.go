@@ -248,6 +248,14 @@ func TestFormatMilestones(t *testing.T) {
 	if _, ok := parsed.Milestones[0]["description"]; ok {
 		t.Error("description should be filtered out")
 	}
+	// Legacy "name" falls back into the documented "title".
+	if parsed.Milestones[0]["title"] != "Launch" {
+		t.Errorf("expected title 'Launch', got %v", parsed.Milestones[0]["title"])
+	}
+	documented := FormatMilestones(json.RawMessage(`[{"id": 3, "title": "GA", "date": "2026-10-01", "location_type": "roadmap"}]`))
+	if err := json.Unmarshal(documented, &parsed); err != nil || parsed.Milestones[0]["title"] != "GA" {
+		t.Errorf("documented milestone shape: %s", documented)
+	}
 }
 
 func TestFormatMilestonesInvalidJSON(t *testing.T) {
@@ -260,8 +268,8 @@ func TestFormatMilestonesInvalidJSON(t *testing.T) {
 
 func TestFormatObjectives(t *testing.T) {
 	input := `[
-		{"id": 1, "name": "Increase Revenue", "status": "on_track", "time_frame": "Q1 2024", "description": "ignored"},
-		{"id": 2, "name": "Improve NPS", "status": "at_risk", "time_frame": "Q2 2024"}
+		{"id": 1, "name": "Increase Revenue", "risk_status": "on_track", "start_date": "2024-01-01", "end_date": "2024-03-31", "key_results_count": 3, "description": "ignored"},
+		{"id": 2, "name": "Improve NPS", "risk_status": "at_risk", "start_date": "2024-04-01", "end_date": "2024-06-30", "key_results_count": 1}
 	]`
 
 	result := FormatObjectives(json.RawMessage(input))
@@ -285,11 +293,11 @@ func TestFormatObjectives(t *testing.T) {
 
 	// Verify fields
 	obj := parsed.Objectives[0]
-	if obj["status"] != "on_track" {
-		t.Errorf("expected status 'on_track', got %v", obj["status"])
+	if obj["risk_status"] != "on_track" {
+		t.Errorf("expected risk_status 'on_track', got %v", obj["risk_status"])
 	}
-	if obj["time_frame"] != "Q1 2024" {
-		t.Errorf("expected time_frame 'Q1 2024', got %v", obj["time_frame"])
+	if obj["start_date"] != "2024-01-01" || obj["key_results_count"] != float64(3) {
+		t.Errorf("expected documented dates and key_results_count, got %v", obj)
 	}
 }
 
@@ -433,6 +441,9 @@ func TestFormatLaunches(t *testing.T) {
 	launch := parsed.Launches[0]
 	if launch["status"] != "planned" {
 		t.Errorf("expected status 'planned', got %v", launch["status"])
+	}
+	if launch["launch_date"] != "2024-06-01" {
+		t.Errorf("expected legacy date to fill launch_date, got %v", launch["launch_date"])
 	}
 	if _, ok := launch["description"]; ok {
 		t.Error("description should be filtered out")

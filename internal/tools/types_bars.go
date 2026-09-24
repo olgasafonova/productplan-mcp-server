@@ -89,7 +89,7 @@ func (f BarFields) requireLane() error {
 // valid legend names by the handler, which has the client to fetch them.
 var errLegendID = errors.New("legend_id is not supported: ProductPlan treats legend_id as a request to CLEAR the bar's color, so it is never forwarded. Pass `legend` with the legend name instead")
 
-var datePattern = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+var dateRegexp = regexp.MustCompile(datePattern)
 
 // payload translates the fields into the documented BarCreate/BarUpdate
 // contract, rejecting inputs the API would ignore, misread, or 422 on.
@@ -172,7 +172,7 @@ func (f BarFields) checkValues() error {
 		return fmt.Errorf("clear_legend:true contradicts legend:%q; pass one or the other", *f.Legend)
 	}
 	for _, d := range []fieldCheck{{f.StartsOn, "starts_on"}, {f.EndsOn, "ends_on"}} {
-		if d.value != "" && !datePattern.MatchString(d.value) {
+		if d.value != "" && !dateRegexp.MatchString(d.value) {
 			return fmt.Errorf("%s must be YYYY-MM-DD, got %q", d.name, d.value)
 		}
 	}

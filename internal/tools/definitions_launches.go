@@ -20,7 +20,7 @@ func launchCoreTools() []mcp.Tool {
 
 USE WHEN: "Show launches", "Release schedule", "Launches this quarter"
 Optional server-side filters: name_contains (case-insensitive), status (exact), launch_after/launch_before (YYYY-MM-DD, inclusive); sort ("launch_date asc").
-Returns array of launches with ID, name, date, and status.
+Returns array of launches with ID, name, launch_date, status, and progress.
 FAILS WHEN: API token invalid; a date is not YYYY-MM-DD; sort names a field outside the allowed list (the error lists them). Returns empty list if no launches exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",

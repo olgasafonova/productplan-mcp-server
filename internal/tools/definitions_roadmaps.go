@@ -116,7 +116,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 
 USE WHEN: "What colors are available?", "Show the legend", "Which legend can I color bars with?"
 Returns an array of legend names. The ProductPlan API exposes legends by name only: there is no legend ID or hex color to return. Pass a name as ` + "`legend`" + ` on manage_bar, bulk_update_bars, or bulk_create_bars to color a bar.
-For custom field definitions (labels, dropdown allowed_values), use get_roadmap instead.
+For custom field definitions (labels, dropdown allowed_values), use get_roadmap instead. To find bars by legend, use get_roadmap_bars with legend.
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
