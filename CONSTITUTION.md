@@ -84,7 +84,7 @@ The description is the only thing an agent reads before deciding whether to call
 
 Descriptions follow the established shape: a first line stating what the tool does, a `USE WHEN` clause with example phrasings, and where a confusable sibling exists, a cross-reference of the form "For X, use `other_tool` instead" (`check_status` vs `health_check`, `list_users` vs `list_teams`, and their kin). Every one of the 50 descriptions carries a `USE WHEN` clause today (verified by count across `internal/tools/definitions*.go`). Those cross-references are load-bearing disambiguation and MUST NOT be dropped when a description is shortened; removing one, or renaming a tool, is a breaking change under Article XIII whatever happened to the code behind it.
 
-The evidence that the distinctions are subtle enough to lose in an edit is the eval suite: `evals/confusion_pairs.json` pins 13 confusable pairs across 52 tests, alongside 83 tool-selection tests and 33 argument-correctness tests.
+The evidence that the distinctions are subtle enough to lose in an edit is the eval suite: `evals/confusion_pairs.json` pins 14 confusable pairs across 56 tests, alongside 88 tool-selection tests and 36 argument-correctness tests (counts as of 6.0.0; the 14th pair is `manage_bar` vs `bulk_update_bars`).
 
 **Enforcement: partially mechanical.** `TestBuildAllToolsHaveDescriptions` checks non-emptiness only. The eval suites are load-validated and count-checked by `evals/runner_test.go` under `go test ./...` in CI. Nothing checks that a description edit preserved its `USE WHEN` clause or its cross-references.
 
@@ -142,9 +142,9 @@ The released binary, the tool set, and every tool's arguments are versioned arti
 
 On this server, "breaking" means what the 5.0.0 entry already treated as major-worthy: removing a tool, renaming a tool or an argument field, removing an action from a `manage_*` tool's enum, changing an argument's type, making an optional argument required, or the description changes named in Article VII. Adding a tool or an optional argument with behaviour-preserving defaults is not breaking.
 
-Every user-visible change is recorded in `CHANGELOG.md` in Keep a Changelog format. The existing entries set the standard: 5.1.0 names the grep that proved the annotation gap, 5.0.1 names the file and line the raw body leaked through. The registry pipeline builds `server.json` fresh at publish time with checksums computed from the actual release assets; the `server.json` committed at the repo root is a snapshot the pipeline does not consume (refreshed to 5.1.0 on 24-09-2026, checksums matched to the v5.1.0 release assets).
+Every user-visible change is recorded in `CHANGELOG.md` in Keep a Changelog format. The existing entries set the standard: 5.1.0 names the grep that proved the annotation gap, 5.0.1 names the file and line the raw body leaked through. The registry pipeline builds `server.json` fresh at publish time with checksums computed from the actual release assets; the `server.json` committed at the repo root is a snapshot the pipeline does not consume (refreshed to 6.0.0 on 24-09-2026, checksums matched to the v6.0.0 release assets).
 
-Standing violation, named rather than hidden: the go-sdk migration (PRs #54-#58, August 2026), a protocol-layer replacement, is still not recorded in `CHANGELOG.md`. An `[Unreleased]` section now exists (24-09-2026) and covers the SDK 1.8 upgrade, the bar contract fix and the read-path work, but not the migration itself. Recording it is owed before the next release.
+The standing violation this article used to name, the go-sdk migration (PRs #54-#58, August 2026) missing from `CHANGELOG.md`, was resolved in the 6.0.0 entry (24-09-2026).
 
 **Enforcement: none.** No CI job checks that a pull request touching `internal/tools/definitions*.go` also touched `CHANGELOG.md`, and the gap above shows the discipline is real but fallible.
 
@@ -190,3 +190,4 @@ API tokens and secrets MUST NOT be committed anywhere in this repository: not in
 |------|--------|
 | 27-08-2026 | Ratified. Fourteen articles, adapted from the `CONSTITUTION.md` in `gridctl/gridctl` (Apache-2.0, github.com/gridctl/gridctl). |
 | 24-09-2026 | Amendment 1. Article VI now requires unknown tool arguments to be refused (closing its named gap). Articles I and II record their closed gaps (handler-map walk test, panic correlation ID). Article III adds `CacheStats` to the exhaustive exemption list. Article IX records that typed IDs make path validation compiler-enforced. Articles I, VII, X, XII and XIII updated to 50 tools, go-sdk v1.8.0 `SetCacheable`, the refreshed `server.json`, the Go 1.26/1.27 test matrix and golangci-lint v2.13.2. |
+| 24-09-2026 | Amendment 2. Article VII eval counts brought to 6.0.0 (14 pairs, 56, 88 and 36 tests). Article XII records the `server.json` refresh to 6.0.0 and that its named standing violation, the missing go-sdk migration entry, is resolved. |
