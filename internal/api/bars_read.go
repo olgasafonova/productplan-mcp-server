@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -72,62 +73,83 @@ func (c *Client) GetRoadmapBarsWhere(ctx context.Context, id string, q Query, f 
 		warnings = append(warnings, "lane lookup failed, so lane_id may be missing: "+lanesErr.Error())
 		lanes = nil
 	}
-	return formatBars(bars, lanes, f, !q.IsZero(), warnings), nil
+	return barListing{lanes: lanes, filter: f, serverFiltered: !q.IsZero(), warnings: warnings}.format(bars), nil
 }
 
 // FormatBarsWithContext projects bars and enriches them from the lane list.
 // An unparseable lane list only loses the enrichment, never the bars.
 func FormatBarsWithContext(bars json.RawMessage, lanes json.RawMessage) json.RawMessage {
-	return formatBars(bars, lanes, BarFilter{}, false, nil)
+	return barListing{lanes: lanes}.format(bars)
 }
 
-// formatBars filters, caps and projects bars. serverFiltered records that a
-// q[...] filter was sent, so an empty result reads "matched the filters"
-// rather than "no bars exist".
-func formatBars(bars, lanes json.RawMessage, f BarFilter, serverFiltered bool, warnings []string) json.RawMessage {
+// barListing is everything besides the bars that shapes a bar list
+// response: the lane list for enrichment, the client-side filter, whether a
+// q[...] filter was sent (so an empty result reads "matched the filters"
+// rather than "no bars exist"), and warnings to surface.
+type barListing struct {
+	lanes          json.RawMessage
+	filter         BarFilter
+	serverFiltered bool
+	warnings       []string
+}
+
+// format filters, caps and projects bars.
+func (l barListing) format(bars json.RawMessage) json.RawMessage {
 	items, pg, ok := unmarshalList(bars)
 	if !ok {
 		return bars
 	}
-	idx := newLaneIndex(lanes)
-
-	matched := items
-	if !f.IsZero() {
-		matched = make([]map[string]any, 0, len(items))
-		for _, bar := range items {
-			if f.matches(bar, idx) {
-				matched = append(matched, bar)
-			}
-		}
-	}
-
-	capped, total, truncated := capList(matched)
-	results := make([]map[string]any, 0, len(capped))
-	for _, bar := range capped {
-		results = append(results, projectBar(bar, idx))
-	}
-
+	idx := newLaneIndex(l.lanes)
+	capped, total, truncated := capList(l.filter.apply(items, idx))
 	payload := map[string]any{
-		"count": len(results),
+		"count": len(capped),
 		"total": total,
-		"bars":  results,
+		"bars":  projectBars(capped, idx),
 	}
-	if truncated {
-		payload["truncated"] = true
-	}
-	if serverFiltered || !f.IsZero() {
-		payload["filtered"] = true
-	}
-	if !f.IsZero() {
-		payload["scanned"] = len(items)
-	}
-	if len(warnings) > 0 {
-		payload["warnings"] = warnings
-	}
+	l.annotate(payload, truncated, len(items))
 	markIncomplete(payload, pg)
 
 	output, _ := json.Marshal(payload)
 	return output
+}
+
+// annotate adds the truncated, filtered, scanned and warnings markers.
+func (l barListing) annotate(payload map[string]any, truncated bool, scanned int) {
+	if truncated {
+		payload["truncated"] = true
+	}
+	if l.serverFiltered || !l.filter.IsZero() {
+		payload["filtered"] = true
+	}
+	if !l.filter.IsZero() {
+		payload["scanned"] = scanned
+	}
+	if len(l.warnings) > 0 {
+		payload["warnings"] = l.warnings
+	}
+}
+
+// apply returns the bars the filter matches (all of them for a zero filter).
+func (f BarFilter) apply(items []map[string]any, idx laneIndex) []map[string]any {
+	if f.IsZero() {
+		return items
+	}
+	matched := make([]map[string]any, 0, len(items))
+	for _, bar := range items {
+		if f.matches(bar, idx) {
+			matched = append(matched, bar)
+		}
+	}
+	return matched
+}
+
+// projectBars projects each bar to the fields agents act on.
+func projectBars(bars []map[string]any, idx laneIndex) []map[string]any {
+	results := make([]map[string]any, 0, len(bars))
+	for _, bar := range bars {
+		results = append(results, projectBar(bar, idx))
+	}
+	return results
 }
 
 // laneIndex joins bars to lanes in both directions.
@@ -244,30 +266,33 @@ func projectBar(bar map[string]any, idx laneIndex) map[string]any {
 
 // matches applies the client-side filter to one bar.
 func (f BarFilter) matches(bar map[string]any, idx laneIndex) bool {
-	if f.Lane != "" {
-		name, id := barLane(bar, idx)
-		idStr := ""
-		if n, ok := id.(float64); ok {
-			idStr = strconv.FormatFloat(n, 'f', -1, 64)
-		}
-		if !strings.EqualFold(name, f.Lane) && idStr != strings.TrimSpace(f.Lane) {
-			return false
-		}
+	return f.laneMatches(bar, idx) && f.legendMatches(bar) && f.tagMatches(bar)
+}
+
+// laneMatches accepts the bar's lane by name or by numeric lane id.
+func (f BarFilter) laneMatches(bar map[string]any, idx laneIndex) bool {
+	if f.Lane == "" {
+		return true
 	}
-	if f.Legend != "" && !strings.EqualFold(barLegend(bar), f.Legend) {
-		return false
+	name, id := barLane(bar, idx)
+	return strings.EqualFold(name, f.Lane) || laneIDString(id) == strings.TrimSpace(f.Lane)
+}
+
+// laneIDString renders a JSON-number lane id, or "" for anything else.
+func laneIDString(id any) string {
+	if n, ok := id.(float64); ok {
+		return strconv.FormatFloat(n, 'f', -1, 64)
 	}
-	if f.Tag != "" {
-		found := false
-		for _, t := range barTags(bar) {
-			if strings.EqualFold(t, f.Tag) {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	return ""
+}
+
+func (f BarFilter) legendMatches(bar map[string]any) bool {
+	return f.Legend == "" || strings.EqualFold(barLegend(bar), f.Legend)
+}
+
+func (f BarFilter) tagMatches(bar map[string]any) bool {
+	if f.Tag == "" {
+		return true
 	}
-	return true
+	return slices.ContainsFunc(barTags(bar), func(t string) bool { return strings.EqualFold(t, f.Tag) })
 }

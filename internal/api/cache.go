@@ -122,19 +122,31 @@ func (c *readCache) get(ctx context.Context, key string, fetch func(context.Cont
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-
-	c.mu.Lock()
-	if e, ok := c.entries[key]; ok && c.now().Before(e.expires) {
-		c.mu.Unlock()
-		c.hits.Add(1)
-		return cloneBytes(e.data), nil
+	data, gen, hit := c.lookup(key)
+	if hit {
+		return data, nil
 	}
-	gen := c.gen
-	c.mu.Unlock()
-	c.misses.Add(1)
+	return awaitShared(ctx, c.fetchShared(ctx, key, gen, fetch))
+}
 
+// lookup returns a fresh cached copy of key, or the current generation for
+// a fetch to store under, counting the hit or miss.
+func (c *readCache) lookup(key string) (json.RawMessage, uint64, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if e, ok := c.entries[key]; ok && c.now().Before(e.expires) {
+		c.hits.Add(1)
+		return cloneBytes(e.data), 0, true
+	}
+	c.misses.Add(1)
+	return nil, c.gen, false
+}
+
+// fetchShared joins or starts the single in-flight fetch for key in this
+// generation. The fetch runs detached from ctx's cancellation.
+func (c *readCache) fetchShared(ctx context.Context, key string, gen uint64, fetch func(context.Context) (json.RawMessage, error)) <-chan singleflight.Result {
 	flightKey := strconv.FormatUint(gen, 10) + "|" + key
-	ch := c.group.DoChan(flightKey, func() (any, error) {
+	return c.group.DoChan(flightKey, func() (any, error) {
 		c.fetches.Add(1)
 		data, err := fetch(context.WithoutCancel(ctx))
 		if err != nil {
@@ -143,7 +155,11 @@ func (c *readCache) get(ctx context.Context, key string, fetch func(context.Cont
 		c.store(key, gen, data)
 		return []byte(data), nil
 	})
+}
 
+// awaitShared waits for the shared fetch or the caller's own cancellation,
+// whichever comes first, and returns a private copy of the body.
+func awaitShared(ctx context.Context, ch <-chan singleflight.Result) (json.RawMessage, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()

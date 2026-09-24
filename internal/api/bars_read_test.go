@@ -130,7 +130,7 @@ func TestFormatBars_ClientSideFilters(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			out := formatBars(json.RawMessage(bars), json.RawMessage(lanes), tc.f, false, nil)
+			out := barListing{lanes: json.RawMessage(lanes), filter: tc.f}.format(json.RawMessage(bars))
 			var parsed struct {
 				Count    int              `json:"count"`
 				Scanned  int              `json:"scanned"`
@@ -168,7 +168,7 @@ func TestFormatBars_FilterBeforeCap(t *testing.T) {
 		fmt.Fprintf(&sb, `{"id": %d, "name": "b%d", "lane": "L", "tags": [%q]}`, i, i, tag)
 	}
 	sb.WriteByte(']')
-	out := formatBars(json.RawMessage(sb.String()), nil, BarFilter{Tag: "late"}, false, nil)
+	out := barListing{filter: BarFilter{Tag: "late"}}.format(json.RawMessage(sb.String()))
 	var parsed struct {
 		Count int  `json:"count"`
 		Trunc bool `json:"truncated"`

@@ -122,20 +122,50 @@ func (c *Client) GetList(ctx context.Context, endpoint string, q Query) (json.Ra
 		return nil, err
 	}
 	env, ok := parseEnvelope(first)
-	if !ok || env.Paging == nil || env.Paging.PageCount <= 1 {
+	if !ok || !env.Paging.multiPage() {
 		return first, nil
 	}
 
-	pageCount := env.Paging.PageCount
-	fetch := min(pageCount, maxListPages)
-	pages := make([][]json.RawMessage, fetch)
-	pages[0] = env.Results
+	lf := listFetch{client: c, endpoint: endpoint, query: q, first: env}
+	pages, err := lf.pages(ctx)
+	if err != nil {
+		c.logger.Error("paginated list fetch failed", logging.Endpoint(endpoint), logging.Error(err))
+		return nil, fmt.Errorf("list %s: %w", endpoint, err)
+	}
+	lf.warnIfCapped()
+	return json.Marshal(lf.merge(pages))
+}
+
+// multiPage reports whether the collection spans more than one page.
+func (p *paging) multiPage() bool {
+	return p != nil && p.PageCount > 1
+}
+
+// listFetch is one multi-page GetList in progress, seeded with page 1.
+type listFetch struct {
+	client   *Client
+	endpoint string
+	query    Query
+	first    pagedEnvelope
+}
+
+// fetchCount is how many pages will be fetched: all, up to maxListPages.
+func (lf listFetch) fetchCount() int {
+	return min(lf.first.Paging.PageCount, maxListPages)
+}
+
+// pages fetches pages 2..fetchCount with bounded concurrency and returns
+// every page's results in order. Any page failing fails the whole fetch.
+func (lf listFetch) pages(ctx context.Context) ([][]json.RawMessage, error) {
+	pageCount := lf.first.Paging.PageCount
+	pages := make([][]json.RawMessage, lf.fetchCount())
+	pages[0] = lf.first.Results
 
 	g, gctx := errgroup.WithContext(ctx)
 	g.SetLimit(pageFetchConcurrency)
-	for p := 2; p <= fetch; p++ {
+	for p := 2; p <= len(pages); p++ {
 		g.Go(func() error {
-			data, err := c.Get(gctx, listURL(endpoint, q, p))
+			data, err := lf.client.Get(gctx, listURL(lf.endpoint, lf.query, p))
 			if err != nil {
 				return fmt.Errorf("page %d of %d: %w", p, pageCount, err)
 			}
@@ -147,32 +177,38 @@ func (c *Client) GetList(ctx context.Context, endpoint string, q Query) (json.Ra
 			return nil
 		})
 	}
-	if err := g.Wait(); err != nil {
-		c.logger.Error("paginated list fetch failed", logging.Endpoint(endpoint), logging.Error(err))
-		return nil, fmt.Errorf("list %s: %w", endpoint, err)
-	}
+	return pages, g.Wait()
+}
 
-	if fetch < pageCount {
-		c.logger.Warn("paginated list capped",
-			logging.Endpoint(endpoint),
-			logging.F("page_count", pageCount),
-			logging.F("pages_fetched", fetch),
-			logging.F("record_count", env.Paging.RecordCount),
-		)
+// warnIfCapped logs when maxListPages stopped the fetch early.
+func (lf listFetch) warnIfCapped() {
+	pg := lf.first.Paging
+	if lf.fetchCount() >= pg.PageCount {
+		return
 	}
+	lf.client.logger.Warn("paginated list capped",
+		logging.Endpoint(lf.endpoint),
+		logging.F("page_count", pg.PageCount),
+		logging.F("pages_fetched", lf.fetchCount()),
+		logging.F("record_count", pg.RecordCount),
+	)
+}
 
+// merge concatenates the pages into one envelope whose paging records how
+// many pages were fetched.
+func (lf listFetch) merge(pages [][]json.RawMessage) pagedEnvelope {
 	var all []json.RawMessage
 	for _, page := range pages {
 		all = append(all, page...)
 	}
-	merged := pagedEnvelope{
+	pg := lf.first.Paging
+	return pagedEnvelope{
 		Results: all,
 		Paging: &paging{
-			RecordCount:  env.Paging.RecordCount,
-			PageCount:    pageCount,
-			PageSize:     env.Paging.PageSize,
-			PagesFetched: fetch,
+			RecordCount:  pg.RecordCount,
+			PageCount:    pg.PageCount,
+			PageSize:     pg.PageSize,
+			PagesFetched: lf.fetchCount(),
 		},
 	}
-	return json.Marshal(merged)
 }

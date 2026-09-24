@@ -72,23 +72,30 @@ func ParseBarWriteSchema(roadmapID string, data json.RawMessage) (*BarWriteSchem
 func nameList(entries []json.RawMessage, keys ...string) []string {
 	names := make([]string, 0, len(entries))
 	for _, raw := range entries {
-		var s string
-		if err := json.Unmarshal(raw, &s); err == nil {
-			names = append(names, s)
-			continue
-		}
-		var obj map[string]any
-		if err := json.Unmarshal(raw, &obj); err != nil {
-			continue
-		}
-		for _, k := range keys {
-			if v, ok := obj[k].(string); ok && v != "" {
-				names = append(names, v)
-				break
-			}
+		if name, ok := entryName(raw, keys); ok {
+			names = append(names, name)
 		}
 	}
 	return names
+}
+
+// entryName reads one entry as a bare string or as an object's first
+// non-empty string among keys.
+func entryName(raw json.RawMessage, keys []string) (string, bool) {
+	var s string
+	if err := json.Unmarshal(raw, &s); err == nil {
+		return s, true
+	}
+	var obj map[string]any
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		return "", false
+	}
+	for _, k := range keys {
+		if v, ok := obj[k].(string); ok && v != "" {
+			return v, true
+		}
+	}
+	return "", false
 }
 
 // BarSummary is the subset of a bar that write pre-checks need.
