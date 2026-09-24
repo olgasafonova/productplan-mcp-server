@@ -123,7 +123,7 @@ func TestFilterPropertiesMatchTable(t *testing.T) {
 		if !props["sort"] {
 			t.Errorf("%s: sort missing from schema", tool)
 		}
-		re := regexp.MustCompile(sortPattern(spec.sortFields))
+		re := regexp.MustCompile(spec.sortPattern())
 		for _, f := range spec.sortFields {
 			if !re.MatchString(f) || !re.MatchString(f+" desc") {
 				t.Errorf("%s: sort pattern rejects allowed field %s", tool, f)
