@@ -148,13 +148,13 @@ Commands:
 Environment:
   PRODUCTPLAN_API_TOKEN                Your ProductPlan API token (required)
 
-Design (v4.2):
-  - 24 granular READ tools (no params needed for lists)
-  - 12 consolidated WRITE tools (action-based)
-  - Bar relationships: children, comments, connections, links
-  - Discovery module: ideas CRUD, customers, tags, opportunities, idea forms
-  - Enriched responses (bars include lane names)
-  - Clear tool descriptions for AI decision-making
+  PRODUCTPLAN_CACHE_TTL                Read cache lifetime, e.g. 60s or 2m (default 60s, 0 disables)
+
+MCP server (run with no command): 50 tools
+  - 35 READ tools, with filters on list tools (name, dates, lane, legend, tag, sort)
+  - 12 action-based manage_* WRITE tools
+  - 3 bulk bar tools: bulk_update_bars, bulk_create_bars, bulk_delete_bars
+  - Bars are colored by legend name (see get_roadmap_legends)
 
 `, c.version)
 }

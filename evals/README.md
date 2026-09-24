@@ -7,25 +7,25 @@ This directory contains evaluation test suites for validating LLM tool selection
 ### 1. Tool Selection (`tool_selection.json`)
 Tests that the correct tool is selected for various natural language prompts.
 
-- **69 tests** covering all ProductPlan operations
+- **88 tests** covering all ProductPlan operations, including the bulk bar tools
 - Categories: roadmaps, bars, lanes, milestones, objectives, ideas, opportunities, launches, status, create, update, delete
 - Difficulty levels: easy, medium, hard
 
 ### 2. Confusion Pairs (`confusion_pairs.json`)
 Tests for distinguishing between commonly confused tools.
 
-- **10 tool pairs** with disambiguation guidance
-- **40 tests** for subtle distinctions
+- **14 tool pairs** with disambiguation guidance
+- **56 tests** for subtle distinctions
 - Examples:
   - `list_roadmaps` vs `get_roadmap`
   - `get_roadmap` vs `get_roadmap_bars`
-  - `get_bar_comments` vs `manage_bar_comment`
+  - `manage_bar` vs `bulk_update_bars`
   - `list_ideas` vs `list_opportunities`
 
 ### 3. Argument Correctness (`argument_correctness.json`)
 Tests that arguments are correctly extracted from natural language.
 
-- **25 tests** for argument extraction
+- **36 tests** for argument extraction
 - Validates required args, expected values
 - Covers IDs, dates, names, actions, and nested parameters
 

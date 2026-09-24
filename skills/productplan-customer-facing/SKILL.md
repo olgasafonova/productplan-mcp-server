@@ -100,11 +100,7 @@ Call `manage_idea` with action="create", title, description to capture:
 
 ### Add customer to existing idea
 
-If the idea already exists:
-1. Get idea_id from `list_ideas`
-2. Call `manage_idea_customer` with action="add", idea_id, customer_name, customer_email
-
-This increases vote count and links the customer for follow-up.
+If the idea already exists, find it with `list_ideas` and give the user its link. Adding the customer to it (which raises its vote count) is not possible through the tools: the ProductPlan API has no endpoint for it, so do it in the ProductPlan UI.
 
 ## Presentation Patterns
 
@@ -151,7 +147,7 @@ For specific customer questions:
 - `list_ideas` - check for existing requests
 - `get_idea` - idea details and votes
 - `manage_idea` - log new request (action="create")
-- `manage_idea_customer` - link customer to idea (action="add")
+- `list_all_customers` - customers already on the account
 
 ### System
 - `check_status` - verify access before customer call
