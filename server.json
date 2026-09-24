@@ -8,11 +8,11 @@
     "url": "https://github.com/olgasafonova/productplan-mcp-server",
     "source": "github"
   },
-  "version": "4.8.2",
+  "version": "5.1.0",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/olgasafonova/productplan-mcp-server:4.8.2",
+      "identifier": "ghcr.io/olgasafonova/productplan-mcp-server:5.1.0",
       "transport": {"type": "stdio"},
       "environmentVariables": [
         {
@@ -25,9 +25,9 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.2/productplan-mcp-server-darwin-arm64.mcpb",
-      "version": "4.8.2",
-      "fileSha256": "dbc9c20d4798141c0d5041704de44bb3b3fe8eae26bc8a0d59bb9df17e0d03ce",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v5.1.0/productplan-mcp-server-darwin-arm64.mcpb",
+      "version": "5.1.0",
+      "fileSha256": "91a481598c0992395e9405e43bfe409ec9e6b1f96949aa94c9eeedb092f7424d",
       "transport": {"type": "stdio"},
       "environmentVariables": [
         {
@@ -40,9 +40,9 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.2/productplan-mcp-server-darwin-amd64.mcpb",
-      "version": "4.8.2",
-      "fileSha256": "785b97f1673a3e7a90c52e7c1ab0d4cbf6558382f42a0ceb109ddb3452049325",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v5.1.0/productplan-mcp-server-darwin-amd64.mcpb",
+      "version": "5.1.0",
+      "fileSha256": "fe579407f1a0b1b1c56e368a5e6d2e1083790b8f82fa2d222bc7ea37e31bb971",
       "transport": {"type": "stdio"},
       "environmentVariables": [
         {
@@ -55,9 +55,9 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.2/productplan-mcp-server-linux-amd64.mcpb",
-      "version": "4.8.2",
-      "fileSha256": "f451411f7b028034af756633e49300c983ac97c0937735029b445cbe5a0efa24",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v5.1.0/productplan-mcp-server-linux-amd64.mcpb",
+      "version": "5.1.0",
+      "fileSha256": "1f21cc841d3e1a68995ebbbbd34bf5ca60fa52aff4da33a18e9ef969f140c65c",
       "transport": {"type": "stdio"},
       "environmentVariables": [
         {
@@ -70,9 +70,9 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.2/productplan-mcp-server-linux-arm64.mcpb",
-      "version": "4.8.2",
-      "fileSha256": "d567a63fe1a8fc16bef69b45f808d001076b222cbeed9af83246d1de61e3d191",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v5.1.0/productplan-mcp-server-linux-arm64.mcpb",
+      "version": "5.1.0",
+      "fileSha256": "e3e692a37bb706d9922afa9c678f890fb3a7b0d74e52b58435e76921458c052c",
       "transport": {"type": "stdio"},
       "environmentVariables": [
         {
@@ -85,9 +85,9 @@
     },
     {
       "registryType": "mcpb",
-      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v4.8.2/productplan-mcp-server-windows-amd64.mcpb",
-      "version": "4.8.2",
-      "fileSha256": "6a3bd76dd921964117ecda9fc51a24f7745966bc07e66220adbf3dd2adf2209a",
+      "identifier": "https://github.com/olgasafonova/productplan-mcp-server/releases/download/v5.1.0/productplan-mcp-server-windows-amd64.mcpb",
+      "version": "5.1.0",
+      "fileSha256": "e955772ecd847a2c8d74a617942749c1600113401e96f1bddda06de7f9576340",
       "transport": {"type": "stdio"},
       "environmentVariables": [
         {

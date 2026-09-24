@@ -5,6 +5,23 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **SEP-2549 cache hints now set through the SDK's own hook.** go-sdk v1.8.0 added `ServerOptions.SetCacheable`, which replaces the `mcpcache` receiving middleware used on v1.7.0 to work around the SDK leaving `ttlMs` at 0 ("immediately stale"). Wire behaviour is unchanged: `tools/list` and `server/discover` still advertise a 30-minute `ttlMs` with `cacheScope: "public"`. The `github.com/olgasafonova/mcp-cache-go` dependency is dropped.
+- **Minimum Go version is now 1.26.** `go.mod` declares `go 1.26.0`, the oldest supported release line; Go 1.25 is out of support.
+
+### Infrastructure
+- CI runs race tests on a Go 1.26.x / 1.27.x matrix (new `test` job, gated through `all-checks`); `check`, `security` and `build` run on 1.27.x
+- `govulncheck` back on `@latest` (v1.8.0), removing the v1.7.0 pin that the 1.25 runner forced
+- golangci-lint v2.7.2 → v2.13.2
+- Release builds on Go 1.27.x; Docker builder image `golang:1.25-alpine` → `golang:1.27-alpine`
+- Committed `server.json` snapshot refreshed from 4.8.2 to 5.1.0, with checksums verified against the v5.1.0 release assets
+
+### Dependencies
+- `github.com/modelcontextprotocol/go-sdk` 1.7.0 → 1.8.0 (supersedes Dependabot #65)
+- `golang.org/x/oauth2` 0.35.0 → 0.37.0, `golang.org/x/sync` 0.20.0 → 0.23.0, `golang.org/x/sys` 0.41.0 → 0.48.0, `golang.org/x/time` 0.15.0 → 0.16.0, `github.com/segmentio/asm` 1.1.3 → 1.2.1 (all indirect)
+
 ## [5.1.0] - 2026-05-03
 
 ### Security
