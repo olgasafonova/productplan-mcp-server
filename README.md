@@ -530,7 +530,7 @@ productplan-mcp-server/
 │   │   └── types*.go            # Typed argument structs for handlers
 │   ├── cli/                     # CLI commands (status, roadmaps, etc.)
 │   │   └── cli.go
-│   └── logging/                 # Structured JSON logging
+│   └── logging/                 # slog JSON handler setup (ts/level/msg)
 │       └── logger.go
 ├── pkg/productplan/             # Reusable utilities
 │   ├── retry.go                 # Exponential backoff with jitter
@@ -680,18 +680,13 @@ type Handler interface {
     Handle(ctx context.Context, args map[string]any) (json.RawMessage, error)
 }
 
-// Logger interface (internal/logging)
-type Logger interface {
-    Debug(msg string, fields ...Field)
-    Info(msg string, fields ...Field)
-    Warn(msg string, fields ...Field)
-    Error(msg string, fields ...Field)
-}
+// Logging (internal/logging): a *slog.Logger with a JSON handler on stderr
+logger := logging.New(slog.LevelInfo)
 ```
 
 **Logging format:**
 ```json
-{"ts":"2024-12-26T10:30:00Z","level":"info","req_id":"ab12","op":"get_roadmap_bars","dur_ms":245}
+{"ts":"2026-09-24T10:30:00.123456789Z","level":"debug","msg":"API response","endpoint":"/roadmaps/5","status_code":200,"dur_ms":245}
 ```
 
 </details>

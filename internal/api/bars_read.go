@@ -71,7 +71,7 @@ func (c *Client) GetRoadmapBarsWhere(ctx context.Context, id RoadmapID, q Query,
 	var warnings []string
 	if lanesErr != nil {
 		c.logger.Warn("lane lookup failed; returning bars without lane_id enrichment",
-			logging.Endpoint(string(lanesPath)),
+			lanesPath.attr(),
 			logging.Error(lanesErr),
 		)
 		warnings = append(warnings, "lane lookup failed, so lane_id may be missing: "+lanesErr.Error())

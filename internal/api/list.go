@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"sort"
 	"strconv"
@@ -129,7 +130,7 @@ func (c *Client) getList(ctx context.Context, endpoint apiPath, q Query) (json.R
 	lf := listFetch{client: c, endpoint: endpoint, query: q, first: env}
 	pages, err := lf.pages(ctx)
 	if err != nil {
-		c.logger.Error("paginated list fetch failed", logging.Endpoint(string(endpoint)), logging.Error(err))
+		c.logger.Error("paginated list fetch failed", endpoint.attr(), logging.Error(err))
 		return nil, fmt.Errorf("list %s: %w", endpoint, err)
 	}
 	lf.warnIfCapped()
@@ -187,10 +188,10 @@ func (lf listFetch) warnIfCapped() {
 		return
 	}
 	lf.client.logger.Warn("paginated list capped",
-		logging.Endpoint(string(lf.endpoint)),
-		logging.F("page_count", pg.PageCount),
-		logging.F("pages_fetched", lf.fetchCount()),
-		logging.F("record_count", pg.RecordCount),
+		lf.endpoint.attr(),
+		slog.Int("page_count", pg.PageCount),
+		slog.Int("pages_fetched", lf.fetchCount()),
+		slog.Int("record_count", pg.RecordCount),
 	)
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 )
 
@@ -84,4 +85,9 @@ func (c *Client) deleteAt(ctx context.Context, r route, ids ...pathID) (json.Raw
 		return nil, err
 	}
 	return c.request(ctx, http.MethodDelete, p, nil)
+}
+
+// attr logs p under the "endpoint" key.
+func (p apiPath) attr() slog.Attr {
+	return slog.String("endpoint", string(p))
 }

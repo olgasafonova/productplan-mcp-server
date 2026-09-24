@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ type Config struct {
 	BaseURL string
 	Token   string
 	Timeout time.Duration
-	Logger  logging.Logger
+	Logger  *slog.Logger
 	// CacheTTL enables the in-process read cache for GETs when positive.
 	// Zero (the zero value) disables it; the server sets it from
 	// CacheTTLFromEnv.
@@ -51,7 +52,7 @@ type Client struct {
 	token       string
 	httpClient  *http.Client
 	rateLimiter *productplan.AdaptiveRateLimiter
-	logger      logging.Logger
+	logger      *slog.Logger
 	cache       *readCache // nil when disabled
 }
 
@@ -171,14 +172,14 @@ func (c *Client) request(ctx context.Context, v verb, path apiPath, body any) (j
 	}
 
 	c.logger.Debug("API request",
-		logging.Endpoint(string(path)),
-		logging.F("method", string(v)),
+		path.attr(),
+		slog.String("method", string(v)),
 	)
 
 	resp, err := c.httpClient.Do(req) // #nosec G704 -- URL is the configured ProductPlan API endpoint, not user-controlled
 	if err != nil {
 		c.logger.Error("API request failed",
-			logging.Endpoint(string(path)),
+			path.attr(),
 			logging.Error(err),
 			logging.Duration(time.Since(start)),
 		)
@@ -196,8 +197,8 @@ func (c *Client) request(ctx context.Context, v verb, path apiPath, body any) (j
 	}
 
 	c.logger.Debug("API response",
-		logging.Endpoint(string(path)),
-		logging.StatusCode(resp.StatusCode),
+		path.attr(),
+		slog.Int("status_code", resp.StatusCode),
 		logging.Duration(time.Since(start)),
 	)
 
@@ -224,6 +225,6 @@ func (c *Client) RateLimiter() *productplan.AdaptiveRateLimiter {
 }
 
 // SetLogger sets the logger for the client.
-func (c *Client) SetLogger(logger logging.Logger) {
+func (c *Client) SetLogger(logger *slog.Logger) {
 	c.logger = logger
 }
