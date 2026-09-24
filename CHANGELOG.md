@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`manage_bar` sent four other fields the API ignores or refuses.** `parent_id` and `container` were silently ignored (the documented fields are `container_bar_id` and `is_container`), `effort` is not a bar field, and custom fields sent as `{name,value}` got 422 `label must be present`. `parent_id` and `container` now map to the documented fields, custom fields go out as `{label,value}` (`name` still accepted as an alias), and `effort` is rejected with a pointer to custom fields rather than dropped silently.
 - **`manage_bar` create returned the wrong thing.** ProductPlan answers `POST /bars` with `{"location":"/api/v2/bars/<id>"}`, not the bar. The ID is now parsed from `location` and the bar is read back.
 - **`get_roadmap_legends` described data that does not exist.** Its description promised "ID, name, and hex color" and its formatter picked `id`/`label`/`color` from objects; the API returns bare legend names. It now returns the names, says so, and tells the caller to pass one as `legend`.
+- **List calls no longer stop at the first page.** Every collection endpoint returns `{results, paging}` and the API documents a default `page_size` of 200. All list tools issued one bare GET, so a roadmap with more than 200 bars (or an account with more than 200 ideas, users, ...) was silently truncated. `GetList` (`internal/api/list.go`) now requests `page_size=500`, follows `paging.page_count` with bounded concurrency, and fails the whole call if any page fails. It stops at 50 pages and says so: the payload carries `incomplete`, the upstream `record_count`, and a note that the summary repeats.
+- **`get_roadmap_bars` discarded the lanes error** (`lanes, _ :=` at `internal/api/endpoints.go:47`, an Article IV violation). A lanes failure is now logged and reported as a warning in the summary while the bars still return; a bars failure fails the call.
+- **Bar projection matched a shape the API does not send.** It unmarshalled a bare array where the API returns an envelope, so projection failed and the raw, uncapped bars leaked through; it also read `start_date`/`end_date`/`lane_id`. Bars now project the documented fields: `starts_on`, `ends_on`, `lane_name` (from the bar), `lane_id` (joined from the lane list, never guessed when two lanes share a name), `legend`, `tags`, `percent_done`, `is_container`, `parked`. Description and custom fields stay behind `get_bar`.
+- **List summaries were missing for most list tools.** `FormatList` only understood bare arrays, so enveloped and api-projected payloads passed through with no summary, no `No <items> found` message and, for raw envelopes, no 50-item cap (Article V). Both shapes are now summarised and capped. Plurals are fixed (`opportunities`, `launches`).
+- **Projections picked fields that do not exist.** Lanes: `color` replaced by `description` and `position`. Milestones: `title` (was `name`). Launches: `launch_date` (was `date`) plus `progress`. Objectives: `risk_status`, `start_date`, `end_date`, `key_results_count` (was `status`, `time_frame`). Tool descriptions for `get_roadmap_lanes`, `get_roadmap_legends`, `list_ideas`, `list_launches` and `list_objectives` now name what is returned.
 
 ### Added
 
@@ -22,12 +27,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dated bars land on the timeline.** ProductPlan parks new bars by default; a create with `starts_on` and `ends_on` and no `parked` now defaults to `parked:false`. A nested bar inherits its container's parked state, because the API requires them to match.
 - **Nesting pre-checks** for the API's 422 cases: `container_bar_id` on a bar without both dates, and a parked state that differs from the container's, fail early with the fix named.
 - `get_roadmap` description now points agents at the embedded `custom_text_fields` and `custom_dropdown_fields` (with `allowed_values`) that bar writes are validated against.
+- **Filters on list tools, no new tools.** One table in `internal/tools/filters.go` maps friendly args to ProductPlan `q[...]` predicates and generates the schema and sort allowlist. Server-side: `get_roadmap_bars` (`name_contains`, `starts_after`, `starts_before`, `ends_after`, `ends_before`, `is_container`, `sort`), `list_roadmaps` (`name_contains`, `sort`), `list_ideas` (`name_contains`, `channel`, `sort`), `list_opportunities` (`problem_contains`, `workflow_status`, `sort`), `list_launches` (`name_contains`, `status`, `launch_after`, `launch_before`, `sort`). Client-side on `get_roadmap_bars`, applied before the 50-item cap: `lane` (name or ID), `legend`, `tag`. Dates must be real `YYYY-MM-DD` dates; an unknown sort field errors with the allowed list; an empty filtered result reads `No <items> matched the filters`.
+- **In-process read cache.** GETs are cached per path+query for 60s (`PRODUCTPLAN_CACHE_TTL`: `90s`, `2m`, or seconds; `0` disables; a malformed value is refused at startup). Concurrent identical GETs share one upstream call. Any POST, PATCH or DELETE clears the whole cache, success or not, and an in-flight read that straddles a write is never stored. `check_status` bypasses the cache. `health_check` reports `cache.{enabled, ttl_seconds, entries, hits, misses, coalesced, invalidations}`.
 
 ### Changed
+
 - **SEP-2549 cache hints now set through the SDK's own hook.** go-sdk v1.8.0 added `ServerOptions.SetCacheable`, which replaces the `mcpcache` receiving middleware used on v1.7.0 to work around the SDK leaving `ttlMs` at 0 ("immediately stale"). Wire behaviour is unchanged: `tools/list` and `server/discover` still advertise a 30-minute `ttlMs` with `cacheScope: "public"`. The `github.com/olgasafonova/mcp-cache-go` dependency is dropped.
 - **Minimum Go version is now 1.26.** `go.mod` declares `go 1.26.0`, the oldest supported release line; Go 1.25 is out of support.
+- **Bars and lanes are fetched concurrently**, and `get_roadmap_complete`'s duplicate lanes fetch collapses to one call. Against a server sleeping 20ms per request, `BenchmarkGetRoadmapComplete` measures about 22ms/op for the handler against 108ms/op for the same calls made sequentially.
+- **Tuned HTTP transport.** One transport per client, cloned from `http.DefaultTransport`, with HTTP/2 forced, 16 idle connections per host (stdlib default: 2), 90s idle timeout and a 10s TLS handshake timeout. Redirect refusal is unchanged.
+- `golang.org/x/sync` is now a direct dependency (`errgroup`, `singleflight`); it was already in `go.sum` as indirect.
 
 ### Infrastructure
+
 - CI runs race tests on a Go 1.26.x / 1.27.x matrix (new `test` job, gated through `all-checks`); `check`, `security` and `build` run on 1.27.x
 - `govulncheck` back on `@latest` (v1.8.0), removing the v1.7.0 pin that the 1.25 runner forced
 - golangci-lint v2.7.2 → v2.13.2
@@ -35,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Committed `server.json` snapshot refreshed from 4.8.2 to 5.1.0, with checksums verified against the v5.1.0 release assets
 
 ### Dependencies
+
 - `github.com/modelcontextprotocol/go-sdk` 1.7.0 → 1.8.0 (supersedes Dependabot #65)
 - `golang.org/x/oauth2` 0.35.0 → 0.37.0, `golang.org/x/sync` 0.20.0 → 0.23.0, `golang.org/x/sys` 0.41.0 → 0.48.0, `golang.org/x/time` 0.15.0 → 0.16.0, `github.com/segmentio/asm` 1.1.3 → 1.2.1 (all indirect)
 
