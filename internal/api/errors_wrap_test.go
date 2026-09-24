@@ -25,7 +25,7 @@ func TestHandleResponse_WrapsAPIErrorWithSuggestion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = c.Get(context.Background(), "/bars/1")
+	_, err = c.get(context.Background(), "/bars/1")
 	if err == nil {
 		t.Fatal("want an error for a 404")
 	}

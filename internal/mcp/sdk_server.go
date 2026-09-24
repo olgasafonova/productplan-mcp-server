@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 // and tool dispatch (Registry).
 type SDKServer struct {
 	registry     *Registry
-	logger       logging.Logger
+	logger       *slog.Logger
 	instructions string
 	server       *mcp.Server
 }
@@ -33,7 +34,7 @@ type SDKServer struct {
 type SDKServerOption func(*SDKServer)
 
 // WithSDKLogger sets the server logger.
-func WithSDKLogger(logger logging.Logger) SDKServerOption {
+func WithSDKLogger(logger *slog.Logger) SDKServerOption {
 	return func(s *SDKServer) {
 		s.logger = logger
 	}
@@ -119,7 +120,7 @@ func (s *SDKServer) Run(ctx context.Context) error {
 // unexported because stdio is the only transport this binary ships.
 func (s *SDKServer) run(ctx context.Context, transport mcp.Transport) error {
 	s.logger.Info("MCP server starting",
-		logging.F("tools", s.registry.Count()),
+		slog.Int("tools", s.registry.Count()),
 	)
 	return s.server.Run(ctx, transport)
 }
@@ -143,12 +144,12 @@ func (s *SDKServer) handlerFor(name string) mcp.ToolHandler {
 			return errorResult(err), nil
 		}
 
-		s.logger.Debug("calling tool", logging.Tool(name))
+		s.logger.Debug("calling tool", slog.String("tool", name))
 
 		result, err := s.registry.Call(ctx, name, args)
 		if err != nil {
 			s.logger.Debug("tool call failed",
-				logging.Tool(name),
+				slog.String("tool", name),
 				logging.Error(err),
 			)
 			return errorResult(err), nil

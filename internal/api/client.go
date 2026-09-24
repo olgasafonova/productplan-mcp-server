@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ type Config struct {
 	BaseURL string
 	Token   string
 	Timeout time.Duration
-	Logger  logging.Logger
+	Logger  *slog.Logger
 	// CacheTTL enables the in-process read cache for GETs when positive.
 	// Zero (the zero value) disables it; the server sets it from
 	// CacheTTLFromEnv.
@@ -51,7 +52,7 @@ type Client struct {
 	token       string
 	httpClient  *http.Client
 	rateLimiter *productplan.AdaptiveRateLimiter
-	logger      logging.Logger
+	logger      *slog.Logger
 	cache       *readCache // nil when disabled
 }
 
@@ -107,7 +108,7 @@ func NewSimple(token string) (*Client, error) {
 }
 
 // buildRequest constructs an HTTP request with auth and content-type headers attached.
-func (c *Client) buildRequest(ctx context.Context, method, endpoint string, body any) (*http.Request, error) {
+func (c *Client) buildRequest(ctx context.Context, v verb, path apiPath, body any) (*http.Request, error) {
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
@@ -120,7 +121,7 @@ func (c *Client) buildRequest(ctx context.Context, method, endpoint string, body
 	// Build URL by concatenating base URL with endpoint path.
 	// ResolveReference strips the base path when endpoint starts with "/",
 	// so we use simple string concatenation instead.
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+endpoint, reqBody)
+	req, err := http.NewRequestWithContext(ctx, string(v), c.baseURL+string(path), reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -147,12 +148,16 @@ func handleResponse(resp *http.Response, respBody []byte) (json.RawMessage, erro
 	return respBody, nil
 }
 
-// Request performs an HTTP request to the API. Any method other than GET
-// clears the read cache once the request returns, whether or not it
+// request performs an HTTP request to the API. Any verb other than GET or
+// HEAD clears the read cache once the request returns, whether or not it
 // succeeded: a failed or timed-out write may still have been applied
 // upstream, so correct beats clever.
-func (c *Client) Request(ctx context.Context, method, endpoint string, body any) (json.RawMessage, error) {
-	if method != http.MethodGet && method != http.MethodHead {
+//
+// request, get and getList are unexported on purpose: outside this package
+// the API is reachable only through the typed endpoint methods, whose paths
+// are built from validated IDs (ids.go, path.go).
+func (c *Client) request(ctx context.Context, v verb, path apiPath, body any) (json.RawMessage, error) {
+	if !v.readOnly() {
 		defer c.cache.invalidate()
 	}
 	start := time.Now()
@@ -161,20 +166,20 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 		c.rateLimiter.Wait()
 	}
 
-	req, err := c.buildRequest(ctx, method, endpoint, body)
+	req, err := c.buildRequest(ctx, v, path, body)
 	if err != nil {
 		return nil, err
 	}
 
 	c.logger.Debug("API request",
-		logging.Endpoint(endpoint),
-		logging.F("method", method),
+		path.attr(),
+		slog.String("method", string(v)),
 	)
 
 	resp, err := c.httpClient.Do(req) // #nosec G704 -- URL is the configured ProductPlan API endpoint, not user-controlled
 	if err != nil {
 		c.logger.Error("API request failed",
-			logging.Endpoint(endpoint),
+			path.attr(),
 			logging.Error(err),
 			logging.Duration(time.Since(start)),
 		)
@@ -192,19 +197,19 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 	}
 
 	c.logger.Debug("API response",
-		logging.Endpoint(endpoint),
-		logging.StatusCode(resp.StatusCode),
+		path.attr(),
+		slog.Int("status_code", resp.StatusCode),
 		logging.Duration(time.Since(start)),
 	)
 
 	return handleResponse(resp, respBody)
 }
 
-// Get performs a GET request, served from the read cache when enabled.
-// endpoint (path plus query) is the cache key.
-func (c *Client) Get(ctx context.Context, endpoint string) (json.RawMessage, error) {
-	return c.cache.get(ctx, endpoint, func(ctx context.Context) (json.RawMessage, error) {
-		return c.Request(ctx, http.MethodGet, endpoint, nil)
+// get performs a GET request, served from the read cache when enabled.
+// path (including its query) is the cache key.
+func (c *Client) get(ctx context.Context, path apiPath) (json.RawMessage, error) {
+	return c.cache.get(ctx, string(path), func(ctx context.Context) (json.RawMessage, error) {
+		return c.request(ctx, http.MethodGet, path, nil)
 	})
 }
 
@@ -214,27 +219,12 @@ func (c *Client) CacheStats() CacheStats {
 	return c.cache.stats()
 }
 
-// Post performs a POST request.
-func (c *Client) Post(ctx context.Context, endpoint string, body any) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodPost, endpoint, body)
-}
-
-// Patch performs a PATCH request.
-func (c *Client) Patch(ctx context.Context, endpoint string, body any) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodPatch, endpoint, body)
-}
-
-// Delete performs a DELETE request.
-func (c *Client) Delete(ctx context.Context, endpoint string) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodDelete, endpoint, nil)
-}
-
 // RateLimiter returns the client's rate limiter for external use.
 func (c *Client) RateLimiter() *productplan.AdaptiveRateLimiter {
 	return c.rateLimiter
 }
 
 // SetLogger sets the logger for the client.
-func (c *Client) SetLogger(logger logging.Logger) {
+func (c *Client) SetLogger(logger *slog.Logger) {
 	c.logger = logger
 }

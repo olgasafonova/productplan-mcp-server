@@ -20,7 +20,7 @@ func listIdeasHandler(client *api.Client) mcp.Handler {
 
 func getIdeaHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetIdeaArgs](func(ctx context.Context, a GetIdeaArgs) (json.RawMessage, error) {
-		data, err := client.GetIdea(ctx, a.IdeaID)
+		data, err := client.GetIdea(ctx, api.IdeaID(a.IdeaID))
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +40,7 @@ func listOpportunitiesHandler(client *api.Client) mcp.Handler {
 
 func getOpportunityHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetOpportunityArgs](func(ctx context.Context, a GetOpportunityArgs) (json.RawMessage, error) {
-		data, err := client.GetOpportunity(ctx, a.OpportunityID)
+		data, err := client.GetOpportunity(ctx, api.OpportunityID(a.OpportunityID))
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +60,7 @@ func listIdeaFormsHandler(client *api.Client) mcp.Handler {
 
 func getIdeaFormHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetIdeaFormArgs](func(ctx context.Context, a GetIdeaFormArgs) (json.RawMessage, error) {
-		data, err := client.GetIdeaForm(ctx, a.FormID)
+		data, err := client.GetIdeaForm(ctx, api.IdeaFormID(a.FormID))
 		if err != nil {
 			return nil, err
 		}
@@ -91,7 +91,7 @@ func listAllTagsHandler(client *api.Client) mcp.Handler {
 // manageIdeaHandler creates or updates ideas. Validation guarantees a
 // non-empty title on create, so one payload serves both actions.
 func manageIdeaHandler(client *api.Client) mcp.Handler {
-	ops := topLevelOps{resource: "idea", create: client.CreateIdea, update: client.UpdateIdea}
+	ops := topLevelOps[api.IdeaID]{resource: "idea", create: client.CreateIdea, update: client.UpdateIdea}
 	return manageHandler(ops, func(a ManageIdeaArgs) manageRequest {
 		payload := buildPayload(nil,
 			fieldCheck{a.Title, "name"}, fieldCheck{a.Description, "description"}, fieldCheck{a.Status, "status"})
@@ -103,7 +103,7 @@ func manageIdeaHandler(client *api.Client) mcp.Handler {
 // guarantees a non-empty problem statement on create, so one payload serves
 // both actions.
 func manageOpportunityHandler(client *api.Client) mcp.Handler {
-	ops := topLevelOps{resource: "opportunity", create: client.CreateOpportunity, update: client.UpdateOpportunity}
+	ops := topLevelOps[api.OpportunityID]{resource: "opportunity", create: client.CreateOpportunity, update: client.UpdateOpportunity}
 	return manageHandler(ops, func(a ManageOpportunityArgs) manageRequest {
 		payload := buildPayload(nil, fieldCheck{a.ProblemStatement, "problem_statement"},
 			fieldCheck{a.Description, "description"}, fieldCheck{a.WorkflowStatus, "workflow_status"})

@@ -16,7 +16,7 @@ func (c *Client) ListIdeas(ctx context.Context) (json.RawMessage, error) {
 
 // ListIdeasWhere returns the ideas matching q (filters and sort).
 func (c *Client) ListIdeasWhere(ctx context.Context, q Query) (json.RawMessage, error) {
-	data, err := c.GetList(ctx, "/discovery/ideas", q)
+	data, err := c.listAt(ctx, "/discovery/ideas", q)
 	if err != nil {
 		return nil, err
 	}
@@ -24,26 +24,18 @@ func (c *Client) ListIdeasWhere(ctx context.Context, q Query) (json.RawMessage, 
 }
 
 // GetIdea returns a single idea by ID.
-func (c *Client) GetIdea(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("idea_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Get(ctx, "/discovery/ideas/"+seg)
+func (c *Client) GetIdea(ctx context.Context, id IdeaID) (json.RawMessage, error) {
+	return c.getAt(ctx, "/discovery/ideas/%s", id)
 }
 
 // CreateIdea creates a new idea.
 func (c *Client) CreateIdea(ctx context.Context, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/discovery/ideas", data)
+	return c.postAt(ctx, "/discovery/ideas", data)
 }
 
 // UpdateIdea updates an existing idea.
-func (c *Client) UpdateIdea(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	seg, err := safeSeg("idea_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Patch(ctx, "/discovery/ideas/"+seg, data)
+func (c *Client) UpdateIdea(ctx context.Context, id IdeaID, data map[string]any) (json.RawMessage, error) {
+	return c.patchAt(ctx, "/discovery/ideas/%s", data, id)
 }
 
 // ============================================================================
@@ -52,7 +44,7 @@ func (c *Client) UpdateIdea(ctx context.Context, id string, data map[string]any)
 
 // ListAllCustomers returns all customers across all ideas.
 func (c *Client) ListAllCustomers(ctx context.Context) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/ideas/customers")
+	return c.get(ctx, "/discovery/ideas/customers")
 }
 
 // ============================================================================
@@ -61,7 +53,7 @@ func (c *Client) ListAllCustomers(ctx context.Context) (json.RawMessage, error) 
 
 // ListAllTags returns all tags across all ideas.
 func (c *Client) ListAllTags(ctx context.Context) (json.RawMessage, error) {
-	return c.Get(ctx, "/discovery/ideas/tags")
+	return c.get(ctx, "/discovery/ideas/tags")
 }
 
 // ============================================================================
@@ -75,7 +67,7 @@ func (c *Client) ListOpportunities(ctx context.Context) (json.RawMessage, error)
 
 // ListOpportunitiesWhere returns the opportunities matching q (filters and sort).
 func (c *Client) ListOpportunitiesWhere(ctx context.Context, q Query) (json.RawMessage, error) {
-	data, err := c.GetList(ctx, "/discovery/opportunities", q)
+	data, err := c.listAt(ctx, "/discovery/opportunities", q)
 	if err != nil {
 		return nil, err
 	}
@@ -83,26 +75,18 @@ func (c *Client) ListOpportunitiesWhere(ctx context.Context, q Query) (json.RawM
 }
 
 // GetOpportunity returns a single opportunity by ID.
-func (c *Client) GetOpportunity(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("opportunity_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Get(ctx, "/discovery/opportunities/"+seg)
+func (c *Client) GetOpportunity(ctx context.Context, id OpportunityID) (json.RawMessage, error) {
+	return c.getAt(ctx, "/discovery/opportunities/%s", id)
 }
 
 // CreateOpportunity creates a new opportunity.
 func (c *Client) CreateOpportunity(ctx context.Context, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/discovery/opportunities", data)
+	return c.postAt(ctx, "/discovery/opportunities", data)
 }
 
 // UpdateOpportunity updates an existing opportunity.
-func (c *Client) UpdateOpportunity(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	seg, err := safeSeg("opportunity_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Patch(ctx, "/discovery/opportunities/"+seg, data)
+func (c *Client) UpdateOpportunity(ctx context.Context, id OpportunityID, data map[string]any) (json.RawMessage, error) {
+	return c.patchAt(ctx, "/discovery/opportunities/%s", data, id)
 }
 
 // ============================================================================
@@ -111,14 +95,10 @@ func (c *Client) UpdateOpportunity(ctx context.Context, id string, data map[stri
 
 // ListIdeaForms returns all idea forms.
 func (c *Client) ListIdeaForms(ctx context.Context) (json.RawMessage, error) {
-	return c.GetList(ctx, "/discovery/idea_forms", Query{})
+	return c.listAt(ctx, "/discovery/idea_forms", Query{})
 }
 
 // GetIdeaForm returns a single idea form by ID.
-func (c *Client) GetIdeaForm(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("idea_form_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Get(ctx, "/discovery/idea_forms/"+seg)
+func (c *Client) GetIdeaForm(ctx context.Context, id IdeaFormID) (json.RawMessage, error) {
+	return c.getAt(ctx, "/discovery/idea_forms/%s", id)
 }

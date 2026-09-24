@@ -44,12 +44,12 @@ type roadmapWriteBody struct {
 // GetBarWriteSchema fetches a roadmap and extracts the names and field
 // definitions that bar writes are validated against. It goes through
 // GetRoadmap, so any read caching on the client applies automatically.
-func (c *Client) GetBarWriteSchema(ctx context.Context, roadmapID string) (*BarWriteSchema, error) {
+func (c *Client) GetBarWriteSchema(ctx context.Context, roadmapID RoadmapID) (*BarWriteSchema, error) {
 	data, err := c.GetRoadmap(ctx, roadmapID)
 	if err != nil {
 		return nil, err
 	}
-	return ParseBarWriteSchema(roadmapID, data)
+	return ParseBarWriteSchema(string(roadmapID), data)
 }
 
 // ParseBarWriteSchema extracts a BarWriteSchema from a roadmap payload.
@@ -110,7 +110,7 @@ type BarSummary struct {
 
 // GetBarSummary fetches a bar and extracts the fields write pre-checks use:
 // its roadmap, its dates, and whether it is parked.
-func (c *Client) GetBarSummary(ctx context.Context, barID string) (*BarSummary, error) {
+func (c *Client) GetBarSummary(ctx context.Context, barID BarID) (*BarSummary, error) {
 	data, err := c.GetBar(ctx, barID)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (c *Client) GetBarSummary(ctx context.Context, barID string) (*BarSummary, 
 		roadmapID = idString(body.RoadmapID)
 	}
 	return &BarSummary{
-		ID:        barID,
+		ID:        string(barID),
 		Name:      body.Name,
 		RoadmapID: roadmapID,
 		StartsOn:  body.StartsOn,
@@ -167,7 +167,7 @@ func ParseCreatedID(data json.RawMessage) (string, error) {
 	}
 	if loc := strings.TrimRight(body.Location, "/"); loc != "" {
 		id := loc[strings.LastIndex(loc, "/")+1:]
-		if err := productplan.RequireID("id", id); err == nil {
+		if err := productplan.Field("id").RequireID(id); err == nil {
 			return id, nil
 		}
 		return "", fmt.Errorf("create response location %q does not end in a valid ID", body.Location)

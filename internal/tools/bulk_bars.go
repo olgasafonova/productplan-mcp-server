@@ -125,7 +125,7 @@ func bulkUpdateBarsHandler(client *api.Client) mcp.Handler {
 		results := runBulk(ctx, len(prepared), func(ctx context.Context, i int) bulkItemResult {
 			pr := prepared[i]
 			r := bulkItemResult{BarID: pr.BarID, OK: true}
-			if _, werr := client.UpdateBar(ctx, pr.BarID, pr.Payload); werr != nil {
+			if _, werr := client.UpdateBar(ctx, api.BarID(pr.BarID), pr.Payload); werr != nil {
 				r.OK, r.Error = false, explainWriteError(werr, pr.Payload).Error()
 			}
 			return r
@@ -181,7 +181,7 @@ func bulkDeleteBarsHandler(client *api.Client) mcp.Handler {
 		if a.DryRun {
 			results := runBulk(ctx, len(a.BarIDs), func(ctx context.Context, i int) bulkItemResult {
 				r := bulkItemResult{BarID: a.BarIDs[i]}
-				bar, err := client.GetBarSummary(ctx, a.BarIDs[i])
+				bar, err := client.GetBarSummary(ctx, api.BarID(a.BarIDs[i]))
 				if err != nil {
 					r.Error = err.Error()
 					return r
@@ -203,7 +203,7 @@ func bulkDeleteBarsHandler(client *api.Client) mcp.Handler {
 // for deletes that did not happen, so the 204 alone is not trusted.
 func deleteAndVerify(ctx context.Context, client *api.Client, barID string) bulkItemResult {
 	r := bulkItemResult{BarID: barID}
-	if _, err := client.DeleteBar(ctx, barID); err != nil {
+	if _, err := client.DeleteBar(ctx, api.BarID(barID)); err != nil {
 		if api.IsNotFound(err) {
 			r.Error = "bar not found (already deleted, or the ID is wrong)"
 		} else {
@@ -211,7 +211,7 @@ func deleteAndVerify(ctx context.Context, client *api.Client, barID string) bulk
 		}
 		return r
 	}
-	_, err := client.GetBar(ctx, barID)
+	_, err := client.GetBar(ctx, api.BarID(barID))
 	switch {
 	case api.IsNotFound(err):
 		r.OK = true

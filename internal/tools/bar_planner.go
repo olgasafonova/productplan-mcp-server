@@ -54,13 +54,13 @@ func newBarPlanner(client *api.Client) *barPlanner {
 
 func (pl *barPlanner) schema(ctx context.Context, roadmapID string) (*api.BarWriteSchema, error) {
 	return pl.schemas.get(roadmapID, func() (*api.BarWriteSchema, error) {
-		return pl.client.GetBarWriteSchema(ctx, roadmapID)
+		return pl.client.GetBarWriteSchema(ctx, api.RoadmapID(roadmapID))
 	})
 }
 
 func (pl *barPlanner) bar(ctx context.Context, barID string) (*api.BarSummary, error) {
 	return pl.bars.get(barID, func() (*api.BarSummary, error) {
-		return pl.client.GetBarSummary(ctx, barID)
+		return pl.client.GetBarSummary(ctx, api.BarID(barID))
 	})
 }
 

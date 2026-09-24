@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/api"
@@ -60,7 +61,7 @@ func run() int {
 		return 1
 	}
 
-	logger := logging.New(logging.LevelInfo)
+	logger := logging.New(slog.LevelInfo)
 	client, err := api.New(api.Config{Token: apiToken, Logger: logger, CacheTTL: cacheTTL})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to create API client: %v\n", err)
@@ -77,7 +78,7 @@ func run() int {
 	return runCLI(client, args)
 }
 
-func runMCPServer(client *api.Client, logger logging.Logger) int {
+func runMCPServer(client *api.Client, logger *slog.Logger) int {
 	// Create MCP registry and register tools
 	registry := mcp.NewRegistry()
 	tools.RegisterAll(registry, tools.Config{

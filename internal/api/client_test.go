@@ -207,7 +207,7 @@ func TestClientRequest(t *testing.T) {
 				t.Fatalf("failed to create client: %v", err)
 			}
 
-			result, err := client.Request(context.Background(), tt.method, tt.endpoint, tt.body)
+			result, err := client.request(context.Background(), verb(tt.method), apiPath(tt.endpoint), tt.body)
 			if tt.wantErr {
 				if err == nil {
 					t.Error("expected error, got nil")
@@ -258,7 +258,7 @@ func TestClientHTTPMethods(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("Get", func(t *testing.T) {
-		_, err := client.Get(ctx, "/test")
+		_, err := client.get(ctx, "/test")
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -268,7 +268,7 @@ func TestClientHTTPMethods(t *testing.T) {
 	})
 
 	t.Run("Post", func(t *testing.T) {
-		_, err := client.Post(ctx, "/test", map[string]string{"key": "value"})
+		_, err := client.request(ctx, http.MethodPost, "/test", map[string]string{"key": "value"})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -278,7 +278,7 @@ func TestClientHTTPMethods(t *testing.T) {
 	})
 
 	t.Run("Patch", func(t *testing.T) {
-		_, err := client.Patch(ctx, "/test", map[string]string{"key": "updated"})
+		_, err := client.request(ctx, http.MethodPatch, "/test", map[string]string{"key": "updated"})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -288,7 +288,7 @@ func TestClientHTTPMethods(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		_, err := client.Delete(ctx, "/test")
+		_, err := client.request(ctx, http.MethodDelete, "/test", nil)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -332,7 +332,7 @@ func TestClientContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
 
-	_, err := client.Get(ctx, "/test")
+	_, err := client.get(ctx, "/test")
 	if err == nil {
 		t.Error("expected error due to cancelled context")
 	}
@@ -344,7 +344,7 @@ func TestClientRequestBodyMarshalError(t *testing.T) {
 	// Create an unmarshalable value (channel)
 	ch := make(chan int)
 
-	_, err := client.Post(context.Background(), "/test", ch)
+	_, err := client.request(context.Background(), http.MethodPost, "/test", ch)
 	if err == nil {
 		t.Error("expected marshal error")
 	}
@@ -370,6 +370,6 @@ func BenchmarkClientRequest(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		client.Get(ctx, "/test")
+		client.get(ctx, "/test")
 	}
 }

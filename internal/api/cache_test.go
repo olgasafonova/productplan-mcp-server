@@ -62,11 +62,11 @@ func TestCache_MissThenHit(t *testing.T) {
 	c := cachedClient(t, srv.URL, time.Minute)
 	ctx := context.Background()
 
-	a, err := c.Get(ctx, "/roadmaps/1")
+	a, err := c.get(ctx, "/roadmaps/1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := c.Get(ctx, "/roadmaps/1")
+	b, err := c.get(ctx, "/roadmaps/1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +82,7 @@ func TestCache_MissThenHit(t *testing.T) {
 	}
 
 	// The query string is part of the key.
-	if _, err := c.Get(ctx, "/roadmaps/1?q%5Bname_i_cont%5D=x"); err != nil {
+	if _, err := c.get(ctx, "/roadmaps/1?q%5Bname_i_cont%5D=x"); err != nil {
 		t.Fatal(err)
 	}
 	if srv.gets.Load() != 2 {
@@ -93,9 +93,9 @@ func TestCache_MissThenHit(t *testing.T) {
 func TestCache_ReturnsIndependentCopies(t *testing.T) {
 	srv := newCountingServer(t, 0)
 	c := cachedClient(t, srv.URL, time.Minute)
-	a, _ := c.Get(context.Background(), "/x")
+	a, _ := c.get(context.Background(), "/x")
 	a[0] = 'X' // a caller scribbling on its slice must not corrupt the cache
-	b, _ := c.Get(context.Background(), "/x")
+	b, _ := c.get(context.Background(), "/x")
 	if b[0] != '{' {
 		t.Errorf("cache entry was mutated through a returned slice: %s", b)
 	}
@@ -109,13 +109,13 @@ func TestCache_Expiry(t *testing.T) {
 	c.cache.now = func() time.Time { mu.Lock(); defer mu.Unlock(); return now }
 
 	ctx := context.Background()
-	if _, err := c.Get(ctx, "/x"); err != nil {
+	if _, err := c.get(ctx, "/x"); err != nil {
 		t.Fatal(err)
 	}
 	mu.Lock()
 	now = now.Add(59 * time.Second)
 	mu.Unlock()
-	if _, err := c.Get(ctx, "/x"); err != nil {
+	if _, err := c.get(ctx, "/x"); err != nil {
 		t.Fatal(err)
 	}
 	if srv.gets.Load() != 1 {
@@ -124,7 +124,7 @@ func TestCache_Expiry(t *testing.T) {
 	mu.Lock()
 	now = now.Add(2 * time.Second)
 	mu.Unlock()
-	got, err := c.Get(ctx, "/x")
+	got, err := c.get(ctx, "/x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -139,26 +139,29 @@ func TestCache_InvalidatedByEveryWriteMethod(t *testing.T) {
 		do   func(c *Client) error
 	}{
 		{"POST", func(c *Client) error {
-			_, err := c.Post(context.Background(), "/bars", map[string]any{"name": "n"})
+			_, err := c.request(context.Background(), http.MethodPost, "/bars", map[string]any{"name": "n"})
 			return err
 		}},
 		{"PATCH", func(c *Client) error {
-			_, err := c.Patch(context.Background(), "/bars/1", map[string]any{"name": "n"})
+			_, err := c.request(context.Background(), http.MethodPatch, "/bars/1", map[string]any{"name": "n"})
 			return err
 		}},
-		{"DELETE", func(c *Client) error { _, err := c.Delete(context.Background(), "/bars/1"); return err }},
+		{"DELETE", func(c *Client) error {
+			_, err := c.request(context.Background(), http.MethodDelete, "/bars/1", nil)
+			return err
+		}},
 	} {
 		t.Run(write.name, func(t *testing.T) {
 			srv := newCountingServer(t, 0)
 			c := cachedClient(t, srv.URL, time.Minute)
 			ctx := context.Background()
-			if _, err := c.Get(ctx, "/roadmaps/1/bars"); err != nil {
+			if _, err := c.get(ctx, "/roadmaps/1/bars"); err != nil {
 				t.Fatal(err)
 			}
 			if err := write.do(c); err != nil {
 				t.Fatal(err)
 			}
-			got, err := c.Get(ctx, "/roadmaps/1/bars")
+			got, err := c.get(ctx, "/roadmaps/1/bars")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -182,8 +185,8 @@ func TestCache_FailedWriteStillInvalidates(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := cachedClient(t, srv.URL, time.Minute)
-	_, _ = c.Get(context.Background(), "/x")
-	if _, err := c.Delete(context.Background(), "/bars/1"); err == nil {
+	_, _ = c.get(context.Background(), "/x")
+	if _, err := c.request(context.Background(), http.MethodDelete, "/bars/1", nil); err == nil {
 		t.Fatal("expected write error")
 	}
 	if st := c.CacheStats(); st.Entries != 0 || st.Invalidations != 1 {
@@ -213,20 +216,20 @@ func TestCache_InFlightReadDuringWriteIsNotStored(t *testing.T) {
 
 	done := make(chan json.RawMessage)
 	go func() {
-		b, _ := c.Get(ctx, "/x")
+		b, _ := c.get(ctx, "/x")
 		done <- b
 	}()
 	for gets.Load() == 0 {
 		time.Sleep(time.Millisecond)
 	}
-	if _, err := c.Patch(ctx, "/bars/1", map[string]any{}); err != nil {
+	if _, err := c.request(ctx, http.MethodPatch, "/bars/1", map[string]any{}); err != nil {
 		t.Fatal(err)
 	}
 	close(release)
 	if first := <-done; bodyN(t, first) != 1 {
 		t.Fatalf("in-flight caller should get its own response, got %s", first)
 	}
-	after, err := c.Get(ctx, "/x")
+	after, err := c.get(ctx, "/x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +250,7 @@ func TestCache_ConcurrentIdenticalRequestsShareOneFetch(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			results[i], errs[i] = c.Get(context.Background(), "/roadmaps/9/lanes")
+			results[i], errs[i] = c.get(context.Background(), "/roadmaps/9/lanes")
 		}()
 	}
 	wg.Wait()
@@ -279,8 +282,8 @@ func TestCache_CancelledWaiterDoesNotFailOthers(t *testing.T) {
 	var shortErr, longErr error
 	var longBody json.RawMessage
 	wg.Add(2)
-	go func() { defer wg.Done(); _, shortErr = c.Get(short, "/x") }()
-	go func() { defer wg.Done(); longBody, longErr = c.Get(context.Background(), "/x") }()
+	go func() { defer wg.Done(); _, shortErr = c.get(short, "/x") }()
+	go func() { defer wg.Done(); longBody, longErr = c.get(context.Background(), "/x") }()
 	wg.Wait()
 
 	if !errors.Is(shortErr, context.DeadlineExceeded) {
@@ -302,10 +305,10 @@ func TestCache_ErrorsAreNotCached(t *testing.T) {
 	}))
 	defer srv.Close()
 	c := cachedClient(t, srv.URL, time.Minute)
-	if _, err := c.Get(context.Background(), "/x"); err == nil {
+	if _, err := c.get(context.Background(), "/x"); err == nil {
 		t.Fatal("expected first call to fail")
 	}
-	got, err := c.Get(context.Background(), "/x")
+	got, err := c.get(context.Background(), "/x")
 	if err != nil || bodyN(t, got) != 2 {
 		t.Errorf("retry after an error should refetch, got %s, %v", got, err)
 	}
@@ -314,8 +317,8 @@ func TestCache_ErrorsAreNotCached(t *testing.T) {
 func TestCache_DisabledByZeroTTL(t *testing.T) {
 	srv := newCountingServer(t, 0)
 	c := cachedClient(t, srv.URL, 0)
-	_, _ = c.Get(context.Background(), "/x")
-	_, _ = c.Get(context.Background(), "/x")
+	_, _ = c.get(context.Background(), "/x")
+	_, _ = c.get(context.Background(), "/x")
 	if srv.gets.Load() != 2 {
 		t.Errorf("TTL 0 must disable caching; upstream GETs = %d", srv.gets.Load())
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"sort"
 	"strconv"
@@ -63,14 +64,14 @@ func (q Query) encode(v url.Values) {
 
 // listURL builds endpoint?page=N&page_size=500&q[...]. url.Values.Encode
 // sorts keys, so the result is stable for a given query and page.
-func listURL(endpoint string, q Query, page int) string {
+func listURL(endpoint apiPath, q Query, page int) apiPath {
 	v := url.Values{}
 	v.Set("page_size", strconv.Itoa(listPageSize))
 	if page > 1 {
 		v.Set("page", strconv.Itoa(page))
 	}
 	q.encode(v)
-	return endpoint + "?" + v.Encode()
+	return endpoint + "?" + apiPath(v.Encode())
 }
 
 // paging mirrors the API's paging block. PagesFetched is ours: it is set on
@@ -107,7 +108,7 @@ func parseEnvelope(data json.RawMessage) (pagedEnvelope, bool) {
 	return env, true
 }
 
-// GetList fetches a collection endpoint, following paging.page_count so the
+// getList fetches a collection endpoint, following paging.page_count so the
 // caller never receives a silent partial page. Pages 2..N are fetched with
 // bounded concurrency. If any page fails the whole call fails: returning a
 // partial merge as if it were complete is the exact failure this exists to
@@ -116,8 +117,8 @@ func parseEnvelope(data json.RawMessage) (pagedEnvelope, bool) {
 //
 // Bodies that are not a paged envelope (bare arrays, the connections
 // {requires, required_by} shape) are returned unchanged.
-func (c *Client) GetList(ctx context.Context, endpoint string, q Query) (json.RawMessage, error) {
-	first, err := c.Get(ctx, listURL(endpoint, q, 1))
+func (c *Client) getList(ctx context.Context, endpoint apiPath, q Query) (json.RawMessage, error) {
+	first, err := c.get(ctx, listURL(endpoint, q, 1))
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +130,7 @@ func (c *Client) GetList(ctx context.Context, endpoint string, q Query) (json.Ra
 	lf := listFetch{client: c, endpoint: endpoint, query: q, first: env}
 	pages, err := lf.pages(ctx)
 	if err != nil {
-		c.logger.Error("paginated list fetch failed", logging.Endpoint(endpoint), logging.Error(err))
+		c.logger.Error("paginated list fetch failed", endpoint.attr(), logging.Error(err))
 		return nil, fmt.Errorf("list %s: %w", endpoint, err)
 	}
 	lf.warnIfCapped()
@@ -141,10 +142,10 @@ func (p *paging) multiPage() bool {
 	return p != nil && p.PageCount > 1
 }
 
-// listFetch is one multi-page GetList in progress, seeded with page 1.
+// listFetch is one multi-page getList in progress, seeded with page 1.
 type listFetch struct {
 	client   *Client
-	endpoint string
+	endpoint apiPath
 	query    Query
 	first    pagedEnvelope
 }
@@ -165,7 +166,7 @@ func (lf listFetch) pages(ctx context.Context) ([][]json.RawMessage, error) {
 	g.SetLimit(pageFetchConcurrency)
 	for p := 2; p <= len(pages); p++ {
 		g.Go(func() error {
-			data, err := lf.client.Get(gctx, listURL(lf.endpoint, lf.query, p))
+			data, err := lf.client.get(gctx, listURL(lf.endpoint, lf.query, p))
 			if err != nil {
 				return fmt.Errorf("page %d of %d: %w", p, pageCount, err)
 			}
@@ -187,10 +188,10 @@ func (lf listFetch) warnIfCapped() {
 		return
 	}
 	lf.client.logger.Warn("paginated list capped",
-		logging.Endpoint(lf.endpoint),
-		logging.F("page_count", pg.PageCount),
-		logging.F("pages_fetched", lf.fetchCount()),
-		logging.F("record_count", pg.RecordCount),
+		lf.endpoint.attr(),
+		slog.Int("page_count", pg.PageCount),
+		slog.Int("pages_fetched", lf.fetchCount()),
+		slog.Int("record_count", pg.RecordCount),
 	)
 }
 

@@ -502,6 +502,8 @@ productplan-mcp-server/
 │   │   ├── transport.go         # Tuned HTTP transport
 │   │   ├── cache.go             # In-process TTL read cache (singleflight, write invalidation)
 │   │   ├── list.go              # Paged collection GETs and Ransack query encoding
+│   │   ├── ids.go               # Typed resource IDs (BarID, RoadmapID, ...), each validated into a path segment
+│   │   ├── path.go              # Routes and request paths built only from typed IDs
 │   │   ├── safeseg.go           # Path-segment validation for user-supplied IDs
 │   │   ├── endpoints*.go        # Endpoint methods (roadmaps, bars, ideas, launches, OKRs)
 │   │   ├── bars_read.go         # Roadmap bars with lane enrichment and client-side filters
@@ -528,16 +530,15 @@ productplan-mcp-server/
 │   │   └── types*.go            # Typed argument structs for handlers
 │   ├── cli/                     # CLI commands (status, roadmaps, etc.)
 │   │   └── cli.go
-│   └── logging/                 # Structured JSON logging
+│   └── logging/                 # slog JSON handler setup (ts/level/msg)
 │       └── logger.go
 ├── pkg/productplan/             # Reusable utilities
 │   ├── retry.go                 # Exponential backoff with jitter
 │   ├── ratelimit.go             # Adaptive rate limiting
 │   ├── batch.go                 # Batched operations
 │   ├── health.go                # Health reporting
-│   ├── registry.go              # ToolBuilder for schema generation
 │   ├── requestid.go             # Request tracing
-│   ├── validation.go            # Input validators (IDs, dates, URLs)
+│   ├── validation.go            # ID validation (Field.RequireID)
 │   └── errors.go                # APIError and error suggestions
 └── evals/                       # LLM evaluation test suite
     ├── runner.go, types.go
@@ -679,18 +680,13 @@ type Handler interface {
     Handle(ctx context.Context, args map[string]any) (json.RawMessage, error)
 }
 
-// Logger interface (internal/logging)
-type Logger interface {
-    Debug(msg string, fields ...Field)
-    Info(msg string, fields ...Field)
-    Warn(msg string, fields ...Field)
-    Error(msg string, fields ...Field)
-}
+// Logging (internal/logging): a *slog.Logger with a JSON handler on stderr
+logger := logging.New(slog.LevelInfo)
 ```
 
 **Logging format:**
 ```json
-{"ts":"2024-12-26T10:30:00Z","level":"info","req_id":"ab12","op":"get_roadmap_bars","dur_ms":245}
+{"ts":"2026-09-24T10:30:00.123456789Z","level":"debug","msg":"API response","endpoint":"/roadmaps/5","status_code":200,"dur_ms":245}
 ```
 
 </details>

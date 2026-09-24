@@ -33,7 +33,7 @@ func pickKeys(src map[string]any, keys ...string) map[string]any {
 
 // unmarshalList handles both bare-array and {"results": [...], "paging": {...}}
 // envelopes. The paging block is returned (nil for bare arrays) so callers can
-// report a merge that GetList stopped short at maxListPages.
+// report a merge that getList stopped short at maxListPages.
 // Returns nil and ok=false if neither shape decodes.
 func unmarshalList(data json.RawMessage) ([]map[string]any, *paging, bool) {
 	var list []map[string]any
