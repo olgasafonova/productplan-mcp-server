@@ -147,11 +147,13 @@ func FormatBarsWithContext(bars json.RawMessage, lanes json.RawMessage) json.Raw
 	return output
 }
 
-// FormatLanes formats lane list.
+// FormatLanes formats lane list. The live GET /roadmaps/{id}/lanes result
+// carries id, name, description, position, created_at and updated_at; it has
+// no color field, so projecting one only ever produced "color": null.
 func FormatLanes(data json.RawMessage) json.RawMessage {
 	return formatList(data, "lanes", "",
 		func(lane map[string]any) map[string]any {
-			return pickKeys(lane, "id", "name", "color")
+			return pickKeys(lane, "id", "name", "description", "position")
 		})
 }
 

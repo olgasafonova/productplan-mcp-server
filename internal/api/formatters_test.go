@@ -171,8 +171,8 @@ func TestFormatBarsWithContextInvalidJSON(t *testing.T) {
 
 func TestFormatLanes(t *testing.T) {
 	input := `[
-		{"id": 1, "name": "Engineering", "color": "#FF0000", "order": 1},
-		{"id": 2, "name": "Design", "color": "#00FF00", "order": 2}
+		{"id": 1, "name": "Engineering", "description": "Backend work", "position": 1, "order": 1, "created_at": "2024-01-01"},
+		{"id": 2, "name": "Design", "description": "", "position": 2, "order": 2, "created_at": "2024-01-01"}
 	]`
 
 	result := FormatLanes(json.RawMessage(input))
@@ -194,8 +194,17 @@ func TestFormatLanes(t *testing.T) {
 	if _, ok := lane["order"]; ok {
 		t.Error("order should be filtered out")
 	}
-	if lane["color"] != "#FF0000" {
-		t.Errorf("expected color '#FF0000', got %v", lane["color"])
+	if _, ok := lane["created_at"]; ok {
+		t.Error("created_at should be filtered out")
+	}
+	if _, ok := lane["color"]; ok {
+		t.Error("color is not a lane field in the live API and must not be projected")
+	}
+	if lane["description"] != "Backend work" {
+		t.Errorf("expected description 'Backend work', got %v", lane["description"])
+	}
+	if lane["position"] != float64(1) {
+		t.Errorf("expected position 1, got %v", lane["position"])
 	}
 }
 
@@ -462,8 +471,8 @@ func BenchmarkFormatBarsWithContext(b *testing.B) {
 
 func BenchmarkFormatLanes(b *testing.B) {
 	input := json.RawMessage(`[
-		{"id": 1, "name": "Engineering", "color": "#FF0000", "order": 1},
-		{"id": 2, "name": "Design", "color": "#00FF00", "order": 2},
+		{"id": 1, "name": "Engineering", "description": "Backend work", "position": 1, "order": 1, "created_at": "2024-01-01"},
+		{"id": 2, "name": "Design", "description": "", "position": 2, "order": 2, "created_at": "2024-01-01"},
 		{"id": 3, "name": "Product", "color": "#0000FF", "order": 3}
 	]`)
 

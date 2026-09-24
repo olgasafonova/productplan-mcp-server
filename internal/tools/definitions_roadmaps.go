@@ -79,7 +79,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if road
 			Description: `Get lanes (categories) on a roadmap. Lanes organize bars into rows.
 
 USE WHEN: "What lanes are on the roadmap?", "Show categories"
-Returns array of lanes with ID, name, and color.
+Returns array of lanes with ID, name, description, and position (the API exposes no lane color).
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
