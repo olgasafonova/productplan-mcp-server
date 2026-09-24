@@ -11,12 +11,12 @@ import (
 )
 
 func listRoadmapsHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		data, err := client.ListRoadmaps(ctx)
+	return queryHandler("list_roadmaps", func(ctx context.Context, _ NoArgs, q api.Query) (json.RawMessage, error) {
+		data, err := client.ListRoadmapsWhere(ctx, q)
 		if err != nil {
 			return nil, err
 		}
-		return FormatList(data, "roadmap")
+		return FormatFilteredList(data, "roadmap", !q.IsZero())
 	})
 }
 
@@ -31,12 +31,13 @@ func getRoadmapHandler(client *api.Client) mcp.Handler {
 }
 
 func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
-	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
-		data, err := client.GetRoadmapBars(ctx, a.RoadmapID)
+	return queryHandler("get_roadmap_bars", func(ctx context.Context, a GetRoadmapBarsArgs, q api.Query) (json.RawMessage, error) {
+		local := api.BarFilter{Lane: a.Lane, Legend: a.Legend, Tag: a.Tag}
+		data, err := client.GetRoadmapBarsWhere(ctx, a.RoadmapID, q, local)
 		if err != nil {
 			return nil, err
 		}
-		return FormatList(data, "bar")
+		return FormatFilteredList(data, "bar", !q.IsZero())
 	})
 }
 

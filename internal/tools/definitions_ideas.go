@@ -23,12 +23,13 @@ func ideaCoreReadTools() []mcp.Tool {
 			Name: "list_ideas",
 			Description: `List all ideas in discovery pipeline. START HERE for ideas.
 
-USE WHEN: "Show customer feedback", "What ideas do we have?"
-Returns array of ideas with ID, title, status, and vote count.
-FAILS WHEN: API token invalid. Returns empty list if no ideas exist.`,
+USE WHEN: "Show customer feedback", "What ideas do we have?", "Ideas mentioning SSO"
+Optional server-side filters: name_contains (case-insensitive), channel (exact); sort ("name asc").
+Returns ideas with ID, name, channel, and opportunities_count.
+FAILS WHEN: API token invalid; sort names a field outside the allowed list (the error lists them). Returns empty list if no ideas exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
-				Properties: map[string]mcp.Property{},
+				Properties: filterProperties("list_ideas", map[string]mcp.Property{}),
 			},
 		},
 		{
@@ -55,12 +56,13 @@ func opportunityReadTools() []mcp.Tool {
 			Name: "list_opportunities",
 			Description: `List all opportunities. START HERE for discovery.
 
-USE WHEN: "Show opportunities", "Discovery pipeline"
+USE WHEN: "Show opportunities", "Discovery pipeline", "Opportunities about onboarding"
+Optional server-side filters: problem_contains (case-insensitive), workflow_status (exact); sort ("ideas_count desc").
 Returns array of opportunities with ID, problem_statement, workflow_status, and linked idea count.
-FAILS WHEN: API token invalid. Returns empty list if no opportunities exist.`,
+FAILS WHEN: API token invalid; sort names a field outside the allowed list (the error lists them). Returns empty list if no opportunities exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
-				Properties: map[string]mcp.Property{},
+				Properties: filterProperties("list_opportunities", map[string]mcp.Property{}),
 			},
 		},
 		{

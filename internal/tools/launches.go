@@ -10,12 +10,12 @@ import (
 )
 
 func listLaunchesHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		data, err := client.ListLaunches(ctx)
+	return queryHandler("list_launches", func(ctx context.Context, _ NoArgs, q api.Query) (json.RawMessage, error) {
+		data, err := client.ListLaunchesWhere(ctx, q)
 		if err != nil {
 			return nil, err
 		}
-		return FormatList(data, "launch")
+		return FormatFilteredList(data, "launch", !q.IsZero())
 	})
 }
 

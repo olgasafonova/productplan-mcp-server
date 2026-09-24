@@ -122,6 +122,21 @@ func (a GetRoadmapArgs) Validate() error {
 	return fieldCheck{a.RoadmapID, "roadmap_id"}.require()
 }
 
+// GetRoadmapBarsArgs holds get_roadmap_bars arguments other than the
+// server-side filters, which buildQuery reads (see filters.go). Lane,
+// Legend and Tag are client-side filters (api.BarFilter).
+type GetRoadmapBarsArgs struct {
+	RoadmapID string `json:"roadmap_id"`
+	Lane      string `json:"lane,omitempty"`
+	Legend    string `json:"legend,omitempty"`
+	Tag       string `json:"tag,omitempty"`
+}
+
+// Validate checks required fields.
+func (a GetRoadmapBarsArgs) Validate() error {
+	return fieldCheck{a.RoadmapID, "roadmap_id"}.require()
+}
+
 // ManageLaneArgs holds arguments for lane management operations.
 type ManageLaneArgs struct {
 	Action    string `json:"action"`

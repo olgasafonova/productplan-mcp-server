@@ -9,12 +9,12 @@ import (
 )
 
 func listIdeasHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		data, err := client.ListIdeas(ctx)
+	return queryHandler("list_ideas", func(ctx context.Context, _ NoArgs, q api.Query) (json.RawMessage, error) {
+		data, err := client.ListIdeasWhere(ctx, q)
 		if err != nil {
 			return nil, err
 		}
-		return FormatList(data, "idea")
+		return FormatFilteredList(data, "idea", !q.IsZero())
 	})
 }
 
@@ -29,12 +29,12 @@ func getIdeaHandler(client *api.Client) mcp.Handler {
 }
 
 func listOpportunitiesHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		data, err := client.ListOpportunities(ctx)
+	return queryHandler("list_opportunities", func(ctx context.Context, _ NoArgs, q api.Query) (json.RawMessage, error) {
+		data, err := client.ListOpportunitiesWhere(ctx, q)
 		if err != nil {
 			return nil, err
 		}
-		return FormatList(data, "opportunity")
+		return FormatFilteredList(data, "opportunity", !q.IsZero())
 	})
 }
 
