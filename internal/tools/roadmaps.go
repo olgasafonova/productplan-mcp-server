@@ -112,8 +112,7 @@ func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
 func manageLaneHandler(client *api.Client) mcp.Handler {
 	ops := parentScopedOps{resource: "lane", create: client.CreateLane, update: client.UpdateLane, delete: client.DeleteLane}
 	return manageHandler(ops, func(a ManageLaneArgs) manageRequest {
-		create := buildPayload(map[string]any{"name": a.Name}, fieldCheck{a.Color, "color"})
-		update := buildPayload(nil, fieldCheck{a.Name, "name"}, fieldCheck{a.Color, "color"})
+		create, update := a.payloads()
 		return manageRequest{action: a.Action, parentID: a.RoadmapID, id: a.LaneID, createPayload: create, updatePayload: update}
 	})
 }

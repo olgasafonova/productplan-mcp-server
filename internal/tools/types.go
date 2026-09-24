@@ -3,6 +3,7 @@ package tools
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 )
@@ -137,19 +138,43 @@ func (a GetRoadmapBarsArgs) Validate() error {
 	return fieldCheck{a.RoadmapID, "roadmap_id"}.require()
 }
 
-// ManageLaneArgs holds arguments for lane management operations.
+// ManageLaneArgs holds arguments for lane management operations. The lane
+// write contract (POST and PATCH /roadmaps/{id}/lanes) is name,
+// description and position.
 type ManageLaneArgs struct {
-	Action    string `json:"action"`
-	RoadmapID string `json:"roadmap_id"`
-	LaneID    string `json:"lane_id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Color     string `json:"color,omitempty"`
+	Action      string `json:"action"`
+	RoadmapID   string `json:"roadmap_id"`
+	LaneID      string `json:"lane_id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Position    *int   `json:"position,omitempty"`
+
+	// Color is deprecated and rejected: it was advertised before
+	// 24-09-2026 but is not a lane field, so the API never applied it.
+	// It stays declared so callers get errLaneColor, not an unknown-key
+	// rejection.
+	Color string `json:"color,omitempty"`
 }
+
+var errLaneColor = errors.New("color is not a ProductPlan lane field: the lane endpoints accept only name, description and position, so color was never applied. Remove color; lane colors cannot be set through the API")
 
 // Validate checks required fields based on action.
 func (a ManageLaneArgs) Validate() error {
+	if a.Color != "" {
+		return errLaneColor
+	}
 	return validateParentScoped(a.Action,
 		fieldCheck{a.RoadmapID, "roadmap_id"}, fieldCheck{a.LaneID, "lane_id"})
+}
+
+// payloads returns the create payload (name always sent) and the update
+// payload (only the fields set).
+func (a ManageLaneArgs) payloads() (create, update map[string]any) {
+	create = buildPayload(map[string]any{"name": a.Name}, fieldCheck{a.Description, "description"})
+	update = buildPayload(nil, fieldCheck{a.Name, "name"}, fieldCheck{a.Description, "description"})
+	setIfNotNil(create, "position", a.Position)
+	setIfNotNil(update, "position", a.Position)
+	return create, update
 }
 
 // ManageMilestoneArgs holds arguments for milestone management operations.

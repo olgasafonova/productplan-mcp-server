@@ -120,7 +120,7 @@ func TestManageLaneHandler(t *testing.T) {
 	}{
 		{
 			"create",
-			map[string]any{"action": "create", "roadmap_id": "123", "name": "New Lane", "color": "#FF0000"},
+			map[string]any{"action": "create", "roadmap_id": "123", "name": "New Lane", "description": "Server work", "position": 2},
 		},
 		{
 			"update",

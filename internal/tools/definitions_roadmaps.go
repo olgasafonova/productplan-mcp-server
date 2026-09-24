@@ -175,18 +175,20 @@ func roadmapManageTools() []mcp.Tool {
 			Name: "manage_lane",
 			Description: `Create, update, or delete a lane on a roadmap.
 
-USE WHEN: "Add Backend lane", "Rename Mobile lane", "Delete lane"
-Actions: create (name), update (lane_id), delete (lane_id)
+USE WHEN: "Add Backend lane", "Rename Mobile lane", "Move lane to the top", "Delete lane"
+Actions: create (name; optional description, position), update (lane_id plus any of name, description, position), delete (lane_id)
 Returns the created/updated lane object, or confirmation on delete.
-FAILS WHEN: create without name, update/delete without lane_id (get IDs from get_roadmap_lanes). WARNING: delete removes the lane and unassigns all bars in it.`,
+FAILS WHEN: create without name, update/delete without lane_id (get IDs from get_roadmap_lanes), color passed (lanes have no settable color in the API). WARNING: delete removes the lane and unassigns all bars in it.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
-					"action":     {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
-					"roadmap_id": {Type: "string", Description: "Roadmap ID"},
-					"lane_id":    {Type: "string", Description: "Lane ID (for update/delete)"},
-					"name":       {Type: "string", Description: "Lane name"},
-					"color":      {Type: "string", Description: "Hex color (#FF5733)", Pattern: `^#[0-9A-Fa-f]{6}$`, Examples: []any{"#FF5733", "#4CAF50"}},
+					"action":      {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
+					"roadmap_id":  {Type: "string", Description: "Roadmap ID"},
+					"lane_id":     {Type: "string", Description: "Lane ID (for update/delete)"},
+					"name":        {Type: "string", Description: "Lane name"},
+					"description": {Type: "string", Description: "What the lane represents"},
+					"position":    {Type: "integer", Description: "Position of the lane in the roadmap", Examples: []any{1}},
+					"color":       {Type: "string", Description: "DEPRECATED and rejected: lanes have no color field in the ProductPlan API, so it was never applied"},
 				},
 				Required: []string{"action", "roadmap_id"},
 			},
