@@ -3,6 +3,7 @@ package tools
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 )
@@ -10,7 +11,7 @@ import (
 // ParseArgs unmarshals map[string]any into a typed struct.
 func ParseArgs[T any](args map[string]any) (T, error) {
 	var result T
-	data, err := json.Marshal(args)
+	data, err := json.Marshal(coerceIDs(args))
 	if err != nil {
 		return result, fmt.Errorf("failed to marshal arguments: %w", err)
 	}
@@ -122,19 +123,58 @@ func (a GetRoadmapArgs) Validate() error {
 	return fieldCheck{a.RoadmapID, "roadmap_id"}.require()
 }
 
-// ManageLaneArgs holds arguments for lane management operations.
-type ManageLaneArgs struct {
-	Action    string `json:"action"`
+// GetRoadmapBarsArgs holds get_roadmap_bars arguments other than the
+// server-side filters, which buildQuery reads (see filters.go). Lane,
+// Legend and Tag are client-side filters (api.BarFilter).
+type GetRoadmapBarsArgs struct {
 	RoadmapID string `json:"roadmap_id"`
-	LaneID    string `json:"lane_id,omitempty"`
-	Name      string `json:"name,omitempty"`
-	Color     string `json:"color,omitempty"`
+	Lane      string `json:"lane,omitempty"`
+	Legend    string `json:"legend,omitempty"`
+	Tag       string `json:"tag,omitempty"`
 }
+
+// Validate checks required fields.
+func (a GetRoadmapBarsArgs) Validate() error {
+	return fieldCheck{a.RoadmapID, "roadmap_id"}.require()
+}
+
+// ManageLaneArgs holds arguments for lane management operations. The lane
+// write contract (POST and PATCH /roadmaps/{id}/lanes) is name,
+// description and position.
+type ManageLaneArgs struct {
+	Action      string `json:"action"`
+	RoadmapID   string `json:"roadmap_id"`
+	LaneID      string `json:"lane_id,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Position    *int   `json:"position,omitempty"`
+
+	// Color is deprecated and rejected: it was advertised before
+	// 24-09-2026 but is not a lane field, so the API never applied it.
+	// It stays declared so callers get errLaneColor, not an unknown-key
+	// rejection.
+	Color string `json:"color,omitempty"`
+}
+
+var errLaneColor = errors.New("color is not a ProductPlan lane field: the lane endpoints accept only name, description and position, so color was never applied. Remove color; lane colors cannot be set through the API")
 
 // Validate checks required fields based on action.
 func (a ManageLaneArgs) Validate() error {
+	if a.Color != "" {
+		return errLaneColor
+	}
 	return validateParentScoped(a.Action,
 		fieldCheck{a.RoadmapID, "roadmap_id"}, fieldCheck{a.LaneID, "lane_id"})
+}
+
+// payloads returns the create payload (name always sent) and the update
+// payload (only the fields set).
+func (a ManageLaneArgs) payloads() (create, update map[string]any) {
+	create = buildPayload(map[string]any{"name": a.Name}, fieldCheck{a.Description, "description"})
+	update = buildPayload(nil, fieldCheck{a.Name, "name"}, fieldCheck{a.Description, "description"})
+	setIfNotNil(create, "position", a.Position)
+	setIfNotNil(update, "position", a.Position)
+	return create, update
 }
 
 // ManageMilestoneArgs holds arguments for milestone management operations.
@@ -162,53 +202,6 @@ type GetBarArgs struct {
 // Validate checks required fields.
 func (a GetBarArgs) Validate() error {
 	return fieldCheck{a.BarID, "bar_id"}.require()
-}
-
-// CustomFieldValue represents a name-value pair for custom fields.
-type CustomFieldValue struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-// ManageBarArgs holds arguments for bar management operations.
-type ManageBarArgs struct {
-	Action               string             `json:"action"`
-	BarID                string             `json:"bar_id,omitempty"`
-	RoadmapID            string             `json:"roadmap_id,omitempty"`
-	LaneID               string             `json:"lane_id,omitempty"`
-	Name                 string             `json:"name,omitempty"`
-	StartsOn             string             `json:"starts_on,omitempty"`
-	EndsOn               string             `json:"ends_on,omitempty"`
-	Description          string             `json:"description,omitempty"`
-	LegendID             string             `json:"legend_id,omitempty"`
-	PercentDone          *int               `json:"percent_done,omitempty"`
-	Container            *bool              `json:"container,omitempty"`
-	Parked               *bool              `json:"parked,omitempty"`
-	ParentID             string             `json:"parent_id,omitempty"`
-	StrategicValue       string             `json:"strategic_value,omitempty"`
-	Notes                string             `json:"notes,omitempty"`
-	Effort               *int               `json:"effort,omitempty"`
-	Tags                 []string           `json:"tags,omitempty"`
-	CustomTextFields     []CustomFieldValue `json:"custom_text_fields,omitempty"`
-	CustomDropdownFields []CustomFieldValue `json:"custom_dropdown_fields,omitempty"`
-}
-
-// Validate checks required fields based on action.
-func (a ManageBarArgs) Validate() error {
-	if err := (fieldCheck{a.Action, "action"}).require(); err != nil {
-		return err
-	}
-	switch a.Action {
-	case "create":
-		return requireAllForAction("create",
-			fieldCheck{a.RoadmapID, "roadmap_id"},
-			fieldCheck{a.LaneID, "lane_id"},
-			fieldCheck{a.Name, "name"},
-		)
-	case "update", "delete":
-		return fieldCheck{a.BarID, "bar_id"}.requireFor(a.Action)
-	}
-	return nil
 }
 
 // ManageBarConnectionArgs holds arguments for bar connection operations.

@@ -18,7 +18,7 @@ func objectiveReadTools() []mcp.Tool {
 			Description: `List all OKR objectives. START HERE for OKRs.
 
 USE WHEN: "Show OKRs", "What are our objectives?"
-Returns array of objectives with ID, name, time_frame, and key result count.
+Returns array of objectives with ID, name, risk_status, start_date, end_date, and key_results_count.
 FAILS WHEN: API token invalid. Returns empty list if no objectives exist.`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",

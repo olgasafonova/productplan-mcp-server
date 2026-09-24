@@ -14,8 +14,8 @@
 //     dispatch and its panic recovery live
 //
 // Keeping the authoring format local is the pattern the rest of the portfolio
-// uses; it is what lets internal/tools declare 47 tools without importing the
-// SDK.
+// uses; it is what lets internal/tools declare its tools without importing
+// the SDK.
 package mcp
 
 // ToolAnnotations provides optional hints about a tool's behavior.

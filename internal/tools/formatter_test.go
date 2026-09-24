@@ -151,7 +151,7 @@ func TestPluralize(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		result := pluralize(tc.word, tc.count)
+		result := ItemType(tc.word).plural(tc.count)
 		if result != tc.expected {
 			t.Errorf("pluralize(%q, %d) = %q, expected %q", tc.word, tc.count, result, tc.expected)
 		}
@@ -170,7 +170,7 @@ func TestCapitalize(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		result := capitalize(tc.input)
+		result := ItemType(tc.input).capitalized()
 		if result != tc.expected {
 			t.Errorf("capitalize(%q) = %q, expected %q", tc.input, result, tc.expected)
 		}

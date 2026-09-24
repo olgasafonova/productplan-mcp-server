@@ -495,32 +495,53 @@ productplan launches         # List all launches
 
 ```
 productplan-mcp-server/
-├── cmd/productplan/main.go      # Entry point (~100 lines)
+├── cmd/productplan/main.go      # Entry point: token check, then MCP server or CLI
 ├── internal/
 │   ├── api/                     # ProductPlan API client
-│   │   ├── client.go            # HTTP client with caching, retry, rate limiting
-│   │   ├── endpoints.go         # 40+ API endpoint methods
-│   │   └── formatters.go        # Response enrichment for AI
+│   │   ├── client.go            # HTTP client: auth, rate limiting, error wrapping
+│   │   ├── transport.go         # Tuned HTTP transport
+│   │   ├── cache.go             # In-process TTL read cache (singleflight, write invalidation)
+│   │   ├── list.go              # Paged collection GETs and Ransack query encoding
+│   │   ├── ids.go               # Typed resource IDs (BarID, RoadmapID, ...), each validated into a path segment
+│   │   ├── path.go              # Routes and request paths built only from typed IDs
+│   │   ├── safeseg.go           # Path-segment validation for user-supplied IDs
+│   │   ├── endpoints*.go        # Endpoint methods (roadmaps, bars, ideas, launches, OKRs)
+│   │   ├── bars_read.go         # Roadmap bars with lane enrichment and client-side filters
+│   │   ├── bar_schema.go        # Roadmap legends/lanes/custom fields for bar writes
+│   │   └── formatters.go        # Response projection for AI
 │   ├── mcp/                     # MCP wiring over the official go-sdk
 │   │   ├── sdk_server.go        # Serves the registry via go-sdk (stdio)
 │   │   ├── sdk.go               # Converts local Tool -> SDK tool
-│   │   ├── handler.go           # Tool dispatch via registry
+│   │   ├── handler.go           # Registry: dispatch and panic recovery
+│   │   ├── argkeys.go           # Rejects undeclared argument keys (did-you-mean)
+│   │   ├── editdistance.go      # Levenshtein distance for suggestions
 │   │   └── types.go             # Tool-authoring types
 │   ├── tools/                   # Tool definitions and handlers
-│   │   ├── registry.go          # Tool registration and dispatch
-│   │   └── types.go             # Typed argument structs for handlers
+│   │   ├── registry.go          # Tool registration (name -> handler)
+│   │   ├── definitions*.go      # Tool schemas and descriptions
+│   │   ├── helpers.go           # typedHandler, manage-action dispatch
+│   │   ├── filters.go           # List-tool filters -> Ransack predicates
+│   │   ├── formatter.go         # List/item/action response summaries
+│   │   ├── item_type.go         # Item nouns for summaries
+│   │   ├── bar_planner.go       # Validates bar writes against the roadmap
+│   │   ├── bar_names.go         # Legend/lane/custom field name resolution
+│   │   ├── bulk_bars.go         # bulk_update/create/delete_bars
+│   │   ├── roadmaps.go, bars.go, ideas.go, objectives.go, launches.go, utility.go  # handlers
+│   │   └── types*.go            # Typed argument structs for handlers
 │   ├── cli/                     # CLI commands (status, roadmaps, etc.)
 │   │   └── cli.go
-│   └── logging/                 # Structured JSON logging
+│   └── logging/                 # slog JSON handler setup (ts/level/msg)
 │       └── logger.go
 ├── pkg/productplan/             # Reusable utilities
-│   ├── cache.go                 # LRU cache with TTL
 │   ├── retry.go                 # Exponential backoff with jitter
 │   ├── ratelimit.go             # Adaptive rate limiting
-│   ├── registry.go              # ToolBuilder for schema generation
+│   ├── batch.go                 # Batched operations
+│   ├── health.go                # Health reporting
 │   ├── requestid.go             # Request tracing
-│   └── errors.go                # Error suggestions
+│   ├── validation.go            # ID validation (Field.RequireID)
+│   └── errors.go                # APIError and error suggestions
 └── evals/                       # LLM evaluation test suite
+    ├── runner.go, types.go
     ├── tool_selection.json
     ├── confusion_pairs.json
     └── argument_correctness.json
@@ -592,7 +613,7 @@ Run evaluation suite:
 <details>
 <summary>MCP tool reference</summary>
 
-47 tools available: 35 READ tools and 12 WRITE tools (action-based):
+50 tools available: 35 READ tools and 15 WRITE tools (12 action-based `manage_*` plus 3 `bulk_*` bar tools):
 
 **Read tools:**
 - Roadmaps: `list_roadmaps`, `get_roadmap`, `get_roadmap_bars`, `get_roadmap_lanes`, `get_roadmap_milestones`, `get_roadmap_legends`, `get_roadmap_comments`, `get_roadmap_complete`
@@ -605,6 +626,7 @@ Run evaluation suite:
 **Write tools:**
 - Roadmaps: `manage_bar`, `manage_lane`, `manage_milestone`
 - Bar relationships: `manage_bar_connection`, `manage_bar_link`
+- Bulk bars: `bulk_update_bars`, `bulk_create_bars`, `bulk_delete_bars` (up to 100 bars per call, validated up front, `dry_run` supported)
 - OKRs: `manage_objective`, `manage_key_result`
 - Discovery: `manage_idea`, `manage_opportunity`
 - Launches: `manage_launch`, `manage_launch_section`, `manage_launch_task`
@@ -612,7 +634,8 @@ Run evaluation suite:
 Example:
 ```json
 {"tool": "list_roadmaps", "arguments": {}}
-{"tool": "manage_bar", "arguments": {"action": "create", "roadmap_id": "123", "lane_id": "456", "name": "New feature"}}
+{"tool": "manage_bar", "arguments": {"action": "create", "roadmap_id": "123", "lane": "Backend", "name": "New feature", "legend": "Committed"}}
+{"tool": "bulk_update_bars", "arguments": {"set": {"legend": "Committed"}, "items": [{"bar_id": "901"}, {"bar_id": "902"}], "dry_run": true}}
 {"tool": "manage_idea", "arguments": {"action": "create", "name": "Mobile app improvements"}}
 ```
 
@@ -657,18 +680,13 @@ type Handler interface {
     Handle(ctx context.Context, args map[string]any) (json.RawMessage, error)
 }
 
-// Logger interface (internal/logging)
-type Logger interface {
-    Debug(msg string, fields ...Field)
-    Info(msg string, fields ...Field)
-    Warn(msg string, fields ...Field)
-    Error(msg string, fields ...Field)
-}
+// Logging (internal/logging): a *slog.Logger with a JSON handler on stderr
+logger := logging.New(slog.LevelInfo)
 ```
 
 **Logging format:**
 ```json
-{"ts":"2024-12-26T10:30:00Z","level":"info","req_id":"ab12","op":"get_roadmap_bars","dur_ms":245}
+{"ts":"2026-09-24T10:30:00.123456789Z","level":"debug","msg":"API response","endpoint":"/roadmaps/5","status_code":200,"dur_ms":245}
 ```
 
 </details>

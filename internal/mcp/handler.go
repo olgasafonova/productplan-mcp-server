@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -24,15 +26,21 @@ func (f HandlerFunc) Handle(ctx context.Context, args map[string]any) (json.RawM
 
 // Registry manages tool definitions and handlers.
 type Registry struct {
-	mu       sync.RWMutex
-	tools    []Tool
-	handlers map[string]Handler
+	mu      sync.RWMutex
+	tools   []Tool
+	entries map[string]registration
+}
+
+// registration is one tool's definition and handler, looked up by name.
+type registration struct {
+	tool    Tool
+	handler Handler
 }
 
 // NewRegistry creates a new tool registry.
 func NewRegistry() *Registry {
 	return &Registry{
-		handlers: make(map[string]Handler),
+		entries: make(map[string]registration),
 	}
 }
 
@@ -41,7 +49,7 @@ func (r *Registry) Register(tool Tool, handler Handler) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.tools = append(r.tools, tool)
-	r.handlers[tool.Name] = handler
+	r.entries[tool.Name] = registration{tool: tool, handler: handler}
 }
 
 // RegisterFunc adds a tool with a function handler.
@@ -58,46 +66,67 @@ func (r *Registry) Tools() []Tool {
 	return result
 }
 
-// Handler returns the handler for a tool by name.
-func (r *Registry) Handler(name string) (Handler, bool) {
+// lookup returns the registration for a tool by name.
+func (r *Registry) lookup(name string) (registration, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	h, ok := r.handlers[name]
-	return h, ok
+	e, ok := r.entries[name]
+	return e, ok
+}
+
+// Handler returns the handler for a tool by name.
+func (r *Registry) Handler(name string) (Handler, bool) {
+	e, ok := r.lookup(name)
+	return e.handler, ok
 }
 
 // HasOutputSchema reports whether the named tool declares an OutputSchema.
 // The server uses this to decide whether to emit structuredContent.
 func (r *Registry) HasOutputSchema(name string) bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	for i := range r.tools {
-		if r.tools[i].Name == name {
-			return r.tools[i].OutputSchema != nil
-		}
-	}
-	return false
+	e, ok := r.lookup(name)
+	return ok && e.tool.OutputSchema != nil
 }
 
-// Call executes a tool by name with the given arguments.
+// Call executes a tool by name with the given arguments. Argument keys the
+// tool's InputSchema does not declare are rejected before the handler runs
+// (see Tool.CheckArgumentKeys), so a misspelled argument is an error rather
+// than silently ignored.
+//
+// A panicking handler is recovered here, for every tool, by construction
+// (HG-1). The panic value and stack are logged with a random reference; the
+// caller sees only the tool name and that reference, never the panic value,
+// so a support report can be matched to the log line.
 func (r *Registry) Call(ctx context.Context, name string, args map[string]any) (result json.RawMessage, err error) {
-	handler, ok := r.Handler(name)
+	e, ok := r.lookup(name)
 	if !ok {
 		return nil, fmt.Errorf("unknown tool: %s", name)
+	}
+	if argErr := e.tool.CheckArgumentKeys(args); argErr != nil {
+		return nil, argErr
 	}
 
 	defer func() {
 		if rec := recover(); rec != nil {
+			ref := newPanicRef()
 			slog.Error("Panic recovered in tool handler",
 				"tool", name,
+				"ref", ref,
 				"panic", rec,
 				"stack", string(debug.Stack()))
 			result = nil
-			err = fmt.Errorf("internal error in %s", name)
+			err = fmt.Errorf("internal error in %s (ref %s)", name, ref)
 		}
 	}()
 
-	return handler.Handle(ctx, args)
+	return e.handler.Handle(ctx, args)
+}
+
+// newPanicRef returns a short random correlation ID (8 bytes, hex) tying a
+// caller-visible internal error to its server-side log line.
+func newPanicRef() string {
+	var b [8]byte
+	_, _ = rand.Read(b[:]) // crypto/rand.Read never returns an error (Go 1.24+)
+	return hex.EncodeToString(b[:])
 }
 
 // Count returns the number of registered tools.
@@ -105,74 +134,4 @@ func (r *Registry) Count() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return len(r.tools)
-}
-
-// ArgHelper provides helper methods for extracting typed values from arguments.
-type ArgHelper struct {
-	args map[string]any
-}
-
-// NewArgHelper creates a new argument helper.
-func NewArgHelper(args map[string]any) *ArgHelper {
-	return &ArgHelper{args: args}
-}
-
-// String returns the string value for a key, or empty string if not found.
-func (h *ArgHelper) String(key string) string {
-	if v, ok := h.args[key].(string); ok {
-		return v
-	}
-	return ""
-}
-
-// Int returns the int value for a key, or 0 if not found.
-func (h *ArgHelper) Int(key string) int {
-	switch v := h.args[key].(type) {
-	case int:
-		return v
-	case float64:
-		return int(v)
-	case int64:
-		return int(v)
-	}
-	return 0
-}
-
-// Bool returns the bool value for a key, or false if not found.
-func (h *ArgHelper) Bool(key string) bool {
-	if v, ok := h.args[key].(bool); ok {
-		return v
-	}
-	return false
-}
-
-// Has returns true if the key exists and has a non-empty value.
-func (h *ArgHelper) Has(key string) bool {
-	v, ok := h.args[key]
-	if !ok {
-		return false
-	}
-	if s, ok := v.(string); ok {
-		return s != ""
-	}
-	return true
-}
-
-// BuildData creates a map from key-value pairs, excluding empty strings.
-func (h *ArgHelper) BuildData(keys ...string) map[string]any {
-	data := make(map[string]any)
-	for _, key := range keys {
-		if v := h.String(key); v != "" {
-			data[key] = v
-		}
-	}
-	return data
-}
-
-// RequiredString returns the string value for a key, or an error if not found.
-func (h *ArgHelper) RequiredString(key string) (string, error) {
-	if v := h.String(key); v != "" {
-		return v, nil
-	}
-	return "", fmt.Errorf("required parameter missing: %s", key)
 }

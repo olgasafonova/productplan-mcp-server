@@ -72,7 +72,7 @@ Call `manage_bar_link` with action="create", bar_id, url, title
 
 ### Manage lanes
 
-- Create: `manage_lane` with action="create", roadmap_id, name, color
+- Create: `manage_lane` with action="create", roadmap_id, name (optional description, position). Lanes have no settable color
 - Reorder: `manage_lane` with action="update", lane_id, position
 - Delete: `manage_lane` with action="delete", lane_id
 

@@ -11,7 +11,7 @@ import (
 
 // ListObjectives returns all objectives.
 func (c *Client) ListObjectives(ctx context.Context) (json.RawMessage, error) {
-	data, err := c.Get(ctx, "/strategy/objectives")
+	data, err := c.listAt(ctx, "/strategy/objectives", Query{})
 	if err != nil {
 		return nil, err
 	}
@@ -19,35 +19,23 @@ func (c *Client) ListObjectives(ctx context.Context) (json.RawMessage, error) {
 }
 
 // GetObjective returns a single objective by ID.
-func (c *Client) GetObjective(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("objective_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Get(ctx, "/strategy/objectives/"+seg)
+func (c *Client) GetObjective(ctx context.Context, id ObjectiveID) (json.RawMessage, error) {
+	return c.getAt(ctx, "/strategy/objectives/%s", id)
 }
 
 // CreateObjective creates a new objective.
 func (c *Client) CreateObjective(ctx context.Context, data map[string]any) (json.RawMessage, error) {
-	return c.Post(ctx, "/strategy/objectives", data)
+	return c.postAt(ctx, "/strategy/objectives", data)
 }
 
 // UpdateObjective updates an existing objective.
-func (c *Client) UpdateObjective(ctx context.Context, id string, data map[string]any) (json.RawMessage, error) {
-	seg, err := safeSeg("objective_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Patch(ctx, "/strategy/objectives/"+seg, data)
+func (c *Client) UpdateObjective(ctx context.Context, id ObjectiveID, data map[string]any) (json.RawMessage, error) {
+	return c.patchAt(ctx, "/strategy/objectives/%s", data, id)
 }
 
 // DeleteObjective deletes an objective.
-func (c *Client) DeleteObjective(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("objective_id", id)
-	if err != nil {
-		return nil, err
-	}
-	return c.Delete(ctx, "/strategy/objectives/"+seg)
+func (c *Client) DeleteObjective(ctx context.Context, id ObjectiveID) (json.RawMessage, error) {
+	return c.deleteAt(ctx, "/strategy/objectives/%s", id)
 }
 
 // ============================================================================
@@ -55,46 +43,26 @@ func (c *Client) DeleteObjective(ctx context.Context, id string) (json.RawMessag
 // ============================================================================
 
 // ListKeyResults returns key results for an objective.
-func (c *Client) ListKeyResults(ctx context.Context, objectiveID string) (json.RawMessage, error) {
-	seg, err := safeSeg("objective_id", objectiveID)
-	if err != nil {
-		return nil, err
-	}
-	return c.Get(ctx, "/strategy/objectives/"+seg+"/key_results")
+func (c *Client) ListKeyResults(ctx context.Context, objectiveID ObjectiveID) (json.RawMessage, error) {
+	return c.listAt(ctx, "/strategy/objectives/%s/key_results", Query{}, objectiveID)
 }
 
 // GetKeyResult returns a single key result by ID.
-func (c *Client) GetKeyResult(ctx context.Context, objectiveID, keyResultID string) (json.RawMessage, error) {
-	oSeg, krSeg, err := safeSegPair("objective_id", objectiveID, "key_result_id", keyResultID)
-	if err != nil {
-		return nil, err
-	}
-	return c.Get(ctx, "/strategy/objectives/"+oSeg+"/key_results/"+krSeg)
+func (c *Client) GetKeyResult(ctx context.Context, objectiveID ObjectiveID, keyResultID KeyResultID) (json.RawMessage, error) {
+	return c.getAt(ctx, "/strategy/objectives/%s/key_results/%s", objectiveID, keyResultID)
 }
 
 // CreateKeyResult creates a new key result.
-func (c *Client) CreateKeyResult(ctx context.Context, objectiveID string, data map[string]any) (json.RawMessage, error) {
-	seg, err := safeSeg("objective_id", objectiveID)
-	if err != nil {
-		return nil, err
-	}
-	return c.Post(ctx, "/strategy/objectives/"+seg+"/key_results", data)
+func (c *Client) CreateKeyResult(ctx context.Context, objectiveID ObjectiveID, data map[string]any) (json.RawMessage, error) {
+	return c.postAt(ctx, "/strategy/objectives/%s/key_results", data, objectiveID)
 }
 
 // UpdateKeyResult updates an existing key result.
-func (c *Client) UpdateKeyResult(ctx context.Context, objectiveID, keyResultID string, data map[string]any) (json.RawMessage, error) {
-	oSeg, krSeg, err := safeSegPair("objective_id", objectiveID, "key_result_id", keyResultID)
-	if err != nil {
-		return nil, err
-	}
-	return c.Patch(ctx, "/strategy/objectives/"+oSeg+"/key_results/"+krSeg, data)
+func (c *Client) UpdateKeyResult(ctx context.Context, objectiveID ObjectiveID, keyResultID KeyResultID, data map[string]any) (json.RawMessage, error) {
+	return c.patchAt(ctx, "/strategy/objectives/%s/key_results/%s", data, objectiveID, keyResultID)
 }
 
 // DeleteKeyResult deletes a key result.
-func (c *Client) DeleteKeyResult(ctx context.Context, objectiveID, keyResultID string) (json.RawMessage, error) {
-	oSeg, krSeg, err := safeSegPair("objective_id", objectiveID, "key_result_id", keyResultID)
-	if err != nil {
-		return nil, err
-	}
-	return c.Delete(ctx, "/strategy/objectives/"+oSeg+"/key_results/"+krSeg)
+func (c *Client) DeleteKeyResult(ctx context.Context, objectiveID ObjectiveID, keyResultID KeyResultID) (json.RawMessage, error) {
+	return c.deleteAt(ctx, "/strategy/objectives/%s/key_results/%s", objectiveID, keyResultID)
 }

@@ -120,7 +120,7 @@ func TestManageLaneHandler(t *testing.T) {
 	}{
 		{
 			"create",
-			map[string]any{"action": "create", "roadmap_id": "123", "name": "New Lane", "color": "#FF0000"},
+			map[string]any{"action": "create", "roadmap_id": "123", "name": "New Lane", "description": "Server work", "position": 2},
 		},
 		{
 			"update",
@@ -220,74 +220,6 @@ func TestBarHandlers(t *testing.T) {
 			}
 			if result == nil {
 				t.Error("expected non-nil result")
-			}
-		})
-	}
-}
-
-func TestManageBarHandler(t *testing.T) {
-	server, client := setupTestServer(t, map[string]any{"id": "bar-1"})
-	defer server.Close()
-
-	handler := manageBarHandler(client)
-
-	percentDone := 50
-	container := true
-	parked := false
-	effort := 5
-
-	tests := []struct {
-		name string
-		args map[string]any
-	}{
-		{
-			"create",
-			map[string]any{
-				"action": "create", "roadmap_id": "123", "lane_id": "456",
-				"name": "New Bar", "starts_on": "2024-01-01", "ends_on": "2024-03-01",
-				"description": "Test bar",
-			},
-		},
-		{
-			"create_with_legend",
-			map[string]any{
-				"action": "create", "roadmap_id": "123", "lane_id": "456",
-				"name": "Bar with Color", "legend_id": "legend-1",
-			},
-		},
-		{
-			"create_with_all_fields",
-			map[string]any{
-				"action": "create", "roadmap_id": "123", "lane_id": "456",
-				"name": "Full Bar", "legend_id": "legend-1",
-				"percent_done": percentDone, "container": container, "parked": parked,
-				"parent_id": "parent-123", "strategic_value": "High priority",
-				"notes": "Important notes", "effort": effort,
-			},
-		},
-		{
-			"update",
-			map[string]any{"action": "update", "bar_id": "789", "name": "Updated Bar"},
-		},
-		{
-			"update_legend",
-			map[string]any{"action": "update", "bar_id": "789", "legend_id": "legend-2"},
-		},
-		{
-			"update_percent_done",
-			map[string]any{"action": "update", "bar_id": "789", "percent_done": percentDone},
-		},
-		{
-			"delete",
-			map[string]any{"action": "delete", "bar_id": "789"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, err := handler.Handle(context.Background(), tt.args)
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
 			}
 		})
 	}

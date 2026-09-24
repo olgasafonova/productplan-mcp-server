@@ -10,18 +10,18 @@ import (
 )
 
 func listLaunchesHandler(client *api.Client) mcp.Handler {
-	return mcp.HandlerFunc(func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
-		data, err := client.ListLaunches(ctx)
+	return queryHandler("list_launches", func(ctx context.Context, _ NoArgs, q api.Query) (json.RawMessage, error) {
+		data, err := client.ListLaunchesWhere(ctx, q)
 		if err != nil {
 			return nil, err
 		}
-		return FormatList(data, "launch")
+		return FormatFilteredList(data, "launch", !q.IsZero())
 	})
 }
 
 func getLaunchHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetLaunchArgs](func(ctx context.Context, a GetLaunchArgs) (json.RawMessage, error) {
-		data, err := client.GetLaunch(ctx, a.LaunchID)
+		data, err := client.GetLaunch(ctx, api.LaunchID(a.LaunchID))
 		if err != nil {
 			return nil, err
 		}
@@ -45,9 +45,9 @@ func manageLaunchHandler(client *api.Client) mcp.Handler {
 			setIfNotEmpty(payload, "name", a.Name)
 			setIfNotEmpty(payload, "date", a.Date)
 			setIfNotEmpty(payload, "description", a.Description)
-			data, err = client.UpdateLaunch(ctx, a.LaunchID, payload)
+			data, err = client.UpdateLaunch(ctx, api.LaunchID(a.LaunchID), payload)
 		case "delete":
-			data, err = client.DeleteLaunch(ctx, a.LaunchID)
+			data, err = client.DeleteLaunch(ctx, api.LaunchID(a.LaunchID))
 		default:
 			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
@@ -61,7 +61,7 @@ func manageLaunchHandler(client *api.Client) mcp.Handler {
 
 func getLaunchSectionsHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetLaunchArgs](func(ctx context.Context, a GetLaunchArgs) (json.RawMessage, error) {
-		data, err := client.GetLaunchSections(ctx, a.LaunchID)
+		data, err := client.GetLaunchSections(ctx, api.LaunchID(a.LaunchID))
 		if err != nil {
 			return nil, err
 		}
@@ -71,7 +71,7 @@ func getLaunchSectionsHandler(client *api.Client) mcp.Handler {
 
 func getLaunchSectionHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetLaunchSectionArgs](func(ctx context.Context, a GetLaunchSectionArgs) (json.RawMessage, error) {
-		data, err := client.GetLaunchSection(ctx, a.LaunchID, a.SectionID)
+		data, err := client.GetLaunchSection(ctx, api.LaunchID(a.LaunchID), api.SectionID(a.SectionID))
 		if err != nil {
 			return nil, err
 		}
@@ -87,13 +87,13 @@ func manageLaunchSectionHandler(client *api.Client) mcp.Handler {
 		switch a.Action {
 		case "create":
 			payload := map[string]any{"name": a.Name}
-			data, err = client.CreateLaunchSection(ctx, a.LaunchID, payload)
+			data, err = client.CreateLaunchSection(ctx, api.LaunchID(a.LaunchID), payload)
 		case "update":
 			payload := make(map[string]any)
 			setIfNotEmpty(payload, "name", a.Name)
-			data, err = client.UpdateLaunchSection(ctx, a.LaunchID, a.SectionID, payload)
+			data, err = client.UpdateLaunchSection(ctx, api.LaunchID(a.LaunchID), api.SectionID(a.SectionID), payload)
 		case "delete":
-			data, err = client.DeleteLaunchSection(ctx, a.LaunchID, a.SectionID)
+			data, err = client.DeleteLaunchSection(ctx, api.LaunchID(a.LaunchID), api.SectionID(a.SectionID))
 		default:
 			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}
@@ -107,7 +107,7 @@ func manageLaunchSectionHandler(client *api.Client) mcp.Handler {
 
 func getLaunchTasksHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetLaunchArgs](func(ctx context.Context, a GetLaunchArgs) (json.RawMessage, error) {
-		data, err := client.GetLaunchTasks(ctx, a.LaunchID)
+		data, err := client.GetLaunchTasks(ctx, api.LaunchID(a.LaunchID))
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func getLaunchTasksHandler(client *api.Client) mcp.Handler {
 
 func getLaunchTaskHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetLaunchTaskArgs](func(ctx context.Context, a GetLaunchTaskArgs) (json.RawMessage, error) {
-		data, err := client.GetLaunchTask(ctx, a.LaunchID, a.TaskID)
+		data, err := client.GetLaunchTask(ctx, api.LaunchID(a.LaunchID), api.TaskID(a.TaskID))
 		if err != nil {
 			return nil, err
 		}
@@ -140,7 +140,7 @@ func manageLaunchTaskHandler(client *api.Client) mcp.Handler {
 			setIfNotEmpty(payload, "due_date", a.DueDate)
 			setIfNotEmpty(payload, "assigned_user_id", a.AssignedUserID)
 			setIfNotEmpty(payload, "status", a.Status)
-			data, err = client.CreateLaunchTask(ctx, a.LaunchID, payload)
+			data, err = client.CreateLaunchTask(ctx, api.LaunchID(a.LaunchID), payload)
 		case "update":
 			payload := make(map[string]any)
 			setIfNotEmpty(payload, "name", a.Name)
@@ -148,9 +148,9 @@ func manageLaunchTaskHandler(client *api.Client) mcp.Handler {
 			setIfNotEmpty(payload, "due_date", a.DueDate)
 			setIfNotEmpty(payload, "assigned_user_id", a.AssignedUserID)
 			setIfNotEmpty(payload, "status", a.Status)
-			data, err = client.UpdateLaunchTask(ctx, a.LaunchID, a.TaskID, payload)
+			data, err = client.UpdateLaunchTask(ctx, api.LaunchID(a.LaunchID), api.TaskID(a.TaskID), payload)
 		case "delete":
-			data, err = client.DeleteLaunchTask(ctx, a.LaunchID, a.TaskID)
+			data, err = client.DeleteLaunchTask(ctx, api.LaunchID(a.LaunchID), api.TaskID(a.TaskID))
 		default:
 			return nil, fmt.Errorf("unknown action: %s", a.Action)
 		}

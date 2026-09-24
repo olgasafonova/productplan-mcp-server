@@ -7,47 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/logging"
 	"github.com/olgasafonova/productplan-mcp-server/pkg/productplan"
 )
-
-// safeSeg validates an ID arg as a URL-safe path segment and returns the
-// PathEscape-d form ready for interpolation. Used by every endpoint method
-// that interpolates user-supplied IDs into a path; without it, an
-// adversarial caller could send `bar_id="../../strategy/objectives/SECRET"`
-// and pivot a manage_bar action to a different resource.
-//
-// PathEscape on a validator-approved ID is a no-op today (the regex restricts
-// to URL-safe chars), but it stays as belt-and-braces against future regex
-// loosening.
-func safeSeg(field, value string) (string, error) {
-	if err := productplan.RequireID(field, value); err != nil {
-		return "", err
-	}
-	return url.PathEscape(strings.TrimSpace(value)), nil
-}
-
-// safeSegPair is a convenience for the recurring "validate two IDs, then
-// interpolate" pattern used by every update/delete of a sub-resource. It
-// returns the two escaped segments or the first validation error encountered.
-// The order of fields in the call site is the order returned, which keeps the
-// URL composition local and obvious at the call site.
-func safeSegPair(field1, value1, field2, value2 string) (string, string, error) {
-	seg1, err := safeSeg(field1, value1)
-	if err != nil {
-		return "", "", err
-	}
-	seg2, err := safeSeg(field2, value2)
-	if err != nil {
-		return "", "", err
-	}
-	return seg1, seg2, nil
-}
 
 const (
 	// DefaultBaseURL is the ProductPlan API base URL.
@@ -62,7 +29,11 @@ type Config struct {
 	BaseURL string
 	Token   string
 	Timeout time.Duration
-	Logger  logging.Logger
+	Logger  *slog.Logger
+	// CacheTTL enables the in-process read cache for GETs when positive.
+	// Zero (the zero value) disables it; the server sets it from
+	// CacheTTLFromEnv.
+	CacheTTL time.Duration
 }
 
 // DefaultConfig returns a Config with sensible defaults.
@@ -81,7 +52,8 @@ type Client struct {
 	token       string
 	httpClient  *http.Client
 	rateLimiter *productplan.AdaptiveRateLimiter
-	logger      logging.Logger
+	logger      *slog.Logger
+	cache       *readCache // nil when disabled
 }
 
 // New creates a new API client with the given configuration.
@@ -109,7 +81,8 @@ func New(cfg Config) (*Client, error) {
 		baseURL: baseURL,
 		token:   cfg.Token,
 		httpClient: &http.Client{
-			Timeout: timeout,
+			Timeout:   timeout,
+			Transport: newTransport(),
 			// SECURITY: Refuse all redirects. The configured BaseURL
 			// (app.productplan.com/api/v2 by default) is the only legitimate
 			// target. Without CheckRedirect, Go follows up to 10 3xx responses;
@@ -125,6 +98,7 @@ func New(cfg Config) (*Client, error) {
 		},
 		rateLimiter: productplan.NewAdaptiveRateLimiter(productplan.DefaultRateLimiterConfig()),
 		logger:      logger,
+		cache:       newReadCache(cfg.CacheTTL),
 	}, nil
 }
 
@@ -134,7 +108,7 @@ func NewSimple(token string) (*Client, error) {
 }
 
 // buildRequest constructs an HTTP request with auth and content-type headers attached.
-func (c *Client) buildRequest(ctx context.Context, method, endpoint string, body any) (*http.Request, error) {
+func (c *Client) buildRequest(ctx context.Context, v verb, path apiPath, body any) (*http.Request, error) {
 	var reqBody io.Reader
 	if body != nil {
 		jsonBody, err := json.Marshal(body)
@@ -147,7 +121,7 @@ func (c *Client) buildRequest(ctx context.Context, method, endpoint string, body
 	// Build URL by concatenating base URL with endpoint path.
 	// ResolveReference strips the base path when endpoint starts with "/",
 	// so we use simple string concatenation instead.
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+endpoint, reqBody)
+	req, err := http.NewRequestWithContext(ctx, string(v), c.baseURL+string(path), reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -162,7 +136,9 @@ func handleResponse(resp *http.Response, respBody []byte) (json.RawMessage, erro
 	if resp.StatusCode >= 400 {
 		apiErr := productplan.ParseAPIError(resp, respBody)
 		if suggestion := apiErr.Suggestion(); suggestion != "" {
-			return nil, fmt.Errorf("%s. %s", apiErr.Error(), suggestion)
+			// %w keeps the *APIError reachable via errors.As, so callers
+			// (IsNotFound, IsRetryable checks) never parse message text.
+			return nil, fmt.Errorf("%w. %s", apiErr, suggestion)
 		}
 		return nil, apiErr
 	}
@@ -172,28 +148,38 @@ func handleResponse(resp *http.Response, respBody []byte) (json.RawMessage, erro
 	return respBody, nil
 }
 
-// Request performs an HTTP request to the API.
-func (c *Client) Request(ctx context.Context, method, endpoint string, body any) (json.RawMessage, error) {
+// request performs an HTTP request to the API. Any verb other than GET or
+// HEAD clears the read cache once the request returns, whether or not it
+// succeeded: a failed or timed-out write may still have been applied
+// upstream, so correct beats clever.
+//
+// request, get and getList are unexported on purpose: outside this package
+// the API is reachable only through the typed endpoint methods, whose paths
+// are built from validated IDs (ids.go, path.go).
+func (c *Client) request(ctx context.Context, v verb, path apiPath, body any) (json.RawMessage, error) {
+	if !v.readOnly() {
+		defer c.cache.invalidate()
+	}
 	start := time.Now()
 
 	if c.rateLimiter != nil {
 		c.rateLimiter.Wait()
 	}
 
-	req, err := c.buildRequest(ctx, method, endpoint, body)
+	req, err := c.buildRequest(ctx, v, path, body)
 	if err != nil {
 		return nil, err
 	}
 
 	c.logger.Debug("API request",
-		logging.Endpoint(endpoint),
-		logging.F("method", method),
+		path.attr(),
+		slog.String("method", string(v)),
 	)
 
 	resp, err := c.httpClient.Do(req) // #nosec G704 -- URL is the configured ProductPlan API endpoint, not user-controlled
 	if err != nil {
 		c.logger.Error("API request failed",
-			logging.Endpoint(endpoint),
+			path.attr(),
 			logging.Error(err),
 			logging.Duration(time.Since(start)),
 		)
@@ -211,32 +197,26 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 	}
 
 	c.logger.Debug("API response",
-		logging.Endpoint(endpoint),
-		logging.StatusCode(resp.StatusCode),
+		path.attr(),
+		slog.Int("status_code", resp.StatusCode),
 		logging.Duration(time.Since(start)),
 	)
 
 	return handleResponse(resp, respBody)
 }
 
-// Get performs a GET request.
-func (c *Client) Get(ctx context.Context, endpoint string) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodGet, endpoint, nil)
+// get performs a GET request, served from the read cache when enabled.
+// path (including its query) is the cache key.
+func (c *Client) get(ctx context.Context, path apiPath) (json.RawMessage, error) {
+	return c.cache.get(ctx, string(path), func(ctx context.Context) (json.RawMessage, error) {
+		return c.request(ctx, http.MethodGet, path, nil)
+	})
 }
 
-// Post performs a POST request.
-func (c *Client) Post(ctx context.Context, endpoint string, body any) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodPost, endpoint, body)
-}
-
-// Patch performs a PATCH request.
-func (c *Client) Patch(ctx context.Context, endpoint string, body any) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodPatch, endpoint, body)
-}
-
-// Delete performs a DELETE request.
-func (c *Client) Delete(ctx context.Context, endpoint string) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodDelete, endpoint, nil)
+// CacheStats reports read-cache counters (zero value with Enabled=false
+// when the cache is off). In-process only; touches no network.
+func (c *Client) CacheStats() CacheStats {
+	return c.cache.stats()
 }
 
 // RateLimiter returns the client's rate limiter for external use.
@@ -245,6 +225,6 @@ func (c *Client) RateLimiter() *productplan.AdaptiveRateLimiter {
 }
 
 // SetLogger sets the logger for the client.
-func (c *Client) SetLogger(logger logging.Logger) {
+func (c *Client) SetLogger(logger *slog.Logger) {
 	c.logger = logger
 }

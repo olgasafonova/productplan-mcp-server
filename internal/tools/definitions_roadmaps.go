@@ -23,21 +23,22 @@ func roadmapMetaTools() []mcp.Tool {
 			Name: "list_roadmaps",
 			Description: `List all roadmaps. START HERE to get roadmap IDs.
 
-USE WHEN: "Show my roadmaps", "What roadmaps do I have?"
-Returns array of roadmaps with ID, name, and creation date.
-FAILS WHEN: API token invalid or expired (check PRODUCTPLAN_API_TOKEN env var).`,
+USE WHEN: "Show my roadmaps", "What roadmaps do I have?", "Find the Mobile roadmap"
+Optional server-side filters: name_contains (case-insensitive); sort ("name asc", "updated_at desc").
+Returns roadmaps with ID, name, and updated_at.
+FAILS WHEN: API token invalid or expired (check PRODUCTPLAN_API_TOKEN env var); sort names a field outside the allowed list (the error lists them).`,
 			InputSchema: mcp.InputSchema{
 				Type:       "object",
-				Properties: map[string]mcp.Property{},
+				Properties: filterProperties("list_roadmaps", map[string]mcp.Property{}),
 			},
 		},
 		{
 			Name: "get_roadmap",
 			Description: `Get roadmap settings and metadata.
 
-USE WHEN: "Tell me about roadmap X", "Roadmap settings"
+USE WHEN: "Tell me about roadmap X", "Roadmap settings", "What custom fields does this roadmap have?"
 For all data in one call (bars, lanes, milestones), use get_roadmap_complete.
-Returns roadmap name, date range, sharing settings, and metadata.
+Returns roadmap name, date range, sharing settings, and metadata, including the vocabulary bar writes must use: legends (names), lanes (names), custom_text_fields [{label}], and custom_dropdown_fields [{label, allowed_values}]. manage_bar and the bulk_*_bars tools validate against exactly these.
 FAILS WHEN: roadmap_id not found (get valid IDs from list_roadmaps first).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -61,16 +62,21 @@ func roadmapComponentTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
 			Name: "get_roadmap_bars",
-			Description: `Get all bars (features/items) on a roadmap.
+			Description: `Get bars (features/items) on a roadmap, optionally filtered.
 
-USE WHEN: "What's on the roadmap?", "Show planned features", "What's in Q2?"
-Returns array of bars with ID, name, dates, lane, legend, percent_done, and description.
-FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if roadmap has no bars.`,
+USE WHEN: "What's on the roadmap?", "Show planned features", "What's starting in Q2?", "Bars in the Mobile lane tagged urgent"
+Server-side filters (sent to ProductPlan): name_contains, starts_after/starts_before, ends_after/ends_before (YYYY-MM-DD, inclusive), is_container, sort ("starts_on asc").
+Client-side filters (applied here to every fetched bar, before the 50-item cap): lane (name or ID), legend (name), tag. Exact, case-insensitive.
+Returns bars with ID, name, starts_on/ends_on, lane_name and lane_id, legend, tags, percent_done, is_container, and parked. For a bar's description and custom fields, use get_bar.
+FAILS WHEN: roadmap_id not found (use list_roadmaps); a date is not YYYY-MM-DD; sort names a field outside the allowed list (the error lists them). Says "No bars matched the filters" when filters exclude everything.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
-				Properties: map[string]mcp.Property{
+				Properties: filterProperties("get_roadmap_bars", map[string]mcp.Property{
 					"roadmap_id": {Type: "string", Description: "Roadmap ID"},
-				},
+					"lane":       {Type: "string", Description: "Only bars in this lane, by name or lane ID (client-side, case-insensitive)"},
+					"legend":     {Type: "string", Description: "Only bars with this legend name (client-side, case-insensitive; names from get_roadmap_legends)"},
+					"tag":        {Type: "string", Description: "Only bars carrying this tag (client-side, case-insensitive)"},
+				}),
 				Required: []string{"roadmap_id"},
 			},
 		},
@@ -79,7 +85,7 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if road
 			Description: `Get lanes (categories) on a roadmap. Lanes organize bars into rows.
 
 USE WHEN: "What lanes are on the roadmap?", "Show categories"
-Returns array of lanes with ID, name, and color.
+Returns array of lanes with ID, name, description, and position (the API exposes no lane color).
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -106,10 +112,11 @@ FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 		},
 		{
 			Name: "get_roadmap_legends",
-			Description: `Get legend entries (bar colors) for a roadmap.
+			Description: `Get the legend names (bar colors) for a roadmap.
 
-USE WHEN: "What colors are available?", "Show the legend"
-Returns array of legend entries with ID, name, and hex color. Use legend_id when creating/updating bars.
+USE WHEN: "What colors are available?", "Show the legend", "Which legend can I color bars with?"
+Returns an array of legend names. The ProductPlan API exposes legends by name only: there is no legend ID or hex color to return. Pass a name as ` + "`legend`" + ` on manage_bar, bulk_update_bars, or bulk_create_bars to color a bar.
+For custom field definitions (labels, dropdown allowed_values), use get_roadmap instead. To find bars by legend, use get_roadmap_bars with legend.
 FAILS WHEN: roadmap_id not found (use list_roadmaps).`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
@@ -168,18 +175,20 @@ func roadmapManageTools() []mcp.Tool {
 			Name: "manage_lane",
 			Description: `Create, update, or delete a lane on a roadmap.
 
-USE WHEN: "Add Backend lane", "Rename Mobile lane", "Delete lane"
-Actions: create (name), update (lane_id), delete (lane_id)
+USE WHEN: "Add Backend lane", "Rename Mobile lane", "Move lane to the top", "Delete lane"
+Actions: create (name; optional description, position), update (lane_id plus any of name, description, position), delete (lane_id)
 Returns the created/updated lane object, or confirmation on delete.
-FAILS WHEN: create without name, update/delete without lane_id (get IDs from get_roadmap_lanes). WARNING: delete removes the lane and unassigns all bars in it.`,
+FAILS WHEN: create without name, update/delete without lane_id (get IDs from get_roadmap_lanes), color passed (lanes have no settable color in the API). WARNING: delete removes the lane and unassigns all bars in it.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
 				Properties: map[string]mcp.Property{
-					"action":     {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
-					"roadmap_id": {Type: "string", Description: "Roadmap ID"},
-					"lane_id":    {Type: "string", Description: "Lane ID (for update/delete)"},
-					"name":       {Type: "string", Description: "Lane name"},
-					"color":      {Type: "string", Description: "Hex color (#FF5733)", Pattern: `^#[0-9A-Fa-f]{6}$`, Examples: []any{"#FF5733", "#4CAF50"}},
+					"action":      {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
+					"roadmap_id":  {Type: "string", Description: "Roadmap ID"},
+					"lane_id":     {Type: "string", Description: "Lane ID (for update/delete)"},
+					"name":        {Type: "string", Description: "Lane name"},
+					"description": {Type: "string", Description: "What the lane represents"},
+					"position":    {Type: "integer", Description: "Position of the lane in the roadmap", Examples: []any{1}},
+					"color":       {Type: "string", Description: "DEPRECATED and rejected: lanes have no color field in the ProductPlan API, so it was never applied"},
 				},
 				Required: []string{"action", "roadmap_id"},
 			},
@@ -210,7 +219,8 @@ FAILS WHEN: create without title or date, update/delete without milestone_id (ge
 // barTools returns bar-related tool definitions.
 func barTools() []mcp.Tool {
 	tools := barReadTools()
-	return append(tools, barManageTools()...)
+	tools = append(tools, barManageTools()...)
+	return append(tools, bulkBarTools()...)
 }
 
 // barReadTools returns read-only bar tool definitions.
@@ -295,37 +305,12 @@ FAILS WHEN: bar_id not found. Returns empty list if bar has no external links.`,
 func barManageTools() []mcp.Tool {
 	return []mcp.Tool{
 		{
-			Name: "manage_bar",
-			Description: `Create, update, or delete a bar on a roadmap.
-
-USE WHEN: "Add feature", "Update dates", "Delete item", "Change color"
-Actions: create (roadmap_id+lane_id+name), update (bar_id), delete (bar_id)
-Returns the created/updated bar object with all fields, or confirmation on delete.
-FAILS WHEN: create without roadmap_id, lane_id, or name (all three required). Update/delete without bar_id. Use get_roadmap_legends for valid legend_id values. WARNING: delete is permanent and cannot be undone.`,
+			Name:        "manage_bar",
+			Description: manageBarDescription,
 			InputSchema: mcp.InputSchema{
-				Type: "object",
-				Properties: map[string]mcp.Property{
-					"action":                 {Type: "string", Description: "create, update, or delete", Enum: []string{"create", "update", "delete"}},
-					"bar_id":                 {Type: "string", Description: "Bar ID (for update/delete)"},
-					"roadmap_id":             {Type: "string", Description: "Roadmap ID (for create)"},
-					"lane_id":                {Type: "string", Description: "Lane ID (for create; update to move)"},
-					"name":                   {Type: "string", Description: "Bar name"},
-					"starts_on":              {Type: "string", Description: "Start date YYYY-MM-DD", Pattern: `^\d{4}-\d{2}-\d{2}$`, Examples: []any{"2025-03-15"}},
-					"ends_on":                {Type: "string", Description: "End date YYYY-MM-DD", Pattern: `^\d{4}-\d{2}-\d{2}$`, Examples: []any{"2025-06-30"}},
-					"description":            {Type: "string", Description: "Description (markdown)"},
-					"legend_id":              {Type: "string", Description: "Color from get_roadmap_legends"},
-					"percent_done":           {Type: "integer", Description: "Progress 0-100", Minimum: floatPtr(0), Maximum: floatPtr(100)},
-					"container":              {Type: "boolean", Description: "Is container for children"},
-					"parked":                 {Type: "boolean", Description: "True to park bar (removes from timeline, keeps on roadmap)"},
-					"parent_id":              {Type: "string", Description: "Parent bar ID for nesting"},
-					"strategic_value":        {Type: "string", Description: "Free-text strategic importance note"},
-					"notes":                  {Type: "string", Description: "Additional notes"},
-					"effort":                 {Type: "integer", Description: "Effort estimate (unitless integer, scale per team)"},
-					"tags":                   {Type: "array", Description: "Tag strings [\"mobile\",\"urgent\"]", Items: &mcp.Property{Type: "string", Description: "Tag name"}},
-					"custom_text_fields":     {Type: "array", Description: "[{name,value}] custom text fields", Items: &mcp.Property{Type: "object", Description: "Custom text field with name and value"}},
-					"custom_dropdown_fields": {Type: "array", Description: "[{name,value}] custom dropdowns", Items: &mcp.Property{Type: "object", Description: "Custom dropdown field with name and value"}},
-				},
-				Required: []string{"action"},
+				Type:       "object",
+				Properties: manageBarProperties(),
+				Required:   []string{"action"},
 			},
 		},
 		{

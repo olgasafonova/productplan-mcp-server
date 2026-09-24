@@ -67,7 +67,13 @@ func testRegistry(t *testing.T) *Registry {
 		},
 	)
 	r.RegisterFunc(
-		Tool{Name: "echo_args", Description: "returns its arguments", InputSchema: InputSchema{Type: "object"}},
+		Tool{Name: "echo_args", Description: "returns its arguments", InputSchema: InputSchema{
+			Type: "object",
+			Properties: map[string]Property{
+				"id":    {Type: "string"},
+				"limit": {Type: "number"},
+			},
+		}},
 		func(_ context.Context, args map[string]any) (json.RawMessage, error) {
 			return json.Marshal(args)
 		},
@@ -208,6 +214,7 @@ func TestSDKServerReportsToolFailureAsErrorResult(t *testing.T) {
 // SDK adapter actually routes through it; calling Handler.Handle directly would
 // bypass it and this test is what would catch that.
 func TestSDKServerRecoversHandlerPanic(t *testing.T) {
+	logs := captureSlog(t)
 	session := connectSDKServer(t, testRegistry(t))
 
 	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{Name: "panicking"})
@@ -217,16 +224,44 @@ func TestSDKServerRecoversHandlerPanic(t *testing.T) {
 	if !res.IsError {
 		t.Fatal("a panicking handler reported success; the panic was swallowed")
 	}
-	if got := contentText(t, res); !strings.Contains(got, "internal error in panicking") {
+	got := contentText(t, res)
+	if !strings.Contains(got, "internal error in panicking") {
 		t.Errorf("expected a structured internal-error message, got %q", got)
 	}
-	if got := contentText(t, res); strings.Contains(got, "boom") {
+	if strings.Contains(got, "boom") {
 		t.Errorf("panic value leaked to the caller: %q", got)
+	}
+
+	// Article II: the caller's error carries a reference that also appears
+	// in the server log next to the panic value and stack.
+	ref := panicRefIn(t, got)
+	if !strings.Contains(logs.String(), `"ref":"`+ref+`"`) {
+		t.Errorf("ref %s missing from the panic log: %s", ref, logs.String())
+	}
+	if !strings.Contains(logs.String(), "boom") {
+		t.Error("panic value should be logged server-side")
 	}
 
 	// The session must still be usable afterwards.
 	if after := callTool(t, session, "plain", nil); after.IsError {
 		t.Error("server unusable after a handler panic")
+	}
+}
+
+// An argument the tool does not declare is refused through the real SDK
+// session, not only in Registry.Call.
+func TestSDKServerRejectsUnknownArgument(t *testing.T) {
+	session := connectSDKServer(t, testRegistry(t))
+
+	res := callTool(t, session, "echo_args", map[string]any{"idd": "123"})
+	if !res.IsError {
+		t.Fatal("unknown argument accepted")
+	}
+	got := contentText(t, res)
+	for _, want := range []string{`"idd"`, `did you mean "id"?`, "Valid arguments: id, limit"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("error %q lacks %q", got, want)
+		}
 	}
 }
 
@@ -333,7 +368,7 @@ func TestSDKServerRunStopsOnContextCancel(t *testing.T) {
 
 // SEP-2549 requires ttlMs and cacheScope on every cacheable result. The SDK
 // ships cacheScope but leaves ttlMs at 0, which the spec reads as "immediately
-// stale", so without the cache middleware this server would be spec-compliant
+// stale", so without the SetCacheable policy this server would be spec-compliant
 // and useless to a caching client. Asserting a POSITIVE ttlMs is the point:
 // presence alone cannot distinguish a configured value from the SDK's default.
 func TestSDKServerStampsCacheHintsOnListTools(t *testing.T) {
@@ -353,4 +388,36 @@ func TestSDKServerStampsCacheHintsOnListTools(t *testing.T) {
 	if res.CacheScope == "" {
 		t.Error("tools/list returned an empty cacheScope")
 	}
+}
+
+// server/discover cannot be driven from the public client API (the SDK client
+// sends it internally during connect), so the policy is checked directly. The
+// three cases pin what the mcpcache middleware did on v1.7.0: a TTL on
+// tools/list and server/discover only, and a TTL already set left alone.
+func TestSetCacheHintsPolicy(t *testing.T) {
+	want := int(30 * time.Minute / time.Millisecond)
+
+	t.Run("discover gets the list TTL", func(t *testing.T) {
+		var c mcp.Cacheable
+		setCacheHints(context.Background(), &mcp.ServerRequest[*mcp.DiscoverParams]{}, &c)
+		if c.TTLMs != want {
+			t.Errorf("server/discover ttlMs = %d, want %d", c.TTLMs, want)
+		}
+	})
+
+	t.Run("other cacheable results are untouched", func(t *testing.T) {
+		var c mcp.Cacheable
+		setCacheHints(context.Background(), &mcp.ListPromptsRequest{}, &c)
+		if c.TTLMs != 0 || c.CacheScope != "" {
+			t.Errorf("prompts/list cacheable = %+v, want zero value", c)
+		}
+	})
+
+	t.Run("a TTL already set is kept", func(t *testing.T) {
+		c := mcp.Cacheable{TTLMs: 5_000}
+		setCacheHints(context.Background(), &mcp.ListToolsRequest{}, &c)
+		if c.TTLMs != 5_000 {
+			t.Errorf("tools/list ttlMs = %d, want 5000 (preserved)", c.TTLMs)
+		}
+	})
 }

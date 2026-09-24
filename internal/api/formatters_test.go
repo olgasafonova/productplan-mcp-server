@@ -159,20 +159,28 @@ func TestFormatBarsWithContextInvalidJSON(t *testing.T) {
 		t.Error("expected original bars on parse error")
 	}
 
-	// Invalid lanes JSON should return original bars
-	bars = `[{"id": 1}]`
+	// Invalid lanes JSON loses only the lane enrichment: the bars are still
+	// projected and capped (previously the raw, uncapped bars leaked through).
+	bars = `[{"id": 1, "name": "A", "lane": "Backend"}]`
 	lanes = `not valid json`
 
 	result = FormatBarsWithContext(json.RawMessage(bars), json.RawMessage(lanes))
-	if string(result) != bars {
-		t.Error("expected original bars on lanes parse error")
+	var parsed struct {
+		Count int              `json:"count"`
+		Bars  []map[string]any `json:"bars"`
+	}
+	if err := json.Unmarshal(result, &parsed); err != nil || parsed.Count != 1 {
+		t.Fatalf("expected projected bars on lanes parse error, got %s", result)
+	}
+	if parsed.Bars[0]["lane_name"] != "Backend" || parsed.Bars[0]["lane_id"] != nil {
+		t.Errorf("bar = %v, want lane_name from the bar and no lane_id", parsed.Bars[0])
 	}
 }
 
 func TestFormatLanes(t *testing.T) {
 	input := `[
-		{"id": 1, "name": "Engineering", "color": "#FF0000", "order": 1},
-		{"id": 2, "name": "Design", "color": "#00FF00", "order": 2}
+		{"id": 1, "name": "Engineering", "description": "Backend work", "position": 1, "order": 1, "created_at": "2024-01-01"},
+		{"id": 2, "name": "Design", "description": "", "position": 2, "order": 2, "created_at": "2024-01-01"}
 	]`
 
 	result := FormatLanes(json.RawMessage(input))
@@ -194,8 +202,17 @@ func TestFormatLanes(t *testing.T) {
 	if _, ok := lane["order"]; ok {
 		t.Error("order should be filtered out")
 	}
-	if lane["color"] != "#FF0000" {
-		t.Errorf("expected color '#FF0000', got %v", lane["color"])
+	if _, ok := lane["created_at"]; ok {
+		t.Error("created_at should be filtered out")
+	}
+	if _, ok := lane["color"]; ok {
+		t.Error("color is not a lane field in the live API and must not be projected")
+	}
+	if lane["description"] != "Backend work" {
+		t.Errorf("expected description 'Backend work', got %v", lane["description"])
+	}
+	if lane["position"] != float64(1) {
+		t.Errorf("expected position 1, got %v", lane["position"])
 	}
 }
 
@@ -231,6 +248,14 @@ func TestFormatMilestones(t *testing.T) {
 	if _, ok := parsed.Milestones[0]["description"]; ok {
 		t.Error("description should be filtered out")
 	}
+	// Legacy "name" falls back into the documented "title".
+	if parsed.Milestones[0]["title"] != "Launch" {
+		t.Errorf("expected title 'Launch', got %v", parsed.Milestones[0]["title"])
+	}
+	documented := FormatMilestones(json.RawMessage(`[{"id": 3, "title": "GA", "date": "2026-10-01", "location_type": "roadmap"}]`))
+	if err := json.Unmarshal(documented, &parsed); err != nil || parsed.Milestones[0]["title"] != "GA" {
+		t.Errorf("documented milestone shape: %s", documented)
+	}
 }
 
 func TestFormatMilestonesInvalidJSON(t *testing.T) {
@@ -243,8 +268,8 @@ func TestFormatMilestonesInvalidJSON(t *testing.T) {
 
 func TestFormatObjectives(t *testing.T) {
 	input := `[
-		{"id": 1, "name": "Increase Revenue", "status": "on_track", "time_frame": "Q1 2024", "description": "ignored"},
-		{"id": 2, "name": "Improve NPS", "status": "at_risk", "time_frame": "Q2 2024"}
+		{"id": 1, "name": "Increase Revenue", "risk_status": "on_track", "start_date": "2024-01-01", "end_date": "2024-03-31", "key_results_count": 3, "description": "ignored"},
+		{"id": 2, "name": "Improve NPS", "risk_status": "at_risk", "start_date": "2024-04-01", "end_date": "2024-06-30", "key_results_count": 1}
 	]`
 
 	result := FormatObjectives(json.RawMessage(input))
@@ -268,11 +293,11 @@ func TestFormatObjectives(t *testing.T) {
 
 	// Verify fields
 	obj := parsed.Objectives[0]
-	if obj["status"] != "on_track" {
-		t.Errorf("expected status 'on_track', got %v", obj["status"])
+	if obj["risk_status"] != "on_track" {
+		t.Errorf("expected risk_status 'on_track', got %v", obj["risk_status"])
 	}
-	if obj["time_frame"] != "Q1 2024" {
-		t.Errorf("expected time_frame 'Q1 2024', got %v", obj["time_frame"])
+	if obj["start_date"] != "2024-01-01" || obj["key_results_count"] != float64(3) {
+		t.Errorf("expected documented dates and key_results_count, got %v", obj)
 	}
 }
 
@@ -417,6 +442,9 @@ func TestFormatLaunches(t *testing.T) {
 	if launch["status"] != "planned" {
 		t.Errorf("expected status 'planned', got %v", launch["status"])
 	}
+	if launch["launch_date"] != "2024-06-01" {
+		t.Errorf("expected legacy date to fill launch_date, got %v", launch["launch_date"])
+	}
 	if _, ok := launch["description"]; ok {
 		t.Error("description should be filtered out")
 	}
@@ -462,8 +490,8 @@ func BenchmarkFormatBarsWithContext(b *testing.B) {
 
 func BenchmarkFormatLanes(b *testing.B) {
 	input := json.RawMessage(`[
-		{"id": 1, "name": "Engineering", "color": "#FF0000", "order": 1},
-		{"id": 2, "name": "Design", "color": "#00FF00", "order": 2},
+		{"id": 1, "name": "Engineering", "description": "Backend work", "position": 1, "order": 1, "created_at": "2024-01-01"},
+		{"id": 2, "name": "Design", "description": "", "position": 2, "order": 2, "created_at": "2024-01-01"},
 		{"id": 3, "name": "Product", "color": "#0000FF", "order": 3}
 	]`)
 

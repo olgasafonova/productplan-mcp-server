@@ -58,20 +58,21 @@ type command struct {
 }
 
 // listOrGet builds a command that lists the collection when no ID is given
-// and fetches a single item otherwise.
-func listOrGet(list func(context.Context) (json.RawMessage, error), get func(context.Context, string) (json.RawMessage, error)) command {
+// and fetches a single item otherwise. The command-line argument becomes the
+// endpoint's typed ID; the endpoint validates it.
+func listOrGet[ID ~string](list func(context.Context) (json.RawMessage, error), get func(context.Context, ID) (json.RawMessage, error)) command {
 	return command{run: func(ctx context.Context, args []string) (json.RawMessage, error) {
 		if len(args) == 0 {
 			return list(ctx)
 		}
-		return get(ctx, args[0])
+		return get(ctx, ID(args[0]))
 	}}
 }
 
 // withID builds a command that requires an ID as its first argument.
-func withID(usage string, get func(context.Context, string) (json.RawMessage, error)) command {
+func withID[ID ~string](usage string, get func(context.Context, ID) (json.RawMessage, error)) command {
 	return command{usage: usage, run: func(ctx context.Context, args []string) (json.RawMessage, error) {
-		return get(ctx, args[0])
+		return get(ctx, ID(args[0]))
 	}}
 }
 

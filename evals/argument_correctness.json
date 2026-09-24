@@ -111,12 +111,12 @@
     {
       "id": "lane-create-1",
       "tool": "manage_lane",
-      "prompt": "Create lane 'Mobile' with color #FF5733 on roadmap 123",
+      "prompt": "Create lane 'Mobile' at position 1 on roadmap 123",
       "expected_args": {
         "action": "create",
         "roadmap_id": "123",
         "name": "Mobile",
-        "color": "#FF5733"
+        "position": 1
       },
       "required_args": ["action", "roadmap_id"],
       "category": "create"
@@ -313,12 +313,12 @@
     {
       "id": "lane-create-emoji",
       "tool": "manage_lane",
-      "prompt": "Create lane 'Backend Services' with color #3498db on roadmap 123",
+      "prompt": "Create lane 'Backend Services' described as 'APIs and workers' on roadmap 123",
       "expected_args": {
         "action": "create",
         "roadmap_id": "123",
         "name": "Backend Services",
-        "color": "#3498db"
+        "description": "APIs and workers"
       },
       "required_args": ["action", "roadmap_id"],
       "category": "create"

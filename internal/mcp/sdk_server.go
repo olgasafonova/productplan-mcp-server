@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/olgasafonova/mcp-cache-go/mcpcache"
 
 	"github.com/olgasafonova/productplan-mcp-server/internal/logging"
 )
@@ -23,7 +23,7 @@ import (
 // and tool dispatch (Registry).
 type SDKServer struct {
 	registry     *Registry
-	logger       logging.Logger
+	logger       *slog.Logger
 	instructions string
 	server       *mcp.Server
 }
@@ -34,7 +34,7 @@ type SDKServer struct {
 type SDKServerOption func(*SDKServer)
 
 // WithSDKLogger sets the server logger.
-func WithSDKLogger(logger logging.Logger) SDKServerOption {
+func WithSDKLogger(logger *slog.Logger) SDKServerOption {
 	return func(s *SDKServer) {
 		s.logger = logger
 	}
@@ -60,27 +60,10 @@ func NewSDKServer(name, version string, registry *Registry, opts ...SDKServerOpt
 
 	s.server = mcp.NewServer(
 		&mcp.Implementation{Name: name, Version: version},
-		&mcp.ServerOptions{Instructions: s.instructions},
-	)
-
-	// SEP-2549 requires ttlMs and cacheScope on every cacheable result, but the
-	// SDK's setDefaultCacheableValues() sets cacheScope only and leaves TTLMs at
-	// its zero value, which the spec reads as "immediately stale". There is no
-	// ServerOptions knob for it, so a receiving middleware is the supported way
-	// to stamp a real TTL. Without this the server is spec-compliant and useless
-	// to a caching client: it advertises every list result as already stale.
-	//
-	// Thirty minutes matches the other large surfaces in this portfolio
-	// (mediawiki, public360, miro); the small ones use an hour. The tool set is
-	// compiled in and only changes when a release ships, so the number is a
-	// judgement about release cadence rather than about correctness.
-	s.server.AddReceivingMiddleware(
-		mcpcache.Middleware(mcpcache.Config{
-			TTLs: map[string]time.Duration{
-				mcpcache.MethodListTools: 30 * time.Minute,
-				mcpcache.MethodDiscover:  30 * time.Minute,
-			},
-		}),
+		&mcp.ServerOptions{
+			Instructions: s.instructions,
+			SetCacheable: setCacheHints,
+		},
 	)
 
 	for _, tool := range registry.Tools() {
@@ -90,7 +73,42 @@ func NewSDKServer(name, version string, registry *Registry, opts ...SDKServerOpt
 	return s
 }
 
+// listCacheTTL is the freshness hint stamped on tools/list and server/discover.
+//
+// Thirty minutes matches the other large surfaces in this portfolio
+// (mediawiki, public360, miro); the small ones use an hour. The tool set is
+// compiled in and only changes when a release ships, so the number is a
+// judgement about release cadence rather than about correctness.
+const listCacheTTL = 30 * time.Minute
+
+// setCacheHints is the ServerOptions.SetCacheable policy.
+//
+// SEP-2549 requires ttlMs and cacheScope on every cacheable result. The SDK
+// builds the tools/list and server/discover results itself with TTLMs = 0,
+// which the spec reads as "immediately stale", and fills only cacheScope
+// ("public") by default. Without a policy the server is spec-compliant and
+// useless to a caching client: it advertises every list result as already
+// stale. go-sdk v1.8.0 added SetCacheable as the supported hook for this; it
+// replaces the mcpcache receiving middleware used on v1.7.0.
+//
+// Only the two results this server actually produces get a TTL. A value a
+// handler already set is kept, and cacheScope is left for the SDK to default.
+// The SDK may call this with its server lock held, so it must not call back
+// into the Server.
+func setCacheHints(_ context.Context, req mcp.Request, c *mcp.Cacheable) {
+	switch req.(type) {
+	case *mcp.ListToolsRequest, *mcp.ServerRequest[*mcp.DiscoverParams]:
+		if c.TTLMs == 0 {
+			c.TTLMs = int(listCacheTTL / time.Millisecond)
+		}
+	}
+}
+
 // Run serves over stdio until the client disconnects or ctx is cancelled.
+//
+// StdioTransport.MaxLineLength is left at zero, which selects the SDK's
+// DefaultMaxLineLength (16 MiB) cap on a single inbound JSON-RPC frame. Tool
+// arguments here are small, so the default bound is already generous.
 func (s *SDKServer) Run(ctx context.Context) error {
 	fmt.Fprintf(os.Stderr, "ProductPlan MCP Server running on stdio\n")
 	return s.run(ctx, &mcp.StdioTransport{})
@@ -102,7 +120,7 @@ func (s *SDKServer) Run(ctx context.Context) error {
 // unexported because stdio is the only transport this binary ships.
 func (s *SDKServer) run(ctx context.Context, transport mcp.Transport) error {
 	s.logger.Info("MCP server starting",
-		logging.F("tools", s.registry.Count()),
+		slog.Int("tools", s.registry.Count()),
 	)
 	return s.server.Run(ctx, transport)
 }
@@ -126,12 +144,12 @@ func (s *SDKServer) handlerFor(name string) mcp.ToolHandler {
 			return errorResult(err), nil
 		}
 
-		s.logger.Debug("calling tool", logging.Tool(name))
+		s.logger.Debug("calling tool", slog.String("tool", name))
 
 		result, err := s.registry.Call(ctx, name, args)
 		if err != nil {
 			s.logger.Debug("tool call failed",
-				logging.Tool(name),
+				slog.String("tool", name),
 				logging.Error(err),
 			)
 			return errorResult(err), nil
@@ -146,13 +164,22 @@ func (s *SDKServer) handlerFor(name string) mcp.ToolHandler {
 // handlers can index without a nil check.
 func decodeArguments(req *mcp.CallToolRequest) (map[string]any, error) {
 	args := map[string]any{}
-	if req == nil || req.Params == nil || len(req.Params.Arguments) == 0 {
+	raw := rawArguments(req)
+	if len(raw) == 0 {
 		return args, nil
 	}
-	if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
+	if err := json.Unmarshal(raw, &args); err != nil {
 		return nil, fmt.Errorf("failed to parse arguments: %w", err)
 	}
 	return args, nil
+}
+
+// rawArguments returns the request's raw arguments, nil when absent.
+func rawArguments(req *mcp.CallToolRequest) json.RawMessage {
+	if req == nil || req.Params == nil {
+		return nil
+	}
+	return req.Params.Arguments
 }
 
 // toolResult shapes a successful handler payload, preserving the existing rule

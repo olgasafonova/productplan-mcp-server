@@ -17,152 +17,32 @@ const (
 // (e.g. `?` splits into a query, `..` traverses, `#` becomes a fragment).
 var validIDPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
-// RequireNonEmpty validates that a string field is not empty.
-func RequireNonEmpty(field, value string) error {
-	if strings.TrimSpace(value) == "" {
-		return NewValidationError(field, "is required and cannot be empty")
-	}
-	return nil
-}
+// Field names a caller-supplied argument as it appears in validation
+// errors: "bar_id", or a position inside a list such as "bar_ids[3].bar_id".
+// Validation hangs off the field so every error names what the caller must
+// fix.
+type Field string
 
-// RequireID validates that an ID field is non-empty, within length bounds,
-// and matches the safe ID pattern. This is the chokepoint that prevents path
-// injection — every API endpoint method must run user-supplied IDs through
-// RequireID (or a wrapper that calls it) before interpolating into a URL.
-func RequireID(field, value string) error {
+// RequireID validates that value is a usable ID for f: non-empty after
+// trimming, at most MaxIDLen long, and made only of letters, digits,
+// underscore and hyphen. This is the chokepoint that prevents path
+// injection: the typed IDs in internal/api run every user-supplied ID
+// through it before the ID can become part of a URL.
+func (f Field) RequireID(value string) error {
 	trimmed := strings.TrimSpace(value)
 	if trimmed == "" {
-		return NewValidationError(field, "is required - get it from the corresponding list_* tool")
+		return f.invalid("is required - get it from the corresponding list_* tool")
 	}
 	if len(trimmed) > MaxIDLen {
-		return NewValidationError(field, "is too long")
+		return f.invalid("is too long")
 	}
 	if !validIDPattern.MatchString(trimmed) {
-		return NewValidationError(field, "contains invalid characters (only letters, digits, underscore, hyphen are allowed)")
+		return f.invalid("contains invalid characters (only letters, digits, underscore, hyphen are allowed)")
 	}
 	return nil
 }
 
-// RequireRoadmapID validates a roadmap_id field.
-func RequireRoadmapID(value string) error {
-	return RequireID("roadmap_id", value)
-}
-
-// RequireBarID validates a bar_id field.
-func RequireBarID(value string) error {
-	return RequireID("bar_id", value)
-}
-
-// RequireLaneID validates a lane_id field.
-func RequireLaneID(value string) error {
-	return RequireID("lane_id", value)
-}
-
-// RequireObjectiveID validates an objective_id field.
-func RequireObjectiveID(value string) error {
-	return RequireID("objective_id", value)
-}
-
-// RequireIdeaID validates an idea_id field.
-func RequireIdeaID(value string) error {
-	return RequireID("idea_id", value)
-}
-
-// RequireAction validates an action field with allowed values.
-func RequireAction(value string, allowed []string) error {
-	if strings.TrimSpace(value) == "" {
-		return NewValidationError("action", "is required - must be one of: "+strings.Join(allowed, ", "))
-	}
-
-	v := strings.ToLower(strings.TrimSpace(value))
-	for _, a := range allowed {
-		if v == strings.ToLower(a) {
-			return nil
-		}
-	}
-
-	return NewValidationError("action", "must be one of: "+strings.Join(allowed, ", "))
-}
-
-// Pre-compiled patterns shared by the optional-format validators below.
-// Compiled once at package load to avoid per-call allocations.
-var (
-	datePattern  = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
-	colorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
-	emailPattern = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-)
-
-// validateOptionalPattern returns nil for empty values, otherwise checks the value
-// against the pattern and returns a ValidationError with the supplied message on mismatch.
-func validateOptionalPattern(field, value string, pattern *regexp.Regexp, message string) error {
-	if value == "" {
-		return nil // Optional field
-	}
-	if !pattern.MatchString(value) {
-		return NewValidationError(field, message)
-	}
-	return nil
-}
-
-// ValidateDate checks if a date string is in YYYY-MM-DD format.
-func ValidateDate(field, value string) error {
-	return validateOptionalPattern(field, value, datePattern, "must be in YYYY-MM-DD format (e.g., 2024-06-30)")
-}
-
-// ValidateColor checks if a color string is a valid hex color.
-func ValidateColor(field, value string) error {
-	return validateOptionalPattern(field, value, colorPattern, "must be a hex color code (e.g., #FF5733)")
-}
-
-// ValidateURL checks if a URL string is valid.
-func ValidateURL(field, value string) error {
-	if value == "" {
-		return NewValidationError(field, "is required")
-	}
-
-	if !strings.HasPrefix(value, "http://") && !strings.HasPrefix(value, "https://") {
-		return NewValidationError(field, "must be a valid URL starting with http:// or https://")
-	}
-	return nil
-}
-
-// ValidateEmail checks if an email string is valid.
-func ValidateEmail(field, value string) error {
-	return validateOptionalPattern(field, value, emailPattern, "must be a valid email address")
-}
-
-// GetString safely extracts a string from a map.
-func GetString(args map[string]interface{}, key string) string {
-	if v, ok := args[key]; ok {
-		if s, ok := v.(string); ok {
-			return s
-		}
-	}
-	return ""
-}
-
-// GetStringSlice safely extracts a string slice from a map.
-func GetStringSlice(args map[string]interface{}, key string) []string {
-	v, ok := args[key]
-	if !ok {
-		return nil
-	}
-	switch val := v.(type) {
-	case []string:
-		return val
-	case []interface{}:
-		return interfaceSliceToStrings(val)
-	}
-	return nil
-}
-
-// interfaceSliceToStrings filters val keeping only string items, in order.
-func interfaceSliceToStrings(val []interface{}) []string {
-	result := make([]string, 0, len(val))
-	for _, item := range val {
-		if s, ok := item.(string); ok {
-			result = append(result, s)
-		}
-	}
-	return result
+// invalid builds the ValidationError for f.
+func (f Field) invalid(message string) *ValidationError {
+	return NewValidationError(string(f), message)
 }

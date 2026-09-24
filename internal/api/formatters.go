@@ -1,6 +1,9 @@
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // defaultListCap bounds the number of items any list tool returns by default,
 // so a large collection does not blow the caller's context (HG-2 cost-lens).
@@ -28,26 +31,42 @@ func pickKeys(src map[string]any, keys ...string) map[string]any {
 	return out
 }
 
-// unmarshalList handles both bare-array and {"results": [...]} envelopes.
+// unmarshalList handles both bare-array and {"results": [...], "paging": {...}}
+// envelopes. The paging block is returned (nil for bare arrays) so callers can
+// report a merge that getList stopped short at maxListPages.
 // Returns nil and ok=false if neither shape decodes.
-func unmarshalList(data json.RawMessage) ([]map[string]any, bool) {
+func unmarshalList(data json.RawMessage) ([]map[string]any, *paging, bool) {
 	var list []map[string]any
 	if err := json.Unmarshal(data, &list); err == nil {
-		return list, true
+		return list, nil, true
 	}
 	var wrapper struct {
 		Results []map[string]any `json:"results"`
+		Paging  *paging          `json:"paging"`
 	}
 	if err := json.Unmarshal(data, &wrapper); err == nil {
-		return wrapper.Results, true
+		return wrapper.Results, wrapper.Paging, true
 	}
-	return nil, false
+	return nil, nil, false
+}
+
+// markIncomplete records on payload that the upstream collection holds more
+// records than were fetched, so neither the count nor the total is the whole
+// story. Formatters in internal/tools lift the note into the summary.
+func markIncomplete(payload map[string]any, pg *paging) {
+	if !pg.incomplete() {
+		return
+	}
+	payload["incomplete"] = true
+	payload["record_count"] = pg.RecordCount
+	payload["note"] = fmt.Sprintf("Only the first %d of %d pages were fetched (%d records upstream); narrow with filters to see the rest",
+		pg.PagesFetched, pg.PageCount, pg.RecordCount)
 }
 
 // formatList projects each item via project, wraps the slice under collectionKey,
 // adds count, and optionally a hint. Returns the original bytes if unmarshalling fails.
 func formatList(data json.RawMessage, collectionKey string, hint string, project func(map[string]any) map[string]any) json.RawMessage {
-	items, ok := unmarshalList(data)
+	items, pg, ok := unmarshalList(data)
 	if !ok {
 		return data
 	}
@@ -69,6 +88,7 @@ func formatList(data json.RawMessage, collectionKey string, hint string, project
 	if hint != "" {
 		payload["hint"] = hint
 	}
+	markIncomplete(payload, pg)
 
 	output, _ := json.Marshal(payload)
 	return output
@@ -82,100 +102,32 @@ func FormatRoadmapList(data json.RawMessage) json.RawMessage {
 		})
 }
 
-// buildLaneLookup returns a map from lane id to lane name for fast joins.
-func buildLaneLookup(laneList []map[string]any) map[float64]string {
-	lookup := make(map[float64]string, len(laneList))
-	for _, lane := range laneList {
-		id, ok := lane["id"].(float64)
-		if !ok {
-			continue
-		}
-		name, ok := lane["name"].(string)
-		if !ok {
-			continue
-		}
-		lookup[id] = name
-	}
-	return lookup
-}
-
-// projectBar returns a flat projection of a raw bar enriched with lane_name.
-func projectBar(bar map[string]any, laneLookup map[float64]string) map[string]any {
-	laneID, _ := bar["lane_id"].(float64)
-	laneName := laneLookup[laneID]
-	if laneName == "" {
-		laneName = "Unknown"
-	}
-	return map[string]any{
-		"id":         bar["id"],
-		"name":       bar["name"],
-		"start_date": bar["start_date"],
-		"end_date":   bar["end_date"],
-		"lane_id":    bar["lane_id"],
-		"lane_name":  laneName,
-	}
-}
-
-// FormatBarsWithContext enriches bars with lane names.
-func FormatBarsWithContext(bars json.RawMessage, lanes json.RawMessage) json.RawMessage {
-	var barList []map[string]any
-	var laneList []map[string]any
-
-	if err := json.Unmarshal(bars, &barList); err != nil {
-		return bars
-	}
-	if err := json.Unmarshal(lanes, &laneList); err != nil {
-		return bars
-	}
-
-	laneLookup := buildLaneLookup(laneList)
-	capped, total, truncated := capList(barList)
-	results := make([]map[string]any, 0, len(capped))
-	for _, bar := range capped {
-		results = append(results, projectBar(bar, laneLookup))
-	}
-
-	payload := map[string]any{
-		"count": len(results),
-		"total": total,
-		"bars":  results,
-	}
-	if truncated {
-		payload["truncated"] = true
-	}
-	output, _ := json.Marshal(payload)
-	return output
-}
-
-// FormatLanes formats lane list.
+// FormatLanes formats lane list. The live GET /roadmaps/{id}/lanes result
+// carries id, name, description, position, created_at and updated_at; it has
+// no color field, so projecting one only ever produced "color": null.
 func FormatLanes(data json.RawMessage) json.RawMessage {
 	return formatList(data, "lanes", "",
 		func(lane map[string]any) map[string]any {
-			return pickKeys(lane, "id", "name", "color")
+			return pickKeys(lane, "id", "name", "description", "position")
 		})
 }
 
-// FormatMilestones formats milestone list.
+// FormatMilestones formats milestone list. Milestones are documented with
+// "title", not "name"; "name" is accepted as a fallback for older shapes.
 func FormatMilestones(data json.RawMessage) json.RawMessage {
 	return formatList(data, "milestones", "",
 		func(m map[string]any) map[string]any {
-			return pickKeys(m, "id", "name", "date")
+			return map[string]any{"id": m["id"], "title": firstPresent(m, "title", "name"), "date": m["date"]}
 		})
 }
 
-// FormatLegends formats legend list (bar colors).
-func FormatLegends(data json.RawMessage) json.RawMessage {
-	return formatList(data, "legends", "Use legend_id when creating or updating bars to set their color",
-		func(legend map[string]any) map[string]any {
-			return pickKeys(legend, "id", "label", "color")
-		})
-}
-
-// FormatObjectives formats objective list with hints.
+// FormatObjectives formats objective list with hints. The documented
+// objective carries risk_status, start_date, end_date and key_results_count;
+// it has no status or time_frame field, which the previous projection read.
 func FormatObjectives(data json.RawMessage) json.RawMessage {
 	return formatList(data, "objectives", "Use get_objective with an id for full details including key results",
 		func(obj map[string]any) map[string]any {
-			return pickKeys(obj, "id", "name", "status", "time_frame")
+			return pickKeys(obj, "id", "name", "risk_status", "start_date", "end_date", "key_results_count")
 		})
 }
 
@@ -195,10 +147,17 @@ func FormatOpportunities(data json.RawMessage) json.RawMessage {
 		})
 }
 
-// FormatLaunches formats launch list.
+// FormatLaunches formats launch list. Launches are documented with
+// launch_date, not date; "date" is accepted as a fallback for older shapes.
 func FormatLaunches(data json.RawMessage) json.RawMessage {
 	return formatList(data, "launches", "",
 		func(launch map[string]any) map[string]any {
-			return pickKeys(launch, "id", "name", "date", "status")
+			return map[string]any{
+				"id":          launch["id"],
+				"name":        launch["name"],
+				"launch_date": firstPresent(launch, "launch_date", "date"),
+				"status":      launch["status"],
+				"progress":    launch["progress"],
+			}
 		})
 }

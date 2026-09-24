@@ -79,7 +79,10 @@ func TestRegistryCall(t *testing.T) {
 	r := NewRegistry()
 
 	r.RegisterFunc(
-		Tool{Name: "echo", Description: "Echo tool"},
+		Tool{Name: "echo", Description: "Echo tool", InputSchema: InputSchema{
+			Type:       "object",
+			Properties: map[string]Property{"message": {Type: "string"}},
+		}},
 		func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
 			msg := args["message"].(string)
 			return json.RawMessage(`{"echo": "` + msg + `"}`), nil
@@ -126,113 +129,6 @@ func TestRegistryCallError(t *testing.T) {
 	}
 }
 
-func TestArgHelper(t *testing.T) {
-	args := map[string]any{
-		"name":    "test",
-		"count":   float64(42),
-		"enabled": true,
-		"empty":   "",
-	}
-	h := NewArgHelper(args)
-
-	t.Run("String", func(t *testing.T) {
-		if s := h.String("name"); s != "test" {
-			t.Errorf("expected 'test', got %q", s)
-		}
-		if s := h.String("missing"); s != "" {
-			t.Errorf("expected empty string, got %q", s)
-		}
-	})
-
-	t.Run("Int", func(t *testing.T) {
-		if i := h.Int("count"); i != 42 {
-			t.Errorf("expected 42, got %d", i)
-		}
-		if i := h.Int("missing"); i != 0 {
-			t.Errorf("expected 0, got %d", i)
-		}
-	})
-
-	t.Run("Bool", func(t *testing.T) {
-		if b := h.Bool("enabled"); !b {
-			t.Error("expected true")
-		}
-		if b := h.Bool("missing"); b {
-			t.Error("expected false")
-		}
-	})
-
-	t.Run("Has", func(t *testing.T) {
-		if !h.Has("name") {
-			t.Error("expected Has('name') to be true")
-		}
-		if h.Has("empty") {
-			t.Error("expected Has('empty') to be false for empty string")
-		}
-		if h.Has("missing") {
-			t.Error("expected Has('missing') to be false")
-		}
-		if !h.Has("enabled") {
-			t.Error("expected Has('enabled') to be true for bool")
-		}
-	})
-
-	t.Run("BuildData", func(t *testing.T) {
-		data := h.BuildData("name", "empty", "missing")
-		if data["name"] != "test" {
-			t.Errorf("expected 'test', got %v", data["name"])
-		}
-		if _, ok := data["empty"]; ok {
-			t.Error("expected empty string to be excluded")
-		}
-		if _, ok := data["missing"]; ok {
-			t.Error("expected missing key to be excluded")
-		}
-	})
-
-	t.Run("RequiredString", func(t *testing.T) {
-		s, err := h.RequiredString("name")
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-		}
-		if s != "test" {
-			t.Errorf("expected 'test', got %q", s)
-		}
-
-		_, err = h.RequiredString("missing")
-		if err == nil {
-			t.Error("expected error for missing required string")
-		}
-
-		_, err = h.RequiredString("empty")
-		if err == nil {
-			t.Error("expected error for empty required string")
-		}
-	})
-}
-
-func TestArgHelperIntTypes(t *testing.T) {
-	tests := []struct {
-		name  string
-		value any
-		want  int
-	}{
-		{"int", int(10), 10},
-		{"float64", float64(20), 20},
-		{"int64", int64(30), 30},
-		{"string", "40", 0},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			h := NewArgHelper(map[string]any{"value": tt.value})
-			if got := h.Int("value"); got != tt.want {
-				t.Errorf("expected %d, got %d", tt.want, got)
-			}
-		})
-	}
-}
-
 func TestRegistryToolsCopy(t *testing.T) {
 	r := NewRegistry()
 	r.RegisterFunc(Tool{Name: "tool1"}, func(ctx context.Context, args map[string]any) (json.RawMessage, error) {
@@ -262,21 +158,5 @@ func BenchmarkRegistryCall(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		r.Call(ctx, "bench_tool", args)
-	}
-}
-
-func BenchmarkArgHelper(b *testing.B) {
-	args := map[string]any{
-		"id":      "123",
-		"count":   float64(42),
-		"enabled": true,
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		h := NewArgHelper(args)
-		h.String("id")
-		h.Int("count")
-		h.Bool("enabled")
 	}
 }
