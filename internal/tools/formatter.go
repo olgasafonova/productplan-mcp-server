@@ -89,7 +89,7 @@ func isProjectedList(obj map[string]json.RawMessage) bool {
 	return hasCount && hasTotal
 }
 
-// envelopeNotes reports a paged envelope that api.GetList stopped short of
+// envelopeNotes reports a paged envelope whose list fetch stopped short of
 // the last page, so a raw-envelope list is as honest as a projected one.
 func envelopeNotes(raw json.RawMessage) []string {
 	var pg struct {

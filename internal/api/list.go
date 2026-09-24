@@ -142,7 +142,7 @@ func (p *paging) multiPage() bool {
 	return p != nil && p.PageCount > 1
 }
 
-// listFetch is one multi-page GetList in progress, seeded with page 1.
+// listFetch is one multi-page getList in progress, seeded with page 1.
 type listFetch struct {
 	client   *Client
 	endpoint apiPath
