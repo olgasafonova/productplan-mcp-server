@@ -22,7 +22,7 @@ func listRoadmapsHandler(client *api.Client) mcp.Handler {
 
 func getRoadmapHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
-		data, err := client.GetRoadmap(ctx, a.RoadmapID)
+		data, err := client.GetRoadmap(ctx, api.RoadmapID(a.RoadmapID))
 		if err != nil {
 			return nil, err
 		}
@@ -33,7 +33,7 @@ func getRoadmapHandler(client *api.Client) mcp.Handler {
 func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
 	return queryHandler("get_roadmap_bars", func(ctx context.Context, a GetRoadmapBarsArgs, q api.Query) (json.RawMessage, error) {
 		local := api.BarFilter{Lane: a.Lane, Legend: a.Legend, Tag: a.Tag}
-		data, err := client.GetRoadmapBarsWhere(ctx, a.RoadmapID, q, local)
+		data, err := client.GetRoadmapBarsWhere(ctx, api.RoadmapID(a.RoadmapID), q, local)
 		if err != nil {
 			return nil, err
 		}
@@ -43,7 +43,7 @@ func getRoadmapBarsHandler(client *api.Client) mcp.Handler {
 
 func getRoadmapLanesHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
-		data, err := client.GetRoadmapLanes(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapLanes(ctx, api.RoadmapID(a.RoadmapID))
 		if err != nil {
 			return nil, err
 		}
@@ -53,7 +53,7 @@ func getRoadmapLanesHandler(client *api.Client) mcp.Handler {
 
 func getRoadmapMilestonesHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
-		data, err := client.GetRoadmapMilestones(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapMilestones(ctx, api.RoadmapID(a.RoadmapID))
 		if err != nil {
 			return nil, err
 		}
@@ -63,7 +63,7 @@ func getRoadmapMilestonesHandler(client *api.Client) mcp.Handler {
 
 func getRoadmapLegendsHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
-		data, err := client.GetRoadmapLegends(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapLegends(ctx, api.RoadmapID(a.RoadmapID))
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +99,7 @@ func appendSummary(resp json.RawMessage, sentence string) (json.RawMessage, erro
 
 func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
-		data, err := client.GetRoadmapComments(ctx, a.RoadmapID)
+		data, err := client.GetRoadmapComments(ctx, api.RoadmapID(a.RoadmapID))
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +110,7 @@ func getRoadmapCommentsHandler(client *api.Client) mcp.Handler {
 // manageLaneHandler creates, updates, or deletes lanes on a roadmap.
 // The create payload always names the lane; updates send only set fields.
 func manageLaneHandler(client *api.Client) mcp.Handler {
-	ops := parentScopedOps{resource: "lane", create: client.CreateLane, update: client.UpdateLane, delete: client.DeleteLane}
+	ops := parentScopedOps[api.RoadmapID, api.LaneID]{resource: "lane", create: client.CreateLane, update: client.UpdateLane, delete: client.DeleteLane}
 	return manageHandler(ops, func(a ManageLaneArgs) manageRequest {
 		create, update := a.payloads()
 		return manageRequest{action: a.Action, parentID: a.RoadmapID, id: a.LaneID, createPayload: create, updatePayload: update}
@@ -121,7 +121,7 @@ func manageLaneHandler(client *api.Client) mcp.Handler {
 // The create payload always carries title and date, even when empty, to
 // match the ProductPlan API contract; updates send only set fields.
 func manageMilestoneHandler(client *api.Client) mcp.Handler {
-	ops := parentScopedOps{resource: "milestone", create: client.CreateMilestone, update: client.UpdateMilestone, delete: client.DeleteMilestone}
+	ops := parentScopedOps[api.RoadmapID, api.MilestoneID]{resource: "milestone", create: client.CreateMilestone, update: client.UpdateMilestone, delete: client.DeleteMilestone}
 	return manageHandler(ops, func(a ManageMilestoneArgs) manageRequest {
 		return manageRequest{
 			action: a.Action, parentID: a.RoadmapID, id: a.MilestoneID,
@@ -135,7 +135,7 @@ func manageMilestoneHandler(client *api.Client) mcp.Handler {
 // fetched in parallel with the others.
 type roadmapSection struct {
 	name  string
-	fetch func(ctx context.Context, roadmapID string) (json.RawMessage, error)
+	fetch func(ctx context.Context, roadmapID api.RoadmapID) (json.RawMessage, error)
 	data  json.RawMessage
 	err   error
 }
@@ -144,7 +144,7 @@ type roadmapSection struct {
 // Returns partial results with per-section error reporting instead of failing on first error.
 func getRoadmapCompleteHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetRoadmapArgs](func(ctx context.Context, a GetRoadmapArgs) (json.RawMessage, error) {
-		roadmapID := a.RoadmapID
+		roadmapID := api.RoadmapID(a.RoadmapID)
 		sections := []*roadmapSection{
 			{name: "bars", fetch: client.GetRoadmapBars},
 			{name: "lanes", fetch: client.GetRoadmapLanes},

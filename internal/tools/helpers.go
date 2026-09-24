@@ -108,30 +108,31 @@ type manageRequest struct {
 // topLevelOps bundles the client calls for a top-level resource
 // (ideas, opportunities, objectives) managed through a single
 // action-dispatch tool. delete is optional; resources without it treat
-// "delete" like any other unsupported action.
-type topLevelOps struct {
+// "delete" like any other unsupported action. ID is the resource's typed
+// API ID; the request's string ID is converted at dispatch.
+type topLevelOps[ID ~string] struct {
 	resource ItemType
 	create   func(ctx context.Context, payload map[string]any) (json.RawMessage, error)
-	update   func(ctx context.Context, id string, payload map[string]any) (json.RawMessage, error)
-	delete   func(ctx context.Context, id string) (json.RawMessage, error)
+	update   func(ctx context.Context, id ID, payload map[string]any) (json.RawMessage, error)
+	delete   func(ctx context.Context, id ID) (json.RawMessage, error)
 }
 
 // run dispatches the requested action to the matching client call and
 // formats the result. Unknown actions fall through with empty data.
-func (o topLevelOps) run(ctx context.Context, req manageRequest) (json.RawMessage, error) {
+func (o topLevelOps[ID]) run(ctx context.Context, req manageRequest) (json.RawMessage, error) {
 	data, err := o.dispatch(ctx, req)
 	return formatManaged(data, err, o.resource, req)
 }
 
 // dispatch performs the client call for the requested action.
-func (o topLevelOps) dispatch(ctx context.Context, req manageRequest) (json.RawMessage, error) {
+func (o topLevelOps[ID]) dispatch(ctx context.Context, req manageRequest) (json.RawMessage, error) {
 	switch {
 	case req.action == "create":
 		return o.create(ctx, req.createPayload)
 	case req.action == "update":
-		return o.update(ctx, req.id, req.updatePayload)
+		return o.update(ctx, ID(req.id), req.updatePayload)
 	case req.action == "delete" && o.delete != nil:
-		return o.delete(ctx, req.id)
+		return o.delete(ctx, ID(req.id))
 	}
 	return nil, nil
 }
@@ -161,30 +162,30 @@ func manageHandler[T Validatable](ops manageOps, build func(a T) manageRequest) 
 
 // parentScopedOps bundles the client calls for a resource nested under a
 // parent (lanes and milestones under a roadmap) managed through a single
-// action-dispatch tool.
-type parentScopedOps struct {
+// action-dispatch tool. P and C are the parent's and child's typed API IDs.
+type parentScopedOps[P, C ~string] struct {
 	resource ItemType
-	create   func(ctx context.Context, parentID string, payload map[string]any) (json.RawMessage, error)
-	update   func(ctx context.Context, parentID, id string, payload map[string]any) (json.RawMessage, error)
-	delete   func(ctx context.Context, parentID, id string) (json.RawMessage, error)
+	create   func(ctx context.Context, parentID P, payload map[string]any) (json.RawMessage, error)
+	update   func(ctx context.Context, parentID P, id C, payload map[string]any) (json.RawMessage, error)
+	delete   func(ctx context.Context, parentID P, id C) (json.RawMessage, error)
 }
 
 // run dispatches the requested action to the matching client call and
 // formats the result. Unknown actions fall through with empty data.
-func (o parentScopedOps) run(ctx context.Context, req manageRequest) (json.RawMessage, error) {
+func (o parentScopedOps[P, C]) run(ctx context.Context, req manageRequest) (json.RawMessage, error) {
 	data, err := o.dispatch(ctx, req)
 	return formatManaged(data, err, o.resource, req)
 }
 
 // dispatch performs the client call for the requested action.
-func (o parentScopedOps) dispatch(ctx context.Context, req manageRequest) (json.RawMessage, error) {
+func (o parentScopedOps[P, C]) dispatch(ctx context.Context, req manageRequest) (json.RawMessage, error) {
 	switch req.action {
 	case "create":
-		return o.create(ctx, req.parentID, req.createPayload)
+		return o.create(ctx, P(req.parentID), req.createPayload)
 	case "update":
-		return o.update(ctx, req.parentID, req.id, req.updatePayload)
+		return o.update(ctx, P(req.parentID), C(req.id), req.updatePayload)
 	case "delete":
-		return o.delete(ctx, req.parentID, req.id)
+		return o.delete(ctx, P(req.parentID), C(req.id))
 	}
 	return nil, nil
 }

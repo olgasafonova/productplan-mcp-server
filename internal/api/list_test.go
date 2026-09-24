@@ -43,7 +43,7 @@ func TestGetList_FollowsPageCount(t *testing.T) {
 	srv := pagedServer(t, 3, 4, 0, &hits)
 	defer srv.Close()
 
-	data, err := testClient(t, srv).GetList(context.Background(), "/roadmaps", Query{})
+	data, err := testClient(t, srv).getList(context.Background(), "/roadmaps", Query{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestGetList_SinglePagePassesThrough(t *testing.T) {
 	srv := pagedServer(t, 1, 2, 0, &hits)
 	defer srv.Close()
 
-	data, err := testClient(t, srv).GetList(context.Background(), "/roadmaps", Query{})
+	data, err := testClient(t, srv).getList(context.Background(), "/roadmaps", Query{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestGetList_SinglePagePassesThrough(t *testing.T) {
 func TestGetList_BareArrayPassesThrough(t *testing.T) {
 	srv := testServer(t, map[string]string{"/users": `[{"id":1}]`})
 	defer srv.Close()
-	data, err := testClient(t, srv).GetList(context.Background(), "/users", Query{})
+	data, err := testClient(t, srv).getList(context.Background(), "/users", Query{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestGetList_PageFailureFailsWholeCall(t *testing.T) {
 	srv := pagedServer(t, 4, 2, 3, &hits)
 	defer srv.Close()
 
-	_, err := testClient(t, srv).GetList(context.Background(), "/roadmaps", Query{})
+	_, err := testClient(t, srv).getList(context.Background(), "/roadmaps", Query{})
 	if err == nil {
 		t.Fatal("expected an error when a later page fails; a partial merge must not look complete")
 	}
@@ -115,7 +115,7 @@ func TestGetList_CapsAtMaxPagesAndSaysSo(t *testing.T) {
 	srv := pagedServer(t, maxListPages+5, 1, 0, &hits)
 	defer srv.Close()
 
-	data, err := testClient(t, srv).GetList(context.Background(), "/roadmaps", Query{})
+	data, err := testClient(t, srv).getList(context.Background(), "/roadmaps", Query{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,14 +150,14 @@ func TestListURL_EncodesQueryDeterministically(t *testing.T) {
 		Sort:       "name asc",
 	}
 	got := listURL("/roadmaps/1/bars", q, 2)
-	want := "/roadmaps/1/bars?page=2&page_size=500&q%5Bname_i_cont%5D=Ship+%26+Sail&q%5Bs%5D=name+asc&q%5Bstarts_on_gteq%5D=2026-01-01"
+	want := apiPath("/roadmaps/1/bars?page=2&page_size=500&q%5Bname_i_cont%5D=Ship+%26+Sail&q%5Bs%5D=name+asc&q%5Bstarts_on_gteq%5D=2026-01-01")
 	if got != want {
 		t.Errorf("listURL =\n %s\nwant\n %s", got, want)
 	}
 	if got != listURL("/roadmaps/1/bars", q, 2) {
 		t.Error("listURL must be deterministic for cache keys")
 	}
-	if strings.Contains(listURL("/x", Query{}, 1), "page=") {
+	if strings.Contains(string(listURL("/x", Query{}, 1)), "page=") {
 		t.Error("page 1 should not send page=")
 	}
 }

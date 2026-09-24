@@ -27,7 +27,7 @@ type BarFilter struct {
 func (f BarFilter) IsZero() bool { return f.Lane == "" && f.Legend == "" && f.Tag == "" }
 
 // GetRoadmapBars returns all bars for a roadmap, enriched with lane ids.
-func (c *Client) GetRoadmapBars(ctx context.Context, id string) (json.RawMessage, error) {
+func (c *Client) GetRoadmapBars(ctx context.Context, id RoadmapID) (json.RawMessage, error) {
 	return c.GetRoadmapBarsWhere(ctx, id, Query{}, BarFilter{})
 }
 
@@ -39,8 +39,12 @@ func (c *Client) GetRoadmapBars(ctx context.Context, id string) (json.RawMessage
 // manage_bar needs), so a lanes failure does not fail the call: it is logged
 // and reported in the payload's warnings, which the tools layer lifts into
 // the summary. A bars failure fails the call.
-func (c *Client) GetRoadmapBarsWhere(ctx context.Context, id string, q Query, f BarFilter) (json.RawMessage, error) {
-	seg, err := safeSeg("roadmap_id", id)
+func (c *Client) GetRoadmapBarsWhere(ctx context.Context, id RoadmapID, q Query, f BarFilter) (json.RawMessage, error) {
+	barsPath, err := route("/roadmaps/%s/bars").with(id)
+	if err != nil {
+		return nil, err
+	}
+	lanesPath, err := route("/roadmaps/%s/lanes").with(id)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +57,11 @@ func (c *Client) GetRoadmapBarsWhere(ctx context.Context, id string, q Query, f 
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		bars, barsErr = c.GetList(ctx, "/roadmaps/"+seg+"/bars", q)
+		bars, barsErr = c.getList(ctx, barsPath, q)
 	}()
 	go func() {
 		defer wg.Done()
-		lanes, lanesErr = c.GetList(ctx, "/roadmaps/"+seg+"/lanes", Query{})
+		lanes, lanesErr = c.getList(ctx, lanesPath, Query{})
 	}()
 	wg.Wait()
 
@@ -67,7 +71,7 @@ func (c *Client) GetRoadmapBarsWhere(ctx context.Context, id string, q Query, f 
 	var warnings []string
 	if lanesErr != nil {
 		c.logger.Warn("lane lookup failed; returning bars without lane_id enrichment",
-			logging.Endpoint("/roadmaps/"+seg+"/lanes"),
+			logging.Endpoint(string(lanesPath)),
 			logging.Error(lanesErr),
 		)
 		warnings = append(warnings, "lane lookup failed, so lane_id may be missing: "+lanesErr.Error())

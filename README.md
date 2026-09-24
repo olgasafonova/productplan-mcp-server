@@ -502,6 +502,8 @@ productplan-mcp-server/
 │   │   ├── transport.go         # Tuned HTTP transport
 │   │   ├── cache.go             # In-process TTL read cache (singleflight, write invalidation)
 │   │   ├── list.go              # Paged collection GETs and Ransack query encoding
+│   │   ├── ids.go               # Typed resource IDs (BarID, RoadmapID, ...), each validated into a path segment
+│   │   ├── path.go              # Routes and request paths built only from typed IDs
 │   │   ├── safeseg.go           # Path-segment validation for user-supplied IDs
 │   │   ├── endpoints*.go        # Endpoint methods (roadmaps, bars, ideas, launches, OKRs)
 │   │   ├── bars_read.go         # Roadmap bars with lane enrichment and client-side filters

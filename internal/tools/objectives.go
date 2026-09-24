@@ -20,7 +20,7 @@ func listObjectivesHandler(client *api.Client) mcp.Handler {
 
 func getObjectiveHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetObjectiveArgs](func(ctx context.Context, a GetObjectiveArgs) (json.RawMessage, error) {
-		data, err := client.GetObjective(ctx, a.ObjectiveID)
+		data, err := client.GetObjective(ctx, api.ObjectiveID(a.ObjectiveID))
 		if err != nil {
 			return nil, err
 		}
@@ -30,7 +30,7 @@ func getObjectiveHandler(client *api.Client) mcp.Handler {
 
 func listKeyResultsHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetObjectiveArgs](func(ctx context.Context, a GetObjectiveArgs) (json.RawMessage, error) {
-		data, err := client.ListKeyResults(ctx, a.ObjectiveID)
+		data, err := client.ListKeyResults(ctx, api.ObjectiveID(a.ObjectiveID))
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +40,7 @@ func listKeyResultsHandler(client *api.Client) mcp.Handler {
 
 func getKeyResultHandler(client *api.Client) mcp.Handler {
 	return typedHandler[GetKeyResultArgs](func(ctx context.Context, a GetKeyResultArgs) (json.RawMessage, error) {
-		data, err := client.GetKeyResult(ctx, a.ObjectiveID, a.KeyResultID)
+		data, err := client.GetKeyResult(ctx, api.ObjectiveID(a.ObjectiveID), api.KeyResultID(a.KeyResultID))
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +52,7 @@ func getKeyResultHandler(client *api.Client) mcp.Handler {
 // Validation guarantees a non-empty name on create; time_frame is only
 // settable at creation, matching the ProductPlan API.
 func manageObjectiveHandler(client *api.Client) mcp.Handler {
-	ops := topLevelOps{resource: "objective", create: client.CreateObjective, update: client.UpdateObjective, delete: client.DeleteObjective}
+	ops := topLevelOps[api.ObjectiveID]{resource: "objective", create: client.CreateObjective, update: client.UpdateObjective, delete: client.DeleteObjective}
 	return manageHandler(ops, func(a ManageObjectiveArgs) manageRequest {
 		return manageRequest{
 			action: a.Action, id: a.ObjectiveID,
@@ -67,7 +67,7 @@ func manageObjectiveHandler(client *api.Client) mcp.Handler {
 // objective. The create payload always names the key result; target_value
 // is only settable at creation, matching the ProductPlan API.
 func manageKeyResultHandler(client *api.Client) mcp.Handler {
-	ops := parentScopedOps{resource: "key result", create: client.CreateKeyResult, update: client.UpdateKeyResult, delete: client.DeleteKeyResult}
+	ops := parentScopedOps[api.ObjectiveID, api.KeyResultID]{resource: "key result", create: client.CreateKeyResult, update: client.UpdateKeyResult, delete: client.DeleteKeyResult}
 	return manageHandler(ops, func(a ManageKeyResultArgs) manageRequest {
 		return manageRequest{
 			action: a.Action, parentID: a.ObjectiveID, id: a.KeyResultID,
