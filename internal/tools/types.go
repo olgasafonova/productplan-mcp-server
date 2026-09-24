@@ -11,7 +11,7 @@ import (
 // ParseArgs unmarshals map[string]any into a typed struct.
 func ParseArgs[T any](args map[string]any) (T, error) {
 	var result T
-	data, err := json.Marshal(args)
+	data, err := json.Marshal(coerceIDs(args))
 	if err != nil {
 		return result, fmt.Errorf("failed to marshal arguments: %w", err)
 	}
