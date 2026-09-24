@@ -159,13 +159,21 @@ func TestFormatBarsWithContextInvalidJSON(t *testing.T) {
 		t.Error("expected original bars on parse error")
 	}
 
-	// Invalid lanes JSON should return original bars
-	bars = `[{"id": 1}]`
+	// Invalid lanes JSON loses only the lane enrichment: the bars are still
+	// projected and capped (previously the raw, uncapped bars leaked through).
+	bars = `[{"id": 1, "name": "A", "lane": "Backend"}]`
 	lanes = `not valid json`
 
 	result = FormatBarsWithContext(json.RawMessage(bars), json.RawMessage(lanes))
-	if string(result) != bars {
-		t.Error("expected original bars on lanes parse error")
+	var parsed struct {
+		Count int              `json:"count"`
+		Bars  []map[string]any `json:"bars"`
+	}
+	if err := json.Unmarshal(result, &parsed); err != nil || parsed.Count != 1 {
+		t.Fatalf("expected projected bars on lanes parse error, got %s", result)
+	}
+	if parsed.Bars[0]["lane_name"] != "Backend" || parsed.Bars[0]["lane_id"] != nil {
+		t.Errorf("bar = %v, want lane_name from the bar and no lane_id", parsed.Bars[0])
 	}
 }
 

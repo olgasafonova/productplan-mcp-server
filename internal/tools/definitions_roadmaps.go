@@ -64,7 +64,7 @@ func roadmapComponentTools() []mcp.Tool {
 			Description: `Get all bars (features/items) on a roadmap.
 
 USE WHEN: "What's on the roadmap?", "Show planned features", "What's in Q2?"
-Returns array of bars with ID, name, dates, lane, legend, percent_done, and description.
+Returns bars with ID, name, starts_on/ends_on, lane_name and lane_id, legend, tags, percent_done, is_container, and parked. For a bar's description and custom fields, use get_bar.
 FAILS WHEN: roadmap_id not found (use list_roadmaps). Returns empty list if roadmap has no bars.`,
 			InputSchema: mcp.InputSchema{
 				Type: "object",
