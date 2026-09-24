@@ -54,8 +54,14 @@ func run() int {
 		return 1
 	}
 
+	cacheTTL, err := api.CacheTTLFromEnv()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		return 1
+	}
+
 	logger := logging.New(logging.LevelInfo)
-	client, err := api.New(api.Config{Token: apiToken, Logger: logger})
+	client, err := api.New(api.Config{Token: apiToken, Logger: logger, CacheTTL: cacheTTL})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: failed to create API client: %v\n", err)
 		return 1
@@ -124,6 +130,7 @@ func (h *healthChecker) Check(ctx context.Context, deep bool) any {
 	report := map[string]any{
 		"status":  "healthy",
 		"version": h.version,
+		"cache":   h.client.CacheStats(),
 	}
 	if deep {
 		status, err := h.client.CheckStatus(ctx)

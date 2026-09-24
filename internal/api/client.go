@@ -63,6 +63,10 @@ type Config struct {
 	Token   string
 	Timeout time.Duration
 	Logger  logging.Logger
+	// CacheTTL enables the in-process read cache for GETs when positive.
+	// Zero (the zero value) disables it; the server sets it from
+	// CacheTTLFromEnv.
+	CacheTTL time.Duration
 }
 
 // DefaultConfig returns a Config with sensible defaults.
@@ -82,6 +86,7 @@ type Client struct {
 	httpClient  *http.Client
 	rateLimiter *productplan.AdaptiveRateLimiter
 	logger      logging.Logger
+	cache       *readCache // nil when disabled
 }
 
 // New creates a new API client with the given configuration.
@@ -126,6 +131,7 @@ func New(cfg Config) (*Client, error) {
 		},
 		rateLimiter: productplan.NewAdaptiveRateLimiter(productplan.DefaultRateLimiterConfig()),
 		logger:      logger,
+		cache:       newReadCache(cfg.CacheTTL),
 	}, nil
 }
 
@@ -173,8 +179,14 @@ func handleResponse(resp *http.Response, respBody []byte) (json.RawMessage, erro
 	return respBody, nil
 }
 
-// Request performs an HTTP request to the API.
+// Request performs an HTTP request to the API. Any method other than GET
+// clears the read cache once the request returns, whether or not it
+// succeeded: a failed or timed-out write may still have been applied
+// upstream, so correct beats clever.
 func (c *Client) Request(ctx context.Context, method, endpoint string, body any) (json.RawMessage, error) {
+	if method != http.MethodGet && method != http.MethodHead {
+		defer c.cache.invalidate()
+	}
 	start := time.Now()
 
 	if c.rateLimiter != nil {
@@ -220,9 +232,18 @@ func (c *Client) Request(ctx context.Context, method, endpoint string, body any)
 	return handleResponse(resp, respBody)
 }
 
-// Get performs a GET request.
+// Get performs a GET request, served from the read cache when enabled.
+// endpoint (path plus query) is the cache key.
 func (c *Client) Get(ctx context.Context, endpoint string) (json.RawMessage, error) {
-	return c.Request(ctx, http.MethodGet, endpoint, nil)
+	return c.cache.get(ctx, endpoint, func(ctx context.Context) (json.RawMessage, error) {
+		return c.Request(ctx, http.MethodGet, endpoint, nil)
+	})
+}
+
+// CacheStats reports read-cache counters (zero value with Enabled=false
+// when the cache is off). In-process only; touches no network.
+func (c *Client) CacheStats() CacheStats {
+	return c.cache.stats()
 }
 
 // Post performs a POST request.
