@@ -2,6 +2,8 @@ package mcp
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -86,6 +88,11 @@ func (r *Registry) HasOutputSchema(name string) bool {
 }
 
 // Call executes a tool by name with the given arguments.
+//
+// A panicking handler is recovered here, for every tool, by construction
+// (HG-1). The panic value and stack are logged with a random reference; the
+// caller sees only the tool name and that reference, never the panic value,
+// so a support report can be matched to the log line.
 func (r *Registry) Call(ctx context.Context, name string, args map[string]any) (result json.RawMessage, err error) {
 	e, ok := r.lookup(name)
 	if !ok {
@@ -94,16 +101,26 @@ func (r *Registry) Call(ctx context.Context, name string, args map[string]any) (
 
 	defer func() {
 		if rec := recover(); rec != nil {
+			ref := newPanicRef()
 			slog.Error("Panic recovered in tool handler",
 				"tool", name,
+				"ref", ref,
 				"panic", rec,
 				"stack", string(debug.Stack()))
 			result = nil
-			err = fmt.Errorf("internal error in %s", name)
+			err = fmt.Errorf("internal error in %s (ref %s)", name, ref)
 		}
 	}()
 
 	return e.handler.Handle(ctx, args)
+}
+
+// newPanicRef returns a short random correlation ID (8 bytes, hex) tying a
+// caller-visible internal error to its server-side log line.
+func newPanicRef() string {
+	var b [8]byte
+	_, _ = rand.Read(b[:]) // crypto/rand.Read never returns an error (Go 1.24+)
+	return hex.EncodeToString(b[:])
 }
 
 // Count returns the number of registered tools.

@@ -208,6 +208,7 @@ func TestSDKServerReportsToolFailureAsErrorResult(t *testing.T) {
 // SDK adapter actually routes through it; calling Handler.Handle directly would
 // bypass it and this test is what would catch that.
 func TestSDKServerRecoversHandlerPanic(t *testing.T) {
+	logs := captureSlog(t)
 	session := connectSDKServer(t, testRegistry(t))
 
 	res, err := session.CallTool(context.Background(), &mcp.CallToolParams{Name: "panicking"})
@@ -217,11 +218,22 @@ func TestSDKServerRecoversHandlerPanic(t *testing.T) {
 	if !res.IsError {
 		t.Fatal("a panicking handler reported success; the panic was swallowed")
 	}
-	if got := contentText(t, res); !strings.Contains(got, "internal error in panicking") {
+	got := contentText(t, res)
+	if !strings.Contains(got, "internal error in panicking") {
 		t.Errorf("expected a structured internal-error message, got %q", got)
 	}
-	if got := contentText(t, res); strings.Contains(got, "boom") {
+	if strings.Contains(got, "boom") {
 		t.Errorf("panic value leaked to the caller: %q", got)
+	}
+
+	// Article II: the caller's error carries a reference that also appears
+	// in the server log next to the panic value and stack.
+	ref := panicRefIn(t, got)
+	if !strings.Contains(logs.String(), `"ref":"`+ref+`"`) {
+		t.Errorf("ref %s missing from the panic log: %s", ref, logs.String())
+	}
+	if !strings.Contains(logs.String(), "boom") {
+		t.Error("panic value should be logged server-side")
 	}
 
 	// The session must still be usable afterwards.
