@@ -1,10 +1,13 @@
 {
   "name": "ProductPlan MCP Confusion Pairs",
   "description": "Tests for distinguishing commonly confused ProductPlan tools",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "pairs": [
     {
-      "tools": ["list_roadmaps", "get_roadmap"],
+      "tools": [
+        "list_roadmaps",
+        "get_roadmap"
+      ],
       "distinction": "list_roadmaps returns all roadmaps (no ID needed). get_roadmap returns full details of one specific roadmap (ID required).",
       "tests": [
         {
@@ -30,7 +33,10 @@
       ]
     },
     {
-      "tools": ["get_roadmap", "get_roadmap_bars"],
+      "tools": [
+        "get_roadmap",
+        "get_roadmap_bars"
+      ],
       "distinction": "get_roadmap returns roadmap metadata and settings. get_roadmap_bars returns the bars (items) planned on the roadmap.",
       "tests": [
         {
@@ -56,7 +62,10 @@
       ]
     },
     {
-      "tools": ["get_bar", "get_bar_children"],
+      "tools": [
+        "get_bar",
+        "get_bar_children"
+      ],
       "distinction": "get_bar returns details of one bar. get_bar_children returns nested sub-items under a parent bar.",
       "tests": [
         {
@@ -82,7 +91,10 @@
       ]
     },
     {
-      "tools": ["get_bar_connections", "manage_bar_connection"],
+      "tools": [
+        "get_bar_connections",
+        "manage_bar_connection"
+      ],
       "distinction": "get_bar_connections reads existing dependencies. manage_bar_connection creates or deletes dependencies.",
       "tests": [
         {
@@ -108,7 +120,10 @@
       ]
     },
     {
-      "tools": ["get_bar_links", "manage_bar_link"],
+      "tools": [
+        "get_bar_links",
+        "manage_bar_link"
+      ],
       "distinction": "get_bar_links reads external URLs attached to a bar. manage_bar_link adds or removes links.",
       "tests": [
         {
@@ -134,7 +149,10 @@
       ]
     },
     {
-      "tools": ["list_ideas", "list_opportunities"],
+      "tools": [
+        "list_ideas",
+        "list_opportunities"
+      ],
       "distinction": "list_ideas shows raw feedback/ideas. list_opportunities shows validated ideas that have been promoted.",
       "tests": [
         {
@@ -160,7 +178,10 @@
       ]
     },
     {
-      "tools": ["list_objectives", "get_objective"],
+      "tools": [
+        "list_objectives",
+        "get_objective"
+      ],
       "distinction": "list_objectives returns all OKRs. get_objective returns full details including key results for one objective.",
       "tests": [
         {
@@ -186,7 +207,10 @@
       ]
     },
     {
-      "tools": ["manage_bar", "manage_lane"],
+      "tools": [
+        "manage_bar",
+        "manage_lane"
+      ],
       "distinction": "manage_bar operates on roadmap items (bars). manage_lane operates on swim lanes that organize bars.",
       "tests": [
         {
@@ -212,7 +236,10 @@
       ]
     },
     {
-      "tools": ["manage_idea", "manage_opportunity"],
+      "tools": [
+        "manage_idea",
+        "manage_opportunity"
+      ],
       "distinction": "manage_idea creates/updates raw ideas. manage_opportunity creates or updates validated opportunities (delete not available via API).",
       "tests": [
         {
@@ -238,7 +265,10 @@
       ]
     },
     {
-      "tools": ["list_launches", "get_launch"],
+      "tools": [
+        "list_launches",
+        "get_launch"
+      ],
       "distinction": "list_launches returns all launches. get_launch returns full details of one specific launch.",
       "tests": [
         {
@@ -264,7 +294,10 @@
       ]
     },
     {
-      "tools": ["health_check", "check_status"],
+      "tools": [
+        "health_check",
+        "check_status"
+      ],
       "distinction": "health_check returns server health with optional deep API check. check_status returns ProductPlan API status only.",
       "tests": [
         {
@@ -290,7 +323,10 @@
       ]
     },
     {
-      "tools": ["get_roadmap_milestones", "manage_milestone"],
+      "tools": [
+        "get_roadmap_milestones",
+        "manage_milestone"
+      ],
       "distinction": "get_roadmap_milestones reads existing milestones. manage_milestone creates, updates, or deletes milestones.",
       "tests": [
         {
@@ -316,7 +352,10 @@
       ]
     },
     {
-      "tools": ["list_key_results", "manage_key_result"],
+      "tools": [
+        "list_key_results",
+        "manage_key_result"
+      ],
       "distinction": "list_key_results reads key results for an objective. manage_key_result creates, updates, or deletes key results.",
       "tests": [
         {
@@ -338,6 +377,35 @@
           "prompt": "Update the current value to 85%",
           "expected_tool": "manage_key_result",
           "rationale": "Updating a key result"
+        }
+      ]
+    },
+    {
+      "tools": [
+        "manage_bar",
+        "bulk_update_bars"
+      ],
+      "distinction": "manage_bar changes one bar. bulk_update_bars applies the same or per-item changes to up to 100 bars in one validated call.",
+      "tests": [
+        {
+          "prompt": "Change the color of bar 901 to Committed",
+          "expected_tool": "manage_bar",
+          "rationale": "One bar"
+        },
+        {
+          "prompt": "Set the end date of the SSO bar to 30 June",
+          "expected_tool": "manage_bar",
+          "rationale": "One bar"
+        },
+        {
+          "prompt": "Recolor every bar tagged Q3 as At risk",
+          "expected_tool": "bulk_update_bars",
+          "rationale": "Many bars, shared change"
+        },
+        {
+          "prompt": "Tag all 20 integration bars with 'priority-1'",
+          "expected_tool": "bulk_update_bars",
+          "rationale": "Many bars, shared change"
         }
       ]
     }

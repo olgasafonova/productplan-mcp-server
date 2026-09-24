@@ -91,7 +91,7 @@ Call `manage_objective` with action="create", name, description, time_frame (e.g
 
 1. Call `list_ideas` to see all ideas with vote counts and status
 2. For promising ideas, call `get_idea` for full details
-3. Call `get_idea_customers` to see who requested it
+3. Call `list_all_customers` to see the customers on the account (the API has no per-idea customer list)
 
 ### Capture a new idea
 
@@ -99,8 +99,7 @@ Call `manage_idea` with action="create", title, description
 
 ### Tag ideas for categorization
 
-1. Get idea_id from `list_ideas`
-2. Call `manage_idea_tag` with action="add", idea_id, name (creates tag if new)
+Call `list_all_tags` to see the tags in use. Adding a tag to an idea is not possible through the tools: the ProductPlan API has no endpoint for it, so do it in the ProductPlan UI.
 
 ### Link ideas to opportunities
 
@@ -174,26 +173,30 @@ All dates use YYYY-MM-DD format: "2025-03-15"
 
 ## Tool Quick Reference
 
-### Read tools (24 total)
+### Read tools (35 total)
 
-**Roadmaps:** list_roadmaps, get_roadmap, get_roadmap_bars, get_roadmap_lanes, get_roadmap_milestones, get_roadmap_complete
+**Roadmaps:** list_roadmaps, get_roadmap, get_roadmap_bars, get_roadmap_lanes, get_roadmap_milestones, get_roadmap_legends, get_roadmap_comments, get_roadmap_complete
 
 **Bars:** get_bar, get_bar_children, get_bar_comments, get_bar_connections, get_bar_links
 
-**OKRs:** list_objectives, get_objective, list_key_results
+**OKRs:** list_objectives, get_objective, list_key_results, get_key_result
 
-**Ideas:** list_ideas, get_idea, get_idea_customers, get_idea_tags, list_opportunities, get_opportunity, list_idea_forms, get_idea_form
+**Ideas:** list_ideas, get_idea, list_all_customers, list_all_tags, list_opportunities, get_opportunity, list_idea_forms, get_idea_form
 
-**Launches:** list_launches, get_launch
+**Launches:** list_launches, get_launch, get_launch_sections, get_launch_section, get_launch_tasks, get_launch_task
 
-**Utility:** check_status, health_check
+**Utility:** check_status, health_check, list_users, list_teams
 
-### Write tools (12 total)
+### Write tools (15 total)
 
 **Roadmaps:** manage_bar, manage_lane, manage_milestone
 
-**Bar relationships:** manage_bar_comment, manage_bar_connection, manage_bar_link
+**Bar relationships:** manage_bar_connection, manage_bar_link
+
+**Bulk bars:** bulk_update_bars, bulk_create_bars, bulk_delete_bars (up to 100 bars, dry_run supported)
 
 **OKRs:** manage_objective, manage_key_result
 
-**Ideas:** manage_idea, manage_idea_customer, manage_idea_tag, manage_opportunity
+**Ideas:** manage_idea, manage_opportunity
+
+**Launches:** manage_launch, manage_launch_section, manage_launch_task

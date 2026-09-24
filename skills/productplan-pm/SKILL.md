@@ -61,14 +61,33 @@ list_ideas → idea_id → get_idea → customer/tag data
 1. Get both bar IDs from `get_roadmap_bars`
 2. Call `manage_bar_connection` with action="create", bar_id (source), target_bar_id
 
-### Add comments to features
+### Read comments on features
 
-1. Get bar_id from `get_roadmap_bars`
-2. Call `manage_bar_comment` with action="create", bar_id, content
+Call `get_bar_comments` with bar_id. The ProductPlan API has no endpoint for writing comments.
 
 ### Link external resources
 
-Call `manage_bar_link` with action="create", bar_id, url, title
+Call `manage_bar_link` with action="create", bar_id, url, name. The link is a plain web link: an Azure DevOps or Jira integration link can only be made in the ProductPlan UI.
+
+### Color bars
+
+Bar color comes from the roadmap's legend, set by name.
+
+1. Call `get_roadmap_legends` with roadmap_id to get the legend names
+2. Call `manage_bar` with action="update", bar_id, legend="<legend name>" (matched case-insensitively)
+3. To remove a color, pass clear_legend=true
+
+Never pass `legend_id`: ProductPlan reads it as "clear the color", so the server refuses it.
+
+### Edit many bars at once
+
+Use the bulk tools for more than a couple of bars (up to 100 per call):
+
+1. Find the bars with `get_roadmap_bars` filters (name_contains, lane, legend, tag, starts_after, ...)
+2. Call `bulk_update_bars` with items=[{bar_id}, ...] and a shared `set`, e.g. set={legend:"Committed"}. Run it with dry_run=true first to see the exact payloads
+3. Every item is validated before anything is written; the result lists each bar as ok or failed
+
+`bulk_create_bars` (roadmap_id + items) and `bulk_delete_bars` (bar_ids + confirm=true) work the same way.
 
 ### Manage lanes
 
@@ -78,7 +97,7 @@ Call `manage_bar_link` with action="create", bar_id, url, title
 
 ### Add milestones
 
-Call `manage_milestone` with action="create", roadmap_id, name, date
+Call `manage_milestone` with action="create", roadmap_id, title, date
 
 ## OKR Workflows
 
@@ -110,20 +129,15 @@ Features can be linked to key results in the ProductPlan UI to show OKR alignmen
 
 1. Call `list_ideas` to see all ideas with vote counts and status
 2. For promising ideas, call `get_idea` for full details
-3. Call `get_idea_customers` to see who requested it
+3. Call `list_all_customers` to see the customers on the account (the API has no per-idea customer list)
 
 ### Capture new idea
 
 Call `manage_idea` with action="create", title, description
 
-### Tag ideas
+### Tag ideas and link customers
 
-1. Get idea_id from `list_ideas`
-2. Call `manage_idea_tag` with action="add", idea_id, name (creates tag if new)
-
-### Link customer to idea
-
-Call `manage_idea_customer` with action="add", idea_id, customer_name, customer_email
+Call `list_all_tags` or `list_all_customers` to see what exists. Adding a tag or a customer to an idea is not possible through the tools: the ProductPlan API has no endpoint for it, so do it in the ProductPlan UI.
 
 ### Promote idea to opportunity
 
@@ -150,7 +164,7 @@ Call `get_launch` with launch_id for full checklist and assignments
 ### Create child features
 
 1. Get parent bar_id from `get_roadmap_bars`
-2. Call `manage_bar` with action="create" and parent_id set to parent bar_id
+2. Call `manage_bar` with action="create", container_bar_id set to the parent bar_id, and starts_on/ends_on (ProductPlan refuses to nest an undated bar). The parent must have is_container=true, and the child's parked state must match the parent's
 
 ### View feature hierarchy
 
@@ -199,27 +213,31 @@ Call `get_bar_children` with bar_id to see nested features
 
 ## Tool Reference
 
+50 tools: 35 read, 15 write.
+
 ### Roadmap Tools
-- list_roadmaps, get_roadmap, get_roadmap_complete
-- get_roadmap_bars, get_roadmap_lanes, get_roadmap_milestones
+- list_roadmaps, get_roadmap, get_roadmap_complete, get_roadmap_comments
+- get_roadmap_bars, get_roadmap_lanes, get_roadmap_milestones, get_roadmap_legends
 - manage_bar, manage_lane, manage_milestone
 
 ### Bar Tools
 - get_bar, get_bar_children, get_bar_comments, get_bar_connections, get_bar_links
-- manage_bar_comment, manage_bar_connection, manage_bar_link
+- manage_bar_connection, manage_bar_link
+- bulk_update_bars, bulk_create_bars, bulk_delete_bars
 
 ### OKR Tools
-- list_objectives, get_objective, list_key_results
+- list_objectives, get_objective, list_key_results, get_key_result
 - manage_objective, manage_key_result
 
 ### Idea Tools
-- list_ideas, get_idea, get_idea_customers, get_idea_tags
+- list_ideas, get_idea, list_all_customers, list_all_tags
 - list_opportunities, get_opportunity
 - list_idea_forms, get_idea_form
-- manage_idea, manage_idea_customer, manage_idea_tag, manage_opportunity
+- manage_idea, manage_opportunity
 
 ### Launch Tools
-- list_launches, get_launch
+- list_launches, get_launch, get_launch_sections, get_launch_section, get_launch_tasks, get_launch_task
+- manage_launch, manage_launch_section, manage_launch_task
 
 ### Utility Tools
-- check_status, health_check
+- check_status, health_check, list_users, list_teams

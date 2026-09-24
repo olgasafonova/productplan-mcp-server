@@ -1,7 +1,7 @@
 {
   "name": "ProductPlan MCP Tool Selection",
   "description": "Tests for correct tool selection across ProductPlan operations",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "tests": [
     {
       "id": "roadmap-list-1",
@@ -583,6 +583,41 @@
       "expected_tool": "manage_bar",
       "category": "create",
       "difficulty": "hard"
+    },
+    {
+      "id": "bulk-color-1",
+      "prompt": "Color all 12 eFormidling bars with the Customer satisfaction legend",
+      "expected_tool": "bulk_update_bars",
+      "category": "update",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bulk-move-lane",
+      "prompt": "Move these five bars to the Backend lane",
+      "expected_tool": "bulk_update_bars",
+      "category": "update",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bulk-create-1",
+      "prompt": "Add these eight features to the roadmap in the Platform lane",
+      "expected_tool": "bulk_create_bars",
+      "category": "create",
+      "difficulty": "medium"
+    },
+    {
+      "id": "bulk-delete-1",
+      "prompt": "Delete all the test bars named ZZZ from the roadmap",
+      "expected_tool": "bulk_delete_bars",
+      "category": "delete",
+      "difficulty": "hard"
+    },
+    {
+      "id": "single-color-1",
+      "prompt": "Make bar 901 use the Committed color",
+      "expected_tool": "manage_bar",
+      "category": "update",
+      "difficulty": "easy"
     }
   ]
 }

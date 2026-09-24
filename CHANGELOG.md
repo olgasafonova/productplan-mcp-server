@@ -5,7 +5,17 @@ All notable changes to the ProductPlan MCP Server are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [6.0.0] - 2026-09-24
+
+A major release. The headline is a fix: every "change color" call through earlier versions **removed** the bar's color instead (see Fixed). It also adds bulk bar editing, list filters and a read cache, moves to go-sdk 1.8.0 and Go 1.26, and brings every scorable production file to CodeScene Code Health 10.0.
+
+### Upgrade notes (breaking)
+
+- **Unknown tool arguments are refused.** A call with a parameter the tool doesn't declare now fails with the valid names and a "did you mean" suggestion, instead of silently ignoring it.
+- **Refused with an explanation instead of ignored:** `legend_id` (pass `legend` by name), `effort` on `manage_bar`, and `color` on `manage_lane`. `parent_id` and `container` still work as aliases for `container_bar_id` and `is_container`.
+- **List responses changed shape.** Every list tool now returns the summary-plus-capped-data wrapper its output schema always declared, and bar fields use ProductPlan's names (`starts_on`, `ends_on`, `lane`, `legend`).
+- **`pkg/productplan` exported API changed:** see Removed. Nothing outside this repository is known to import it.
+- **Go 1.26 or newer** is required to build from source.
 
 ### Fixed
 
@@ -46,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Endpoint methods take typed IDs.** `internal/api` defines `RoadmapID`, `LaneID`, `MilestoneID`, `BarID`, `ConnectionID`, `LinkID`, `ObjectiveID`, `KeyResultID`, `IdeaID`, `OpportunityID`, `IdeaFormID`, `LaunchID`, `SectionID` and `TaskID`, and every endpoint method takes them instead of strings. A request path is built only by `route.with`, which accepts nothing but these types and validates each one under its own field name, so an unvalidated ID can no longer reach a URL by construction (previously every method had to remember to call `safeSeg`). The client's raw `Request`, `Get`, `Post`, `Patch`, `Delete` and `GetList` methods are unexported; outside `internal/api` the API is reachable only through the typed endpoints. Validation and error text (`bar_id contains invalid characters ...`) are unchanged, and a new test drives `../` through every ID position of every endpoint against a server that must see zero requests.
 - **Logging runs on `log/slog`.** `internal/logging` is now a `slog.JSONHandler` on stderr that renames the built-in keys to the ones the server has always written (`ts` in UTC RFC 3339 with nanoseconds, lower-case `level`, `msg`); every logger is a `*slog.Logger`. The hand-rolled `Logger` interface, `JSONLogger`, `Level`/`ParseLevel`, `Field`/`F` and the field constructors are gone; call sites build attributes with `slog` directly, keeping the same keys (`endpoint`, `method`, `status_code`, `dur_ms`, `error`, `tool`). One visible difference: keys now appear in call order (`ts`, `level`, `msg`, then attributes) instead of alphabetically, which JSON consumers do not see.
 - Internal refactors: CodeScene Code Health is 10.0 on every scorable production file (56 of 58; `evals/types.go` and `internal/mcp/types.go` hold only type declarations and get no score). Behaviour is unchanged and pinned by the existing tests.
+- **The MCP protocol layer is the official go-sdk** (PRs #54-#58, 31-07 to 03-08-2026; first recorded here). The hand-rolled JSON-RPC loop was replaced in five slices: go-sdk added with tool conversion (#54), the SDK took over transport, handshake, version negotiation and `server/discover` (#55), the old protocol layer was deleted, net -1,228 lines (#56), SEP-2549 cache hints were stamped on list results (#57), and the incoherent `idempotentHint` was dropped from the 35 read-only tools (#58).
 
 ### Removed
 

@@ -20,7 +20,11 @@ Instead of clicking through ProductPlan's interface, just ask:
 
 > "List all ideas tagged 'customer-request'"
 
-The AI fetches your real ProductPlan data and responds in seconds.
+> "Color every eFormidling bar with the Customer satisfaction legend"
+
+> "Move these ten bars to the Platform lane and tag them Q3"
+
+The AI fetches your real ProductPlan data and responds in seconds. Changes to many bars go through one validated call: every bar is checked before anything is written, and you can ask for a dry run first.
 
 ## Who is this for?
 
@@ -325,11 +329,12 @@ Open your AI assistant and try:
 | **Roadmaps** | Yes | - | - | - |
 | **Roadmap Comments** | Yes | - | - | - |
 | **Bars** (roadmap items) | Yes | Yes | Yes | Yes |
+| **Bulk bar edits** (up to 100 per call) | - | Yes | Yes | Yes |
 | **Bar Comments** | Yes | - | - | - |
 | **Bar Connections** | Yes | Yes | - | Yes |
 | **Bar Links** | Yes | Yes | - | Yes |
 | **Lanes** (categories) | Yes | Yes | Yes | Yes |
-| **Legends** (bar colors) | Yes | - | - | - |
+| **Legends** (bar colors) | Yes | - | Assign to bars | - |
 | **Milestones** | Yes | Yes | Yes | Yes |
 | **Ideas** (Discovery) | Yes | Yes | Yes | - |
 | **Idea Customers** | Yes | - | - | - |
@@ -343,6 +348,10 @@ Open your AI assistant and try:
 | **Launch Tasks** | Yes | Yes | Yes | Yes |
 | **Users** | Yes | - | - | - |
 | **Teams** | Yes | - | - | - |
+
+List tools take filters, so you can ask for exactly what you need: bars by name, dates, lane, legend or tag, and ideas, opportunities, launches and roadmaps by name or status.
+
+Some things the ProductPlan API itself does not allow, so no tool can do them: creating legends, setting lane colors, writing comments, removing a bar from its container once nested, and creating Azure DevOps or Jira integration links (links made through the API are plain web links).
 
 ---
 
@@ -447,6 +456,14 @@ Your API token only accesses data you have permission to see in ProductPlan. Che
 
 MCP servers load when your AI assistant starts, not when configs change. After editing your config file, fully quit and restart the application. On Mac, use Cmd+Q (not just closing the window).
 
+**A bar's color didn't change**
+
+Colors are set by legend *name* (for example "Committed"), not by an ID. Ask your assistant to list the roadmap's legends first. Versions before 6.0.0 sent a `legend_id`, which ProductPlan treats as "remove the color"; upgrade if colors keep disappearing.
+
+**"unknown argument" errors**
+
+Since 6.0.0 the server refuses arguments a tool doesn't have, and suggests the closest valid one ("did you mean legend?"). That usually means the assistant guessed a parameter name; it can retry with the suggestion.
+
 **"Permission denied" on Mac/Linux**
 
 The binary needs execute permission. Run:
@@ -473,6 +490,8 @@ productplan ideas            # List all ideas
 productplan opportunities    # List all opportunities
 productplan launches         # List all launches
 ```
+
+**Optional setting:** `PRODUCTPLAN_CACHE_TTL` controls how long read results are cached in memory (default `60s`; `0` turns the cache off). Any change you make through the server clears the cache immediately.
 
 ---
 
@@ -552,6 +571,8 @@ productplan-mcp-server/
 <details>
 <summary>Build from source</summary>
 
+Requires Go 1.26 or newer.
+
 ```bash
 git clone https://github.com/olgasafonova/productplan-mcp-server.git
 cd productplan-mcp-server
@@ -598,15 +619,20 @@ Run evaluation suite:
 ./scripts/run-evals.sh
 ```
 
-**Coverage targets:**
+**Coverage** (measured 24-09-2026, `go test ./... -cover`):
 
 | Package | Coverage |
 |---------|----------|
-| internal/mcp | 97% |
-| internal/logging | 97% |
-| internal/api | 95% |
-| internal/cli | 95% |
-| internal/tools | 90% |
+| internal/logging | 100% |
+| pkg/productplan | 94.5% |
+| internal/mcp | 92.5% |
+| internal/cli | 92.3% |
+| evals | 89.5% |
+| internal/api | 87.4% |
+| internal/tools | 82.3% |
+| cmd/productplan | 34.9% |
+
+Every production file scores 10.0 in CodeScene Code Health (two type-only files can't be scored).
 
 </details>
 
