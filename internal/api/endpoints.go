@@ -41,28 +41,34 @@ func (c *Client) GetRoadmap(ctx context.Context, id string) (json.RawMessage, er
 
 // GetRoadmapLanes returns all lanes for a roadmap.
 func (c *Client) GetRoadmapLanes(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("roadmap_id", id)
-	if err != nil {
-		return nil, err
-	}
-	data, err := c.GetList(ctx, "/roadmaps/"+seg+"/lanes", Query{})
-	if err != nil {
-		return nil, err
-	}
-	return FormatLanes(data), nil
+	return c.roadmapChildList(ctx, roadmapChild{id: id, suffix: "/lanes", format: FormatLanes})
 }
 
 // GetRoadmapMilestones returns all milestones for a roadmap.
 func (c *Client) GetRoadmapMilestones(ctx context.Context, id string) (json.RawMessage, error) {
-	seg, err := safeSeg("roadmap_id", id)
+	return c.roadmapChildList(ctx, roadmapChild{id: id, suffix: "/milestones", format: FormatMilestones})
+}
+
+// roadmapChild names a collection nested under a roadmap and the
+// projection applied to it.
+type roadmapChild struct {
+	id     string
+	suffix string
+	format func(json.RawMessage) json.RawMessage
+}
+
+// roadmapChildList fetches every page of a roadmap's child collection and
+// projects it.
+func (c *Client) roadmapChildList(ctx context.Context, child roadmapChild) (json.RawMessage, error) {
+	seg, err := safeSeg("roadmap_id", child.id)
 	if err != nil {
 		return nil, err
 	}
-	data, err := c.GetList(ctx, "/roadmaps/"+seg+"/milestones", Query{})
+	data, err := c.GetList(ctx, "/roadmaps/"+seg+child.suffix, Query{})
 	if err != nil {
 		return nil, err
 	}
-	return FormatMilestones(data), nil
+	return child.format(data), nil
 }
 
 // GetRoadmapLegends returns the legend names (bar colors) for a roadmap as a
