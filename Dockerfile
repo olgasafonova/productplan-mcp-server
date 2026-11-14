@@ -22,7 +22,8 @@ FROM alpine:3.24
 LABEL io.modelcontextprotocol.server.name="io.github.olgasafonova/productplan-mcp-server"
 
 # Install ca-certificates for HTTPS
-RUN apk add --no-cache ca-certificates
+ARG CERT_REFRESH=unset
+RUN echo "ca-certificates refresh: ${CERT_REFRESH}" && apk add --no-cache ca-certificates
 
 WORKDIR /app
 
