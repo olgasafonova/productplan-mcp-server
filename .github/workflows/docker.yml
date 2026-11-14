@@ -55,3 +55,5 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            CERT_REFRESH=${{ github.run_id }}
