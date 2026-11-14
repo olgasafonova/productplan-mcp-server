@@ -7,11 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.1] - 2026-11-14
+
 ### Fixed
 - Release binaries reported their version as `vv6.0.0`: the build step passed the whole tag as the version and the help text adds its own `v`. The build now strips the leading `v`, as the bundle step already did. Present since before 6.0.0; the 6.0.0 binaries are otherwise unaffected.
 
 ### Infrastructure
 - Committed `server.json` snapshot refreshed to 6.0.0, with every bundle checksum verified by downloading the v6.0.0 release assets.
+
+### Security
+- **The Docker image carries current CA certificates** (#84). The eMudhra intermediate CA keys leaked on 19-10-2026, and Alpine published `ca-certificates` 20261020-r0 the next day. An image keeps the certificates it was built with, and the build cache could reuse the certificate install step across builds. That step now runs on every build. The `latest` image from 6.0.0 predates the leak; this release replaces it.
 
 ## [6.0.0] - 2026-09-24
 
