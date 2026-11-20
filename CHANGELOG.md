@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Every tool now carries a human-readable `title` annotation (for example "Get Roadmap Bars"), written out per tool in `internal/tools/titles.go`.
+- The `get_*`, `list_*`, `check_*`, `health_check` and `manage_*` tools now send `openWorldHint: true` explicitly, as the bulk tools already did.
+- A tool that matches no annotation prefix now gets explicit conservative annotations instead of none, and a test fails if a real tool reaches that case.
+
 ## [6.0.1] - 2026-11-14
 
 ### Fixed

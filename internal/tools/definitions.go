@@ -56,6 +56,7 @@ func BuildAllTools() []mcp.Tool {
 
 	for i := range tools {
 		annotateTool(&tools[i])
+		applyTitle(&tools[i])
 	}
 
 	return tools
@@ -71,6 +72,10 @@ func readOnlyToolName(name string) bool {
 
 // annotateTool fills default annotations based on the tool name prefix,
 // leaving tools with explicit annotations untouched.
+//
+// Every branch sets OpenWorldHint=true explicitly: each tool calls the
+// ProductPlan API (health_check only with deep=true), and the bulk tools in
+// definitions_bulk.go already declare it.
 //
 // Read-only (get_*, list_*, check_*, health_check):
 //
@@ -93,6 +98,14 @@ func readOnlyToolName(name string) bool {
 //	records; action=delete twice 404s on the second call. A blanket
 //	"idempotent" annotation misleads retry-aware clients into
 //	duplicate writes. Leaving the hint unset is the safe default.
+//
+// Anything else (default):
+//
+//	A tool that matches no prefix and declares no annotations gets the
+//	conservative values the spec assumes when hints are omitted
+//	(DestructiveHint=true, OpenWorldHint=true), set explicitly so no tool
+//	ships with nil annotations. TestEveryToolIsClassified fails if a real
+//	tool lands here, so a new tool must be classified on purpose.
 func annotateTool(tool *mcp.Tool) {
 	if tool.Annotations != nil {
 		return
@@ -100,7 +113,8 @@ func annotateTool(tool *mcp.Tool) {
 	switch {
 	case readOnlyToolName(tool.Name):
 		tool.Annotations = &mcp.ToolAnnotations{
-			ReadOnlyHint: true,
+			ReadOnlyHint:  true,
+			OpenWorldHint: boolPtr(true),
 		}
 		// Read tools return the uniform FormattedResponse wrapper, so
 		// they declare an OutputSchema and become Code Mode eligible.
@@ -111,6 +125,12 @@ func annotateTool(tool *mcp.Tool) {
 	case strings.HasPrefix(tool.Name, "manage_"):
 		tool.Annotations = &mcp.ToolAnnotations{
 			DestructiveHint: boolPtr(true),
+			OpenWorldHint:   boolPtr(true),
+		}
+	default:
+		tool.Annotations = &mcp.ToolAnnotations{
+			DestructiveHint: boolPtr(true),
+			OpenWorldHint:   boolPtr(true),
 		}
 	}
 }
